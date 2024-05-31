@@ -6,14 +6,18 @@ import os
 import flwr as fl
 import tensorflow as tf
 
-#########################################################
-#    Initialization                                     #
-#########################################################
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+#########################################################
+#    Dataset Processing                                 #
+#########################################################
 
 # Creates the train and test dataset from calling cifar10 in TF
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+#########################################################
+#    Model Initialization                               #
+#########################################################
 
 # initialize model with TF and keras
 model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
