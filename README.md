@@ -17,12 +17,12 @@ Undergraduate Researchers:
 
 * Clone the repo
 
-* open terminal in the DockerSetup directory
+* Open terminal in the DockerSetup directory
 
-* enter: 
+* Run: 
   * docker-compose up
   
-* If this doesn't work enter:
+* If there was an error, run:
   * docker build -t flwr-server -f Dockerfile.server .
   * docker build -t flwr-client -f Dockerfile.client .
   * docker-compose build
