@@ -1,0 +1,25 @@
+services:
+  server:
+    image: flwr-server
+    ports:
+      - "8080:8080"
+    networks:
+      - flwr_network
+
+  client1:
+    image: flwr-client
+    depends_on:
+      - server
+    networks:
+      - flwr_network
+
+  client2:
+    image: flwr-client
+    depends_on:
+      - server
+    networks:
+      - flwr_network
+
+networks:
+  flwr_network:
+    driver: bridge

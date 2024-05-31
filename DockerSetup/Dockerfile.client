@@ -1,0 +1,17 @@
+# Use the TensorFlow base image
+FROM tensorflow/tensorflow:latest
+
+# Add metadata to the image
+LABEL authors="kskos"
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install Flower
+RUN pip install flwr
+
+# Copy the client code to the working directory
+COPY client.py /app/client.py
+
+# Command to run the Flower client
+CMD ["python", "client.py"]
