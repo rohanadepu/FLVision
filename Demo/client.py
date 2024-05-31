@@ -1,17 +1,31 @@
+#########################################################
+#    Imports / Env setup                                #
+#########################################################
+
 import os
 import flwr as fl
 import tensorflow as tf
 
+#########################################################
+#    Initialization                                     #
+#########################################################
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+# Creates the train and test dataset from calling cifar10 in TF
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
+# initialize model with TF and keras
 model = tf.keras.applications.MobileNetV2((32, 32, 3), classes=10, weights=None)
 model.compile(optimizer='adam',
               loss=tf.keras.losses.sparse_categorical_crossentropy,
               metrics=['accuracy'])
 
-class CifarClient(fl.client.NumPyClient):
+#########################################################
+#    Federated Learning Setup                           #
+#########################################################
+
+class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
 
@@ -25,4 +39,8 @@ class CifarClient(fl.client.NumPyClient):
         loss, accuracy = model.evaluate(x_test, y_test)
         return loss, len(x_test), {"accuracy": float(accuracy)}
 
-fl.client.start_client(server_address="server:8080", client=CifarClient().to_client())
+#########################################################
+#    Start the client                                   #
+#########################################################
+
+fl.client.start_client(server_address="server:8080", client=FLClient().to_client())
