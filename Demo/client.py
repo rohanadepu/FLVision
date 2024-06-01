@@ -38,7 +38,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #########################################################
 #    Dataset Processing For CICIOT 2023                 #
 #########################################################
-DATASET_DIRECTORY = '../archive/'
+DATASET_DIRECTORY = '../ciciot2023_archive/'
 
 # List the files in the dataset
 csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
