@@ -5,7 +5,7 @@
 import flwr as fl
 
 #########################################################
-#    Initialize & Start Server                          #
+#    Initialize, Setup, & Start Server                          #
 #########################################################
 
 fl.server.start_server(
