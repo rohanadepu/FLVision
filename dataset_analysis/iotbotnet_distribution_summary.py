@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import random
 
+from sklearn.model_selection import train_test_split
 
 
 # Function to load all files from a given directory
@@ -26,6 +27,24 @@ def load_files_from_directory(directory, file_extension=".csv", sample_size=None
         dataframes.append(df)
 
     return dataframes
+
+# Function to split a DataFrame into train and test sets
+def split_train_test(dataframe, test_size=0.2):
+    train_df, test_df = train_test_split(dataframe, test_size=test_size)
+    return train_df, test_df
+
+# Function to combine subcategories into general classes
+def combine_general_attacks(ddos_dataframes, dos_dataframes, scan_dataframes, theft_dataframes):
+    ddos_combined = pd.concat(ddos_dataframes, ignore_index=True)
+    dos_combined = pd.concat(dos_dataframes, ignore_index=True)
+    scan_combined = pd.concat(scan_dataframes, ignore_index=True)
+    theft_combined = pd.concat(theft_dataframes, ignore_index=True)
+    return ddos_combined, dos_combined, scan_combined, theft_combined
+
+# Function to combine all dataframes into one
+def combine_all_attacks(dataframes):
+    combined_df = pd.concat(dataframes, ignore_index=True)
+    return combined_df
 
 sample_size = 2
 
@@ -81,6 +100,26 @@ all_scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
 all_theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
 all_theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
+# Combine subcategories into general classes
+ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
+    [all_ddos_udp_data, all_ddos_tcp_data, all_ddos_http_data],
+    [all_dos_udp_data, all_dos_tcp_data, all_dos_http_data],
+    [all_scan_os_data, all_scan_service_data],
+    [all_theft_data_exfiltration_data, all_theft_keylogging_data]
+)
+
+# Combine all attacks into one DataFrame
+all_attacks_combined = combine_all_attacks([
+    ddos_combined, dos_combined, scan_combined, theft_combined
+])
+
+# Split each combined DataFrame into train and test sets
+ddos_train, ddos_test = split_train_test(ddos_combined)
+dos_train, dos_test = split_train_test(dos_combined)
+scan_train, scan_test = split_train_test(scan_combined)
+theft_train, theft_test = split_train_test(theft_combined)
+all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
+
 # Display the first few rows of the combined DataFrames
 print("DDoS UDP Data:")
 print(all_ddos_udp_data.head())
@@ -111,6 +150,37 @@ print(all_theft_data_exfiltration_data.head())
 
 print("Theft Keylogging Data:")
 print(all_theft_keylogging_data.head())
+
+# Display the first few rows of each combined DataFrame
+print("DDoS Combined Data (Train):")
+print(ddos_train.head())
+
+print("DDoS Combined Data (Test):")
+print(ddos_test.head())
+
+print("DoS Combined Data (Train):")
+print(dos_train.head())
+
+print("DoS Combined Data (Test):")
+print(dos_test.head())
+
+print("Scan Combined Data (Train):")
+print(scan_train.head())
+
+print("Scan Combined Data (Test):")
+print(scan_test.head())
+
+print("Theft Combined Data (Train):")
+print(theft_train.head())
+
+print("Theft Combined Data (Test):")
+print(theft_test.head())
+
+print("All Attacks Combined Data (Train):")
+print(all_attacks_train.head())
+
+print("All Attacks Combined Data (Test):")
+print(all_attacks_test.head())
 
 # Save the combined DataFrames to new CSV files if needed
 # all_ddos_udp_data.to_csv('combined_ddos_udp_data.csv', index=False)
