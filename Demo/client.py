@@ -38,6 +38,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #########################################################
 #    Dataset Processing For CICIOT 2023                 #
 #########################################################
+
+### Loading Data ###
+
 DATASET_DIRECTORY = '../ciciot2023_archive/'
 
 # List the files in the dataset
@@ -45,14 +48,19 @@ csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filen
 print(csv_filepaths)
 
 # If there are more than X CSV files, randomly select X files from the list
-sample_size = 1
+sample_size = 2  # input: 2 at minimum
 if len(csv_filepaths) > sample_size:
     csv_filepaths = random.sample(csv_filepaths, sample_size)
     print(csv_filepaths)
 csv_filepaths.sort()
+split_index = int(len(csv_filepaths) * 0.8)
 
-# list of csv files used for training data sets
-training_data_sets = csv_filepaths
+
+training_data_sets = csv_filepaths[:split_index]
+test_data_sets = csv_filepaths[split_index:]
+
+print("Training Sets:\n",training_data_sets, "\n")
+print("Test Sets:\n",test_data_sets)
 
 # Mapping Features
 num_cols = [
@@ -103,13 +111,21 @@ for data_set in training_data_sets:
     print(f"data set {data_set} out of {len(training_data_sets)} \n")
     data_path = os.path.join(DATASET_DIRECTORY, data_set)
     df = pd.read_csv(data_path)
-    real_train_data = pd.concat([real_train_data, df])
+    real_train_data = pd.concat([real_train_data, df])  # dataframe to manipulate
+
+## Remapping for other Classifications ##
 
 # Relabel the 'label' column using dict_7classes
 #real_train_data['label'] = real_train_data['label'].map(dict_7classes)
 
 # Relabel the 'label' column using dict_2classes
 #real_train_data['label'] = real_train_data['label'].map(dict_2classes)
+
+### Processing loaded data ###
+
+# test train split
+
+# x(feature) y(label) split
 
 #########################################################
 #    Dataset Processing For IOTBOTNET 2023              #
