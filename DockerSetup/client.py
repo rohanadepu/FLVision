@@ -35,186 +35,198 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+dataset_used = "CICIOT"
+
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
 #########################################################
+if dataset_used == "CICIOT":
+    ### Inputs ###
+    ciciot_sample_size = 2  # input: 2 at minimum
+    # label classes 33+1 7+1 1+1
+    ciciot_label_class = "33+1"
 
-DATASET_DIRECTORY = './CICIOTDataset/'
 
-# List the files in the dataset
-csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
-print(csv_filepaths)
+    DATASET_DIRECTORY = './CICIOTDataset/'
 
-# If there are more than X CSV files, randomly select X files from the list
-sample_size = 2  # input: 2 at minimum
-if len(csv_filepaths) > sample_size:
-    csv_filepaths = random.sample(csv_filepaths, sample_size)
+    # List the files in the dataset
+    csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
     print(csv_filepaths)
-csv_filepaths.sort()
-split_index = int(len(csv_filepaths) * 0.5)
 
-training_data_sets = csv_filepaths[:split_index]
-test_data_sets = csv_filepaths[split_index:]
+    # If there are more than X CSV files, randomly select X files from the list
 
-print("Training Sets:\n", training_data_sets, "\n")
-print("Test Sets:\n", test_data_sets)
+    if len(csv_filepaths) > ciciot_sample_size:
+        csv_filepaths = random.sample(csv_filepaths, ciciot_sample_size)
+        print(csv_filepaths)
+    csv_filepaths.sort()
+    split_index = int(len(csv_filepaths) * 0.5)
 
-# Mapping Features
-num_cols = [
-    'flow_duration', 'Header_Length', 'Duration',
-    'Rate', 'Srate', 'ack_count', 'syn_count',
-    'fin_count', 'urg_count', 'rst_count', 'Tot sum',
-    'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-    'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-]
+    training_data_sets = csv_filepaths[:split_index]
+    test_data_sets = csv_filepaths[split_index:]
 
-cat_cols = [
-    'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
-    'psh_flag_number', 'ack_flag_number', 'ece_flag_number',
-    'cwr_flag_number', 'HTTP', 'HTTPS', 'DNS', 'Telnet',
-    'SMTP', 'SSH', 'IRC', 'TCP', 'UDP', 'DHCP', 'ARP',
-    'ICMP', 'IPv', 'LLC', 'label'
-]
+    print("Training Sets:\n", training_data_sets, "\n")
+    print("Test Sets:\n", test_data_sets)
 
-# Mapping Labels
-dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
-                 'DDoS-UDP_Flood': 'DDoS', 'DDoS-TCP_Flood': 'DDoS', 'DDoS-ICMP_Flood': 'DDoS',
-                 'DDoS-SynonymousIP_Flood': 'DDoS', 'DDoS-ACK_Fragmentation': 'DDoS', 'DDoS-UDP_Fragmentation': 'DDoS',
-                 'DDoS-ICMP_Fragmentation': 'DDoS', 'DDoS-SlowLoris': 'DDoS', 'DDoS-HTTP_Flood': 'DDoS',
-                 'DoS-UDP_Flood': 'DoS', 'DoS-SYN_Flood': 'DoS', 'DoS-TCP_Flood': 'DoS', 'DoS-HTTP_Flood': 'DoS',
-                 'Mirai-greeth_flood': 'Mirai', 'Mirai-greip_flood': 'Mirai', 'Mirai-udpplain': 'Mirai',
-                 'Recon-PingSweep': 'Recon', 'Recon-OSScan': 'Recon', 'Recon-PortScan': 'Recon',
-                 'VulnerabilityScan': 'Recon', 'Recon-HostDiscovery': 'Recon', 'DNS_Spoofing': 'Spoofing',
-                 'MITM-ArpSpoofing': 'Spoofing', 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Web',
-                 'Backdoor_Malware': 'Web', 'XSS': 'Web', 'Uploading_Attack': 'Web', 'SqlInjection': 'Web',
-                 'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'}
+    # Mapping Features
+    num_cols = [
+        'flow_duration', 'Header_Length', 'Duration',
+        'Rate', 'Srate', 'ack_count', 'syn_count',
+        'fin_count', 'urg_count', 'rst_count', 'Tot sum',
+        'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+        'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
+    ]
 
-dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
-                 'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
-                 'DDoS-SynonymousIP_Flood': 'Attack', 'DDoS-ACK_Fragmentation': 'Attack',
-                 'DDoS-UDP_Fragmentation': 'Attack', 'DDoS-ICMP_Fragmentation': 'Attack', 'DDoS-SlowLoris': 'Attack',
-                 'DDoS-HTTP_Flood': 'Attack', 'DoS-UDP_Flood': 'Attack', 'DoS-SYN_Flood': 'Attack',
-                 'DoS-TCP_Flood': 'Attack', 'DoS-HTTP_Flood': 'Attack', 'Mirai-greeth_flood': 'Attack',
-                 'Mirai-greip_flood': 'Attack', 'Mirai-udpplain': 'Attack', 'Recon-PingSweep': 'Attack',
-                 'Recon-OSScan': 'Attack', 'Recon-PortScan': 'Attack', 'VulnerabilityScan': 'Attack',
-                 'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
-                 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack', 'XSS': 'Attack',
-                 'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
-                 'DictionaryBruteForce': 'Attack'}
+    cat_cols = [
+        'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
+        'psh_flag_number', 'ack_flag_number', 'ece_flag_number',
+        'cwr_flag_number', 'HTTP', 'HTTPS', 'DNS', 'Telnet',
+        'SMTP', 'SSH', 'IRC', 'TCP', 'UDP', 'DHCP', 'ARP',
+        'ICMP', 'IPv', 'LLC', 'label'
+    ]
 
-# Extracting data from csv to input into data frame
-ciciot_train_data = pd.DataFrame()
-for data_set in training_data_sets:
-    print(f"data set {data_set} out of {len(training_data_sets)} \n")
-    data_path = os.path.join(DATASET_DIRECTORY, data_set)
-    df = pd.read_csv(data_path)
-    ciciot_train_data = pd.concat([ciciot_train_data, df])  # dataframe to manipulate
+    # Mapping Labels
+    dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
+                     'DDoS-UDP_Flood': 'DDoS', 'DDoS-TCP_Flood': 'DDoS', 'DDoS-ICMP_Flood': 'DDoS',
+                     'DDoS-SynonymousIP_Flood': 'DDoS', 'DDoS-ACK_Fragmentation': 'DDoS', 'DDoS-UDP_Fragmentation': 'DDoS',
+                     'DDoS-ICMP_Fragmentation': 'DDoS', 'DDoS-SlowLoris': 'DDoS', 'DDoS-HTTP_Flood': 'DDoS',
+                     'DoS-UDP_Flood': 'DoS', 'DoS-SYN_Flood': 'DoS', 'DoS-TCP_Flood': 'DoS', 'DoS-HTTP_Flood': 'DoS',
+                     'Mirai-greeth_flood': 'Mirai', 'Mirai-greip_flood': 'Mirai', 'Mirai-udpplain': 'Mirai',
+                     'Recon-PingSweep': 'Recon', 'Recon-OSScan': 'Recon', 'Recon-PortScan': 'Recon',
+                     'VulnerabilityScan': 'Recon', 'Recon-HostDiscovery': 'Recon', 'DNS_Spoofing': 'Spoofing',
+                     'MITM-ArpSpoofing': 'Spoofing', 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Web',
+                     'Backdoor_Malware': 'Web', 'XSS': 'Web', 'Uploading_Attack': 'Web', 'SqlInjection': 'Web',
+                     'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'}
 
-ciciot_test_data = pd.DataFrame()
-for test_set in test_data_sets:
-    print(f"Testing set {test_set} out of {len(test_data_sets)} \n")
-    data_path = os.path.join(DATASET_DIRECTORY, test_set)
-    df = pd.read_csv(data_path)
-    ciciot_test_data = pd.concat([df])
+    dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
+                     'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
+                     'DDoS-SynonymousIP_Flood': 'Attack', 'DDoS-ACK_Fragmentation': 'Attack',
+                     'DDoS-UDP_Fragmentation': 'Attack', 'DDoS-ICMP_Fragmentation': 'Attack', 'DDoS-SlowLoris': 'Attack',
+                     'DDoS-HTTP_Flood': 'Attack', 'DoS-UDP_Flood': 'Attack', 'DoS-SYN_Flood': 'Attack',
+                     'DoS-TCP_Flood': 'Attack', 'DoS-HTTP_Flood': 'Attack', 'Mirai-greeth_flood': 'Attack',
+                     'Mirai-greip_flood': 'Attack', 'Mirai-udpplain': 'Attack', 'Recon-PingSweep': 'Attack',
+                     'Recon-OSScan': 'Attack', 'Recon-PortScan': 'Attack', 'VulnerabilityScan': 'Attack',
+                     'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
+                     'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack', 'XSS': 'Attack',
+                     'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
+                     'DictionaryBruteForce': 'Attack'}
+
+    # Extracting data from csv to input into data frame
+    ciciot_train_data = pd.DataFrame()
+    for data_set in training_data_sets:
+        print(f"data set {data_set} out of {len(training_data_sets)} \n")
+        data_path = os.path.join(DATASET_DIRECTORY, data_set)
+        df = pd.read_csv(data_path)
+        ciciot_train_data = pd.concat([ciciot_train_data, df])  # dataframe to manipulate
+
+    ciciot_test_data = pd.DataFrame()
+    for test_set in test_data_sets:
+        print(f"Testing set {test_set} out of {len(test_data_sets)} \n")
+        data_path = os.path.join(DATASET_DIRECTORY, test_set)
+        df = pd.read_csv(data_path)
+        ciciot_test_data = pd.concat([df])
 
 #########################################################
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-## Remapping for other Classifications ##
+    ## Remapping for other Classifications ##
 
-# Relabel the 'label' column using dict_7classes
-#real_train_data['label'] = real_train_data['label'].map(dict_7classes)
+    if ciciot_label_class == "7+1":
+        # Relabel the 'label' column using dict_7classes
+        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
+        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
 
-# Relabel the 'label' column using dict_2classes
-#real_train_data['label'] = real_train_data['label'].map(dict_2classes)
+    if ciciot_label_class == "1+1":
+        # Relabel the 'label' column using dict_2classes
+        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
+        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
-# Shuffle data
-ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
+    # Shuffle data
+    ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
 
-# prints an instance of each class
-print("Before Encoding and Scaling:")
-unique_labels = ciciot_train_data['label'].unique()
-for label in unique_labels:
-    print(f"First instance of {label}:")
-    print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
+    # prints an instance of each class
+    print("Before Encoding and Scaling:")
+    unique_labels = ciciot_train_data['label'].unique()
+    for label in unique_labels:
+        print(f"First instance of {label}:")
+        print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
-# ---                   Scaling                     --- #
+    # ---                   Scaling                     --- #
 
-# Setting up Scaler for Features
-# scaler = RobustScaler()
-scaler = MinMaxScaler(feature_range=(0, 1))
-# transformer = PowerTransformer(method='yeo-johnson')
+    # Setting up Scaler for Features
+    # scaler = RobustScaler()
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    # transformer = PowerTransformer(method='yeo-johnson')
 
-# train the scalar on train data features
-scaler.fit(ciciot_train_data[num_cols])
+    # train the scalar on train data features
+    scaler.fit(ciciot_train_data[num_cols])
 
-# Save the Scaler for use in other files
-# joblib.dump(scaler, 'RobustScaler_.pkl')
-# joblib.dump(scaler, f'./MinMaxScaler.pkl')
-# joblib.dump(scaler, 'PowerTransformer_.pkl')
+    # Save the Scaler for use in other files
+    # joblib.dump(scaler, 'RobustScaler_.pkl')
+    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
+    # joblib.dump(scaler, 'PowerTransformer_.pkl')
 
-# Scale the features in the real train dataframe
-ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
-ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
+    # Scale the features in the real train dataframe
+    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
+    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
 
-# prove if the data is loaded properly
-print("Real data After Scaling (TRAIN):")
-print(ciciot_train_data.head())
-# print(real_train_data[:2])
-print(ciciot_train_data.shape)
+    # prove if the data is loaded properly
+    print("Real data After Scaling (TRAIN):")
+    print(ciciot_train_data.head())
+    # print(real_train_data[:2])
+    print(ciciot_train_data.shape)
 
-# prove if the data is loaded properly
-print("Real data After Scaling (TEST):")
-print(ciciot_test_data.head())
-# print(real_train_data[:2])
-print(ciciot_test_data.shape)
+    # prove if the data is loaded properly
+    print("Real data After Scaling (TEST):")
+    print(ciciot_test_data.head())
+    # print(real_train_data[:2])
+    print(ciciot_test_data.shape)
 
 # ---                   Labeling                     --- #
 
-# Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
-unique_labels = ciciot_train_data['label'].nunique()
+    # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
+    unique_labels = ciciot_train_data['label'].nunique()
 
-# Print the number of unique labels
-print(f"There are {unique_labels} unique labels in the dataset.")
+    # Print the number of unique labels
+    print(f"There are {unique_labels} unique labels in the dataset.")
 
-# print the amount of instances for each label
-class_counts = ciciot_train_data['label'].value_counts()
-print(class_counts)
+    # print the amount of instances for each label
+    class_counts = ciciot_train_data['label'].value_counts()
+    print(class_counts)
 
-# Display the first few entries to verify the changes
-print(ciciot_train_data.head())
+    # Display the first few entries to verify the changes
+    print(ciciot_train_data.head())
 
-# Encodes the training label
-label_encoder = LabelEncoder()
-ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
+    # Encodes the training label
+    label_encoder = LabelEncoder()
+    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
+    ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
 
-# Store label mappings
-label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
-print("Label mappings:", label_mapping)
+    # Store label mappings
+    label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
+    print("Label mappings:", label_mapping)
 
-# Retrieve the numeric codes for classes
-class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
+    # Retrieve the numeric codes for classes
+    class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
-# Print specific instances after label encoding
-print("Real data After Encoding:")
-for label, code in class_codes.items():
-    # Print the first instance of each class
-    print(f"First instance of {label} (code {code}):")
-    print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
-print(ciciot_train_data.head(), "\n")
+    # Print specific instances after label encoding
+    print("Real data After Encoding:")
+    for label, code in class_codes.items():
+        # Print the first instance of each class
+        print(f"First instance of {label} (code {code}):")
+        print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+    print(ciciot_train_data.head(), "\n")
 
-# Feature / Label Split (X y split)
-X_train_data = ciciot_train_data.drop(columns=['label'])
-y_train_data = ciciot_train_data['label']
+    # Feature / Label Split (X y split)
+    X_train_data = ciciot_train_data.drop(columns=['label'])
+    y_train_data = ciciot_train_data['label']
 
-X_test_data = ciciot_test_data.drop(columns=['label'])
-y_test_data = ciciot_test_data['label']
+    X_test_data = ciciot_test_data.drop(columns=['label'])
+    y_test_data = ciciot_test_data['label']
 
-# Print the shapes of the resulting splits
-print("X_train shape:", X_train_data.shape)
-print("y_train shape:", y_train_data.shape)
+    # Print the shapes of the resulting splits
+    print("X_train shape:", X_train_data.shape)
+    print("y_train shape:", y_train_data.shape)
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
@@ -426,6 +438,7 @@ print("y_train shape:", y_train_data.shape)
 
 
 input_dim = X_train_data.shape[1]
+print("///////////////////////////////////////////////")
 print("Unique Labels:", unique_labels)
 print("Input Dim:", input_dim)
 
