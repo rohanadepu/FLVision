@@ -8,6 +8,10 @@ services:
 
   client1:
     image: flwr-client
+    volumes:
+      - .:/app
+      - C:/Users/kskos/PycharmProjects/FLVision/ciciot2023_archive:/app/CICIOTDataset
+    working_dir: /app
     depends_on:
       - server
     networks:
@@ -15,6 +19,10 @@ services:
 
   client2:
     image: flwr-client
+    volumes:
+      - .:/app
+      - C:/Users/kskos/PycharmProjects/FLVision/ciciot2023_archive:/app/CICIOTDataset
+    working_dir: /app
     depends_on:
       - server
     networks:

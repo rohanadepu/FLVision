@@ -89,23 +89,23 @@ theft_keylogging_directory = '../iotbotnet2020_archive/theft/keylogging'
 theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
 # Optionally, concatenate all dataframes if needed
-all_ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
-all_ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
-all_ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
-all_dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
-all_dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
-all_dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
-all_scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
-all_scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
-all_theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
-all_theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
+ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
+ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
+ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
+dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
+dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
+dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
+theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
 # Combine subcategories into general classes
 ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
-    [all_ddos_udp_data, all_ddos_tcp_data, all_ddos_http_data],
-    [all_dos_udp_data, all_dos_tcp_data, all_dos_http_data],
-    [all_scan_os_data, all_scan_service_data],
-    [all_theft_data_exfiltration_data, all_theft_keylogging_data]
+    [ddos_udp_data, ddos_tcp_data, ddos_http_data],
+    [dos_udp_data, dos_tcp_data, dos_http_data],
+    [scan_os_data, scan_service_data],
+    [theft_data_exfiltration_data, theft_keylogging_data]
 )
 
 # Combine all attacks into one DataFrame
@@ -122,34 +122,34 @@ all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
 # Display the first few rows of the combined DataFrames
 print("DDoS UDP Data:")
-print(all_ddos_udp_data.head())
+print(ddos_udp_data.head())
 
 print("DDoS TCP Data:")
-print(all_ddos_tcp_data.head())
+print(ddos_tcp_data.head())
 
 print("DDoS HTTP Data:")
-print(all_ddos_http_data.head())
+print(ddos_http_data.head())
 
 print("DoS UDP Data:")
-print(all_dos_udp_data.head())
+print(dos_udp_data.head())
 
 print("DoS TCP Data:")
-print(all_dos_tcp_data.head())
+print(dos_tcp_data.head())
 
 print("DoS HTTP Data:")
-print(all_dos_http_data.head())
+print(dos_http_data.head())
 
 print("Scan OS Data:")
-print(all_scan_os_data.head())
+print(scan_os_data.head())
 
 print("Scan Service Data:")
-print(all_scan_service_data.head())
+print(scan_service_data.head())
 
 print("Theft Data Exfiltration Data:")
-print(all_theft_data_exfiltration_data.head())
+print(theft_data_exfiltration_data.head())
 
 print("Theft Keylogging Data:")
-print(all_theft_keylogging_data.head())
+print(theft_keylogging_data.head())
 
 # Display the first few rows of each combined DataFrame
 print("DDoS Combined Data (Train):")
