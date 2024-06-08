@@ -44,7 +44,7 @@ if dataset_used == "CICIOT":
     ### Inputs ###
     ciciot_sample_size = 2  # input: 2 at minimum
     # label classes 33+1 7+1 1+1
-    ciciot_label_class = "33+1"
+    ciciot_label_class = "7+1"
 
 
     DATASET_DIRECTORY = './CICIOTDataset/'
@@ -431,7 +431,7 @@ if dataset_used == "CICIOT":
 #########################################################
 #### DEMO MODEL ######
 # initialize model with TF and keras
-# model = tf.keras.applications.MobileNetV2((46, 32, 3), classes=34, weights=None)
+# model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
 # model.compile(optimizer='adam',
 #               loss=tf.keras.losses.sparse_categorical_crossentropy,
 #               metrics=['accuracy'])
@@ -445,9 +445,10 @@ print("Input Dim:", input_dim)
 # Define a dense neural network for anomaly detection
 model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(input_dim,)),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(unique_labels, activation='softmax')  # unique_labels is the number of classes
+    tf.keras.layers.Dense(32, activation='relu'),
+    tf.keras.layers.Dense(16, activation='relu'),
+    tf.keras.layers.Dense(8, activation='relu'),
+    tf.keras.layers.Dense(unique_labels, activation='sigmoid')  # unique_labels is the number of classes
 ])
 
 model.compile(optimizer='adam',
@@ -478,4 +479,4 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="server:8080", client=FLClient().to_client())
+fl.client.start_client(server_address="192.168.11.2:8080", client=FLClient().to_client())
