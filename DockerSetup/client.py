@@ -585,4 +585,4 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="server:8080", client=FLClient().to_client())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
