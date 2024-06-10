@@ -36,7 +36,7 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-dataset_used = "CICIOT"
+dataset_used = "IOTBOTNET"
 
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
@@ -45,7 +45,7 @@ if dataset_used == "CICIOT":
     ### Inputs ###
     ciciot_sample_size = 2  # input: 2 at minimum
     # label classes 33+1 7+1 1+1
-    ciciot_label_class = "7+1"
+    ciciot_label_class = "1+1"
 
 
     DATASET_DIRECTORY = '../../trainingDataset/ciciot/'
@@ -241,7 +241,7 @@ if dataset_used == "CICIOT":
 #    Load Dataset For IOTBOTNET 2023                    #
 #########################################################
 if dataset_used == "IOTBOTNET":
-    # Function to load all files from a given directory
+
     def load_files_from_directory(directory, file_extension=".csv", sample_size=None):
         dataframes = []
         all_files = []
@@ -426,26 +426,69 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 #    Process Dataset For IOTBOTNET 2020                 #
 #########################################################
+    relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', ' Bwd_Pkt/s', 'Pkt_Ten_Mean', 'Dst_Port', 'Bwd_IAT_Max',
+                                   'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
+                                   'Fwd_Pkts/s', 'Bwd_Tat_IoT', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
+
     # Split the dataset into features and labels
+    X_train = all_attacks_train[relevant_features_iotbotnet]
+    y_train = all_attacks_train['Label']
 
-    # clean dataset
+    X_test = all_attacks_test[relevant_features_iotbotnet]
+    y_test = all_attacks_test['Label']
 
-    # extract feautures and proper labels
+    # Clean the dataset by dropping rows with missing values
+    X_train = X_train.dropna()
+    y_train = y_train.loc[X_train.index]  # Ensure labels match the cleaned data
 
-    # feature scaling
+    X_test = X_test.dropna()
+    y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
 
-    # label encoding
+    # Initialize the scaler
+    scaler = MinMaxScaler(feature_range=(0, 1))
+
+    # Fit and transform the training data
+    X_train_scaled = scaler.fit_transform(X_train)
+
+    # Transform the test data
+    X_test_scaled = scaler.transform(X_test)
+
+    # Initialize the encoder
+    label_encoder = LabelEncoder()
+
+    # Fit and transform the training labels
+    y_train_encoded = label_encoder.fit_transform(y_train)
+
+    # Transform the test labels
+    y_test_encoded = label_encoder.transform(y_test)
+
+    # Optionally, shuffle the training data
+    X_train_scaled, y_train_encoded = shuffle(X_train_scaled, y_train_encoded, random_state=47)
+
+    # Print an instance of each class in the new train data
+    print("After Encoding and Scaling:")
+    unique_labels = pd.Series(y_train_encoded).unique()
+    for label in unique_labels:
+        print(f"First instance of {label}:")
+        print(X_train_scaled[pd.Series(y_train_encoded) == label][0])
+
+    # renaming all datasets to match the format for the models
+
+    # train
+    X_train_data = X_train_scaled
+    X_test_data = X_test_scaled
+
+    # test
+    y_train_data = y_train_encoded
+    y_test_data = y_test_encoded
 
 #########################################################
 #    Dataset Processing For Default Cifar10             #
 #########################################################
 
-    # Creates the train and test dataset from calling cifar10 in TF
-    # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+# Creates the train and test dataset from calling cifar10 in TF
+# (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
-#########################################################
-#    Model Initialization & Setup                       #
-#########################################################
 #### DEMO MODEL ######
 # initialize model with TF and keras
 # model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
@@ -453,14 +496,19 @@ if dataset_used == "IOTBOTNET":
 #               loss=tf.keras.losses.sparse_categorical_crossentropy,
 #               metrics=['accuracy'])
 
+#########################################################
+#    Model Initialization & Setup                       #
+#########################################################
 
 input_dim = X_train_data.shape[1]
+
 print("///////////////////////////////////////////////")
 print("Unique Labels:", unique_labels)
 print("Input Dim:", input_dim)
 
 # Define a dense neural network for anomaly detection based on the dataset
 if dataset_used == "CICIOT":
+
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(32, activation='relu'),
@@ -470,6 +518,10 @@ if dataset_used == "CICIOT":
     ])
 
 if dataset_used == "IOTBOTNET":
+    input_dim = X_train_data.shape[1]
+    print("///////////////////////////////////////////////")
+    print("Input Dim:", input_dim)
+
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(8, activation='relu'),
