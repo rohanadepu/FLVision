@@ -440,9 +440,9 @@ if dataset_used == "IOTBOTNET":
 #    Process Dataset For IOTBOTNET 2020                 #
 #########################################################
     print("Processing data...")
-    relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', ' Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
+    relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
-                                   'Fwd_Pkts/s', 'Bwd_Tat_IoT', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
+                                   'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
 
     # Split the dataset into features and labels
     X_train = all_attacks_train[relevant_features_iotbotnet]
