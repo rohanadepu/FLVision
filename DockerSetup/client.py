@@ -57,7 +57,6 @@ if dataset_used == "CICIOT":
     print(csv_filepaths)
 
     # If there are more than X CSV files, randomly select X files from the list
-
     if len(csv_filepaths) > ciciot_sample_size:
         csv_filepaths = random.sample(csv_filepaths, ciciot_sample_size)
         print(csv_filepaths)
@@ -89,7 +88,7 @@ if dataset_used == "CICIOT":
 
     irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
                            'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
-                           'Max', 'AVG', 'Std',]
+                           'Max', 'AVG', 'Std']
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
