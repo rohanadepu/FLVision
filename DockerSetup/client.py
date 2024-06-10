@@ -361,7 +361,7 @@ if dataset_used == "IOTBOTNET":
     #     ddos_combined, dos_combined, scan_combined, theft_combined
     # ])
 
-    all_attacks_combined = combine_all_attacks(scan_os_data)
+    all_attacks_combined = scan_os_data
 
     # Split each combined DataFrame into train and test sets
     # ddos_train, ddos_test = split_train_test(ddos_combined)
