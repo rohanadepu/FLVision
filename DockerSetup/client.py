@@ -244,6 +244,11 @@ if dataset_used == "CICIOT":
 if dataset_used == "IOTBOTNET":
 
     def load_files_from_directory(directory, file_extension=".csv", sample_size=None):
+        # Check if the directory exists
+        if not os.path.exists(directory):
+            print(f"Directory '{directory}' does not exist.")
+            return []
+
         dataframes = []
         all_files = []
 
