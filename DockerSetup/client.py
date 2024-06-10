@@ -320,7 +320,7 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    scan_os_directory = './trainingDataset/iotbotnet2020/scan/os'
+    scan_os_directory = '/root/trainingDataset/iotbotnet2020/scan/os'
     scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
