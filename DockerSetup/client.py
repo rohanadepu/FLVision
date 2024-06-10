@@ -473,6 +473,10 @@ if dataset_used == "IOTBOTNET":
     # Transform the test data
     X_test_scaled = X_test
 
+    # Convert scaled arrays back to DataFrames to maintain alignment
+    X_train_scaled = pd.DataFrame(X_train_scaled, columns=relevant_features_iotbotnet, index=X_train.index)
+    X_test_scaled = pd.DataFrame(X_test_scaled, columns=relevant_features_iotbotnet, index=X_test.index)
+
     # Initialize the encoder
     label_encoder = LabelEncoder()
 
