@@ -459,13 +459,19 @@ if dataset_used == "IOTBOTNET":
     y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
 
     # Initialize the scaler
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    # scaler = MinMaxScaler(feature_range=(0, 1))
+    #
+    # # Fit and transform the training data
+    # X_train_scaled = scaler.fit_transform(X_train)
+    #
+    # # Transform the test data
+    # X_test_scaled = scaler.transform(X_test)
 
     # Fit and transform the training data
-    X_train_scaled = scaler.fit_transform(X_train)
+    X_train_scaled = X_train
 
     # Transform the test data
-    X_test_scaled = scaler.transform(X_test)
+    X_test_scaled = X_test
 
     # Initialize the encoder
     label_encoder = LabelEncoder()
