@@ -489,12 +489,15 @@ if dataset_used == "IOTBOTNET":
     # Optionally, shuffle the training data
     X_train_scaled, y_train_encoded = shuffle(X_train_scaled, y_train_encoded, random_state=47)
 
+    ## Create a DataFrame for y_train_encoded to align indices
+    y_train_encoded_df = pd.Series(y_train_encoded, index=X_train_scaled.index)
+
     # Print an instance of each class in the new train data
     print("After Encoding and Scaling:")
-    unique_labels = pd.Series(y_train_encoded).unique()
+    unique_labels = y_train_encoded_df.unique()
     for label in unique_labels:
         print(f"First instance of {label}:")
-        print(X_train_scaled[pd.Series(y_train_encoded) == label][0])
+        print(X_train_scaled[y_train_encoded_df == label].iloc[0])
 
     # renaming all datasets to match the format for the models
 
