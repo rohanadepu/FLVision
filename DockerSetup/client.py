@@ -50,7 +50,7 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
 
-    DATASET_DIRECTORY = '../../trainingDataset/ciciot/'
+    DATASET_DIRECTORY = '../../trainingDataset/'
 
     # List the files in the dataset
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
