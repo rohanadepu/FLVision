@@ -70,13 +70,20 @@ if dataset_used == "CICIOT":
     print("Test Sets:\n", test_data_sets)
 
     # Mapping Features
+    # num_cols = [
+    #     'flow_duration', 'Header_Length', 'Duration',
+    #     'Rate', 'Srate', 'ack_count', 'syn_count',
+    #     'fin_count', 'urg_count', 'rst_count', 'Tot sum',
+    #     'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+    #     'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
+    # ]
     num_cols = [
-        'flow_duration', 'Header_Length', 'Duration',
-        'Rate', 'Srate', 'ack_count', 'syn_count',
-        'fin_count', 'urg_count', 'rst_count', 'Tot sum',
-        'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-        'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-    ]
+             'Duration',
+            'Rate', 'Srate', 'ack_count', 'syn_count',
+            'fin_count', 'Tot sum',
+             'Tot size', 'IAT', 'Number',
+             'Weight',
+        ]
 
     cat_cols = [
         'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
