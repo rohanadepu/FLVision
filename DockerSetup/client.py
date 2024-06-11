@@ -77,13 +77,7 @@ if dataset_used == "CICIOT":
     #     'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
     #     'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
     # ]
-    num_cols = [
-             'Duration',
-            'Rate', 'Srate', 'ack_count', 'syn_count',
-            'fin_count', 'Tot sum',
-             'Tot size', 'IAT', 'Number',
-             'Weight',
-        ]
+    num_cols = ['Duration','Rate', 'Srate', 'ack_count', 'syn_count','fin_count','Tot size', 'IAT', 'Number','Weight']
 
     cat_cols = [
         'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
