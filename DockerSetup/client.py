@@ -295,16 +295,16 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DDOS Data..")
     # Load DDoS UDP files
-    # ddos_udp_directory = './iotbotnet_archive/ddos/DDOS_UDP'
-    # ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
+    ddos_udp_directory = './iotbotnet_archive/ddos/DDOS_UDP'
+    ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
-    # # Load DDoS TCP files
-    # ddos_tcp_directory = './iotbotnet2020_archive/ddos/DDOS_TCP'
-    # ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
-    #
-    # # Load DDoS HTTP files
-    # ddos_http_directory = './iotbotnet2020_archive/ddos/DDOS_HTTP'
-    # ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
+    # Load DDoS TCP files
+    ddos_tcp_directory = './iotbotnet2020_archive/ddos/DDOS_TCP'
+    ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
+
+    # Load DDoS HTTP files
+    ddos_http_directory = './iotbotnet2020_archive/ddos/DDOS_HTTP'
+    ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data..")
     # Load DoS UDP files
@@ -321,8 +321,8 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    scan_os_directory = '/root/trainingDataset/iotbotnet2020/scan/os'
-    scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
+    # scan_os_directory = '/root/trainingDataset/iotbotnet2020/scan/os'
+    # scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
     # scan_service_directory = './iotbotnet2020_archive/scan/service'
@@ -338,13 +338,13 @@ if dataset_used == "IOTBOTNET":
     # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     # Optionally, concatenate all dataframes if needed
-    # ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
-    # ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
-    # ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
+    ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
+    ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
+    ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
     # dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
     # dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
     # dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
-    scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+    # scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
     # scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
     # theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
     # theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
@@ -362,7 +362,12 @@ if dataset_used == "IOTBOTNET":
     #     ddos_combined, dos_combined, scan_combined, theft_combined
     # ])
 
-    all_attacks_combined = scan_os_data
+     # Combine all attacks into one DataFrame
+    all_attacks_combined = combine_all_attacks([
+        ddos_udp_data, ddos_tcp_data, ddos_http_data
+    ])
+
+    # all_attacks_combined = scan_os_data
 
     # Split each combined DataFrame into train and test sets
     # ddos_train, ddos_test = split_train_test(ddos_combined)
