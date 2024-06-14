@@ -295,15 +295,15 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DDOS Data..")
     # Load DDoS UDP files
-    ddos_udp_directory = './iotbotnet_archive/ddos/DDOS_UDP'
+    ddos_udp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = './iotbotnet2020_archive/ddos/DDOS_TCP'
+    ddos_tcp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_tcp'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = './iotbotnet2020_archive/ddos/DDOS_HTTP'
+    ddos_http_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data..")
