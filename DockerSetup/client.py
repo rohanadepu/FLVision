@@ -450,12 +450,17 @@ if dataset_used == "IOTBOTNET":
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
                                    'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
 
+
     # Split the dataset into features and labels
     X_train = all_attacks_train[relevant_features_iotbotnet]
     y_train = all_attacks_train['Label']
 
     X_test = all_attacks_test[relevant_features_iotbotnet]
     y_test = all_attacks_test['Label']
+
+    # Replace inf values with NaN and then drop them
+    X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+    X_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
 
     # Clean the dataset by dropping rows with missing values
     X_train = X_train.dropna()
