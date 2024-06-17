@@ -186,7 +186,6 @@ mi_series = pd.Series(mi, index=X_reduced.columns)
 top_features_mi = mi_series.sort_values(ascending=False).head(30).index
 print(f"Top features by mutual information: {top_features_mi}")
 
-
 #########################################################
 # Step 1C: Scale the Features                            #
 #########################################################
