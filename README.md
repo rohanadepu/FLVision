@@ -30,5 +30,5 @@ Undergraduate Researchers:
 
 * Run with AERPAW:
   * Ensure all files are downloaded and files are configured.
-  * in clients go to DockerSetup and use 'python3 client.py'
-  * in server go to DockerSetup and use 'python3 server.py'
+  * in clients use 'python3 client.py'
+  * in server use 'python3 server.py'
