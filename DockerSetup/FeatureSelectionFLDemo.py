@@ -151,9 +151,9 @@ if dataset_used == "CICIOT":
         ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
         ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
-    # Drop the irrelevant features
-    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+    # # Drop the irrelevant features
+    # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
     # Shuffle data
     ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
@@ -282,6 +282,10 @@ if dataset_used == "CICIOT":
     X_selected = X_reduced[combined_features]
 
     X_train_data = X_selected
+    X_test_data = X_test_data[combined_features]  # Ensure test data has the same features
+
+    print("Final X_train shape:", X_train_data.shape)
+    print("Final X_test shape:", X_test_data.shape)
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2020                    #
@@ -577,14 +581,15 @@ if dataset_used == "CIFAR":
 #    Model Initialization & Setup                       #
 #########################################################
 
-input_dim = X_train_data.shape[1]
 
-print("///////////////////////////////////////////////")
-print("Unique Labels:", unique_labels)
-print("Input Dim:", input_dim)
 
 # Define a dense neural network for anomaly detection based on the dataset
 if dataset_used == "CICIOT":
+
+    input_dim = X_train_data.shape[1]
+    print("///////////////////////////////////////////////")
+    print("Unique Labels:", unique_labels)
+    print("Input Dim:", input_dim)
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
@@ -595,8 +600,10 @@ if dataset_used == "CICIOT":
     ])
 
 if dataset_used == "IOTBOTNET":
+
     input_dim = X_train_data.shape[1]
     print("///////////////////////////////////////////////")
+    print("Unique Labels:", unique_labels)
     print("Input Dim:", input_dim)
 
     model = tf.keras.Sequential([
