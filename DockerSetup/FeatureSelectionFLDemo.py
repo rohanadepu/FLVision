@@ -220,15 +220,16 @@ if dataset_used == "CICIOT":
     upper_triangle = correlation_matrix.where(np.triu(np.ones(correlation_matrix.shape), k=1).astype(bool))
     to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > 0.70)]
 
-    X_reduced = X_train_data.drop(to_drop, axis=1)
+    X_train_reduced = X_train_data.drop(to_drop, axis=1)
+    X_test_reduced = X_test_data.drop(to_drop, axis=1) # make sure to process the test data as well
     print(f"Removed correlated features: {to_drop}")
 
     #########################################################
     # Step 3A: Apply Mutual Information                      #
     #########################################################
 
-    mi = mutual_info_classif(X_reduced, y_train_data, random_state=42)
-    mi_series = pd.Series(mi, index=X_reduced.columns)
+    mi = mutual_info_classif(X_train_reduced, y_train_data, random_state=42)
+    mi_series = pd.Series(mi, index=X_train_reduced.columns)
 
     top_features_mi = mi_series.sort_values(ascending=False).head(30).index
     print(f"Top features by mutual information: {top_features_mi}")
@@ -241,23 +242,28 @@ if dataset_used == "CICIOT":
     scaler = MinMaxScaler(feature_range=(0, 1))
 
     # Scale the numeric features present in X_reduced
-    scaled_num_cols = [col for col in num_cols if col in X_reduced.columns]
-    X_reduced[scaled_num_cols] = scaler.fit_transform(X_reduced[scaled_num_cols])
+    scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
+    X_train_reduced[scaled_num_cols] = scaler.fit_transform(X_train_reduced[scaled_num_cols])
+    X_test_reduced[scaled_num_cols] = scaler.fit_transform(X_test_reduced[scaled_num_cols])
 
     # prove if the data is loaded properly
     print("Real data After Scaling (TRAIN):")
-    print(X_reduced.head())
-    print(X_reduced.shape)
+    print(X_train_reduced.head())
+    print(X_train_reduced.shape)
+
+    print("Real data After Scaling (TEST):")
+    print(X_test_reduced.head())
+    print(X_test_reduced.shape)
 
     #########################################################
     # Step 3B: Tree-Based Feature Importance                #
     #########################################################
 
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_reduced, y_train_data)
+    model.fit(X_train_reduced, y_train_data)
 
     importances = model.feature_importances_
-    feature_importances = pd.Series(importances, index=X_reduced.columns)
+    feature_importances = pd.Series(importances, index=X_train_reduced.columns)
 
     top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
     print(f"Top features by Random Forest importance: {top_features_rf}")
@@ -276,10 +282,11 @@ if dataset_used == "CICIOT":
     # Step 3D: Combine features from different methods               #
     #########################################################
 
-    combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
+    # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
+    combined_features = list(set(top_features_mi) | set(top_features_rf))
     print(f"Combined top features: {combined_features}")
 
-    X_selected = X_reduced[combined_features]
+    X_selected = X_train_reduced[combined_features]
 
     X_train_data = X_selected
     X_test_data = X_test_data[combined_features]  # Ensure test data has the same features
