@@ -6,6 +6,9 @@ import os
 import flwr as fl
 import tensorflow as tf
 
+import tensorflow_privacy as tfp
+import syft as sy
+
 # import numpy as np
 import pandas as pd
 # import math
@@ -563,7 +566,22 @@ if dataset_used == "IOTBOTNET":
         tf.keras.layers.Dense(2, activation='sigmoid')  # unique_labels is the number of classes
     ])
 
-model.compile(optimizer='adam',
+# Set the privacy parameters
+noise_multiplier = 1.1  # Adjust as needed
+l2_norm_clip = 1.0
+num_microbatches = 32  # Should be a divisor of batch size
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+# Create a differentially private optimizer
+dp_optimizer = tfp.DPKerasAdamOptimizer(
+    l2_norm_clip=l2_norm_clip,
+    noise_multiplier=noise_multiplier,
+    num_microbatches=num_microbatches,
+    learning_rate=0.001
+)
+
+model.compile(optimizer=dp_optimizer,
               loss=tf.keras.losses.sparse_categorical_crossentropy,
               metrics=['accuracy'])
 
@@ -573,19 +591,26 @@ model.summary()
 #    Federated Learning Setup                           #
 #########################################################
 
+hook = sy.TorchHook(torch)
+clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
+
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)  # Change dataset here
-        return model.get_weights(), len(X_train_data), {}
+        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
+        encrypted_weights = [weight.encrypt(clients) for weight in model.get_weights()]
+        return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        model.set_weights(parameters)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        decrypted_weights = [weight.decrypt() for weight in parameters]
+        model.set_weights(decrypted_weights)
+        loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
+
+
 
 #########################################################
 #    Start the client                                   #

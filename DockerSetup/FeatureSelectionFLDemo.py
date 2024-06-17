@@ -4,6 +4,7 @@
 
 import os
 import flwr as fl
+import numpy as np
 import tensorflow as tf
 
 # import numpy as np
@@ -19,6 +20,8 @@ import os
 # import seaborn as sns
 # import pickle
 import joblib
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFE, mutual_info_classif
 from sklearn.model_selection import train_test_split
 
 # import sklearn.cluster as cluster
@@ -238,6 +241,61 @@ if dataset_used == "CICIOT":
     # Print the shapes of the resulting splits
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
+
+    #########################################################
+    # Step 2: Remove Correlated Features                    #
+    #########################################################
+
+    correlation_matrix = X_train_data.corr().abs()
+    upper_triangle = correlation_matrix.where(np.triu(np.ones(correlation_matrix.shape), k=1).astype(bool))
+    to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > 0.70)]
+
+    X_reduced = X_train_data.drop(to_drop, axis=1)
+    print(f"Removed correlated features: {to_drop}")
+
+    #########################################################
+    # Step 3A: Apply Mutual Information                      #
+    #########################################################
+
+    mi = mutual_info_classif(X_reduced, y_train_data, random_state=42)
+    mi_series = pd.Series(mi, index=X_reduced.columns)
+
+    top_features_mi = mi_series.sort_values(ascending=False).head(30).index
+    print(f"Top features by mutual information: {top_features_mi}")
+
+    #########################################################
+    # Step 3B: Tree-Based Feature Importance                 #
+    #########################################################
+
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_reduced, y_train_data)
+
+    importances = model.feature_importances_
+    feature_importances = pd.Series(importances, index=X_reduced.columns)
+
+    top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
+    print(f"Top features by Random Forest importance: {top_features_rf}")
+
+    #########################################################
+    # Step 3C: Apply RFE with Random Forest                  #
+    #########################################################
+
+    rfe = RFE(estimator=model, n_features_to_select=16, step=1)
+    rfe.fit(X_reduced, y_train_data)
+
+    top_features_rfe = X_reduced.columns[rfe.support_]
+    print(f"Top features by RFE: {top_features_rfe}")
+
+    #########################################################
+    # Step 3D: Combine features from different methods               #
+    #########################################################
+
+    combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
+    print(f"Combined top features: {combined_features}")
+
+    X_selected = X_reduced[combined_features]
+
+    X_train_data = X_selected
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
