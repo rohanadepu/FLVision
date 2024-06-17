@@ -11,6 +11,9 @@ services:
     volumes:
       - .:/app
       - C:/Users/kskos/PycharmProjects/FLVision/ciciot2023_archive:/app/CICIOTDataset
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive:/app/iotbotnet2020_archive
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive/dos/dos_udp:/app/iotbotnet2020_archive/dos/dos_udp
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive/ddos/DDOS_UDP:/app/iotbotnet2020_archive/ddos/DDOS_UDP
     working_dir: /app
     depends_on:
       - server
@@ -22,6 +25,9 @@ services:
     volumes:
       - .:/app
       - C:/Users/kskos/PycharmProjects/FLVision/ciciot2023_archive:/app/CICIOTDataset
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive:/app/iotbotnet2020_archive
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive/dos/dos_udp:/app/iotbotnet2020_archive/dos/dos_udp
+      - C:/Users/kskos/PycharmProjects/FLVision/iotbotnet2020_archive/ddos/DDOS_UDP:/app/iotbotnet2020_archive/ddos/DDOS_UDP
     working_dir: /app
     depends_on:
       - server

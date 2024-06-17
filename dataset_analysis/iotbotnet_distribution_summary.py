@@ -20,12 +20,13 @@ def load_files_from_directory(directory, file_extension=".csv", sample_size=None
     if sample_size is not None:
         random.shuffle(all_files)
         all_files = all_files[:sample_size]
-        print(all_files)
+        print("Sample Selected:", all_files)
 
     for file_path in all_files:
         df = pd.read_csv(file_path)  # Modify this line if files are in a different format
         dataframes.append(df)
 
+    print("Files Loaded...")
     return dataframes
 
 # Function to split a DataFrame into train and test sets
@@ -46,26 +47,26 @@ def combine_all_attacks(dataframes):
     combined_df = pd.concat(dataframes, ignore_index=True)
     return combined_df
 
-sample_size = 2
+sample_size = 1
 
 # Load DDoS UDP files
-ddos_udp_directory = '../iotbotnet2020_archive/ddos/DDOS UDP'
+ddos_udp_directory = '../iotbotnet2020_archive/ddos/DDOS_UDP'
 ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
 # Load DDoS TCP files
-ddos_tcp_directory = '../iotbotnet2020_archive/ddos/DDOS TCP'
+ddos_tcp_directory = '../iotbotnet2020_archive/ddos/DDOS_TCP'
 ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
 # Load DDoS HTTP files
-ddos_http_directory = '../iotbotnet2020_archive/ddos/DDOS HTTP'
+ddos_http_directory = '../iotbotnet2020_archive/ddos/DDOS_HTTP'
 ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
 # Load DoS UDP files
-dos_udp_directory = '../iotbotnet2020_archive/dos/dos udp'
+dos_udp_directory = '../iotbotnet2020_archive/dos/dos_udp'
 dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
 # Load DDoS TCP files
-dos_tcp_directory = '../iotbotnet2020_archive/dos/dos tcp'
+dos_tcp_directory = '../iotbotnet2020_archive/dos/dos_tcp'
 dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
 
 # Load DDoS HTTP files
@@ -121,35 +122,35 @@ theft_train, theft_test = split_train_test(theft_combined)
 all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
 # Display the first few rows of the combined DataFrames
-print("DDoS UDP Data:")
-print(ddos_udp_data.head())
-
-print("DDoS TCP Data:")
-print(ddos_tcp_data.head())
-
-print("DDoS HTTP Data:")
-print(ddos_http_data.head())
-
-print("DoS UDP Data:")
-print(dos_udp_data.head())
-
-print("DoS TCP Data:")
-print(dos_tcp_data.head())
-
-print("DoS HTTP Data:")
-print(dos_http_data.head())
-
-print("Scan OS Data:")
-print(scan_os_data.head())
-
-print("Scan Service Data:")
-print(scan_service_data.head())
-
-print("Theft Data Exfiltration Data:")
-print(theft_data_exfiltration_data.head())
-
-print("Theft Keylogging Data:")
-print(theft_keylogging_data.head())
+# print("DDoS UDP Data:")
+# print(ddos_udp_data.head())
+#
+# print("DDoS TCP Data:")
+# print(ddos_tcp_data.head())
+#
+# print("DDoS HTTP Data:")
+# print(ddos_http_data.head())
+#
+# print("DoS UDP Data:")
+# print(dos_udp_data.head())
+#
+# print("DoS TCP Data:")
+# print(dos_tcp_data.head())
+#
+# print("DoS HTTP Data:")
+# print(dos_http_data.head())
+#
+# print("Scan OS Data:")
+# print(scan_os_data.head())
+#
+# print("Scan Service Data:")
+# print(scan_service_data.head())
+#
+# print("Theft Data Exfiltration Data:")
+# print(theft_data_exfiltration_data.head())
+#
+# print("Theft Keylogging Data:")
+# print(theft_keylogging_data.head())
 
 # Display the first few rows of each combined DataFrame
 print("DDoS Combined Data (Train):")
