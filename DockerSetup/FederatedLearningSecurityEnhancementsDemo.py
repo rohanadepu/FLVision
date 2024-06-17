@@ -592,7 +592,9 @@ model.summary()
 #########################################################
 
 hook = sy.TorchHook(torch)
+num_clients = 2  # Example number of clients
 clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
+
 
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
@@ -601,11 +603,15 @@ class FLClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         model.set_weights(parameters)
         model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
-        encrypted_weights = [weight.encrypt(clients) for weight in model.get_weights()]
+
+        # Secure aggregation using secret sharing
+        encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
         return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        decrypted_weights = [weight.decrypt() for weight in parameters]
+        # Decrypt the model weights
+        decrypted_weights = [w.get().float_precision() for w in parameters]
+
         model.set_weights(decrypted_weights)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
