@@ -246,18 +246,20 @@ if dataset_used == "CICIOT":
     top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
     print(f"Top features by Random Forest importance: {top_features_rf}")
 
-    # ---                   Scaling                     --- #
+    #########################################################
+    # Step 1C: Scale the Features                            #
+    #########################################################
 
     # Setting up Scaler for Features
     scaler = MinMaxScaler(feature_range=(0, 1))
 
-    # Scale the features in the reduced dataframe
-    X_reduced[num_cols] = scaler.fit_transform(X_reduced[num_cols])
+    # Scale the numeric features present in X_reduced
+    scaled_num_cols = [col for col in num_cols if col in X_reduced.columns]
+    X_reduced[scaled_num_cols] = scaler.fit_transform(X_reduced[scaled_num_cols])
 
     # prove if the data is loaded properly
     print("Real data After Scaling (TRAIN):")
     print(X_reduced.head())
-    # print(real_train_data[:2])
     print(X_reduced.shape)
 
     #########################################################
