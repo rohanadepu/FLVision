@@ -186,18 +186,6 @@ mi_series = pd.Series(mi, index=X_reduced.columns)
 top_features_mi = mi_series.sort_values(ascending=False).head(30).index
 print(f"Top features by mutual information: {top_features_mi}")
 
-#########################################################
-# Step 3B: Tree-Based Feature Importance                 #
-#########################################################
-
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_reduced, y_train_data)
-
-importances = model.feature_importances_
-feature_importances = pd.Series(importances, index=X_reduced.columns)
-
-top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
-print(f"Top features by Random Forest importance: {top_features_rf}")
 
 #########################################################
 # Step 1C: Scale the Features                            #
@@ -214,6 +202,19 @@ X_reduced[scaled_num_cols] = scaler.fit_transform(X_reduced[scaled_num_cols])
 print("Real data After Scaling (TRAIN):")
 print(X_reduced.head())
 print(X_reduced.shape)
+
+#########################################################
+# Step 3B: Tree-Based Feature Importance                 #
+#########################################################
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_reduced, y_train_data)
+
+importances = model.feature_importances_
+feature_importances = pd.Series(importances, index=X_reduced.columns)
+
+top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
+print(f"Top features by Random Forest importance: {top_features_rf}")
 
 #########################################################
 # Step 3C: Apply RFE with Random Forest                  #
