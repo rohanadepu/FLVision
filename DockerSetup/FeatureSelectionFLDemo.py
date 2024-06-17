@@ -251,30 +251,14 @@ if dataset_used == "CICIOT":
     # Setting up Scaler for Features
     scaler = MinMaxScaler(feature_range=(0, 1))
 
-
-    # train the scalar on train data features
-    scaler.fit(ciciot_train_data[num_cols])   # replace
-
-    # Save the Scaler for use in other files
-    # joblib.dump(scaler, 'RobustScaler_.pkl')
-    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
-    # joblib.dump(scaler, 'PowerTransformer_.pkl')
-
-    # Scale the features in the real train dataframe
-    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])  # replace
-    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])   # replace
+    # Scale the features in the reduced dataframe
+    X_reduced[num_cols] = scaler.fit_transform(X_reduced[num_cols])
 
     # prove if the data is loaded properly
     print("Real data After Scaling (TRAIN):")
-    print(ciciot_train_data.head())   # replace
+    print(X_reduced.head())
     # print(real_train_data[:2])
-    print(ciciot_train_data.shape)  # replace
-
-    # prove if the data is loaded properly
-    print("Real data After Scaling (TEST):")
-    print(ciciot_test_data.head())   # replace
-    # print(real_train_data[:2])
-    print(ciciot_test_data.shape)  # replace
+    print(X_reduced.shape)
 
     #########################################################
     # Step 3C: Apply RFE with Random Forest                  #
@@ -435,7 +419,7 @@ if dataset_used == "IOTBOTNET":
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
     # Debug ##
-
+    #
     # # Display the first few rows of the combined DataFrames
     # print("DDoS UDP Data:")
     # print(ddos_udp_data.head())
@@ -466,7 +450,7 @@ if dataset_used == "IOTBOTNET":
     #
     # print("Theft Keylogging Data:")
     # print(theft_keylogging_data.head())
-
+    #
     # Display the first few rows of each combined DataFrame
     # print("DDoS Combined Data (Train):")
     # print(ddos_train.head())
@@ -491,7 +475,7 @@ if dataset_used == "IOTBOTNET":
     #
     # print("Theft Combined Data (Test):")
     # print(theft_test.head())
-    #
+
     print("All Attacks Combined Data (Train):")
     print(all_attacks_train.head())
 

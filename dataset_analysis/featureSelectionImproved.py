@@ -11,7 +11,7 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.metrics import precision_score, recall_score, f1_score
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
 #########################################################
@@ -204,29 +204,14 @@ print(f"Top features by Random Forest importance: {top_features_rf}")
 # Setting up Scaler for Features
 scaler = MinMaxScaler(feature_range=(0, 1))
 
-# train the scalar on train data features
-scaler.fit(ciciot_train_data[num_cols])  # replace
-
-# Save the Scaler for use in other files
-# joblib.dump(scaler, 'RobustScaler_.pkl')
-# joblib.dump(scaler, f'./MinMaxScaler.pkl')
-# joblib.dump(scaler, 'PowerTransformer_.pkl')
-
-# Scale the features in the real train dataframe
-ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])  # replace
-ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])  # replace
+# Scale the features in the reduced dataframe
+X_reduced[num_cols] = scaler.fit_transform(X_reduced[num_cols])
 
 # prove if the data is loaded properly
 print("Real data After Scaling (TRAIN):")
-print(ciciot_train_data.head())  # replace
+print(X_reduced.head())
 # print(real_train_data[:2])
-print(ciciot_train_data.shape)  # replace
-
-# prove if the data is loaded properly
-print("Real data After Scaling (TEST):")
-print(ciciot_test_data.head())  # replace
-# print(real_train_data[:2])
-print(ciciot_test_data.shape)  # replace
+print(X_reduced.shape)
 
 #########################################################
 # Step 3C: Apply RFE with Random Forest                  #
