@@ -8,6 +8,7 @@ import tensorflow as tf
 
 import tensorflow_privacy as tfp
 import syft as sy
+import torch
 
 # import numpy as np
 import pandas as pd
@@ -591,7 +592,7 @@ model.summary()
 #    Federated Learning Setup                           #
 #########################################################
 
-hook = sy.TorchHook(torch)
+hook = sy.TFEHook()
 num_clients = 2  # Example number of clients
 clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
@@ -615,8 +616,6 @@ class FLClient(fl.client.NumPyClient):
         model.set_weights(decrypted_weights)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
-
-
 
 #########################################################
 #    Start the client                                   #
