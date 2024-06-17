@@ -250,7 +250,7 @@ if dataset_used == "CICIOT":
     print(X_reduced.shape)
 
     #########################################################
-    # Step 3B: Tree-Based Feature Importance                 #
+    # Step 3B: Tree-Based Feature Importance                #
     #########################################################
 
     model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -284,7 +284,7 @@ if dataset_used == "CICIOT":
     X_train_data = X_selected
 
 #########################################################
-#    Load Dataset For IOTBOTNET 2023                    #
+#    Load Dataset For IOTBOTNET 2020                    #
 #########################################################
 if dataset_used == "IOTBOTNET":
 
