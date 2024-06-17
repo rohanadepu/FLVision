@@ -268,6 +268,7 @@ if dataset_used == "IOTBOTNET":
         for file_path in all_files:
             df = pd.read_csv(file_path)  # Modify this line if files are in a different format
             dataframes.append(df)
+            print("Sample Selected:", file_path)
 
         print("Files Loaded...")
         return dataframes
@@ -275,6 +276,7 @@ if dataset_used == "IOTBOTNET":
     # Function to split a DataFrame into train and test sets
     def split_train_test(dataframe, test_size=0.2):
         train_df, test_df = train_test_split(dataframe, test_size=test_size)
+        print("Dataset Test Train Splitted...")
         return train_df, test_df
 
     # Function to combine subcategories into general classes
@@ -283,11 +285,13 @@ if dataset_used == "IOTBOTNET":
         dos_combined = pd.concat(dos_dataframes, ignore_index=True)
         scan_combined = pd.concat(scan_dataframes, ignore_index=True)
         theft_combined = pd.concat(theft_dataframes, ignore_index=True)
+        print("attacks combined...")
         return ddos_combined, dos_combined, scan_combined, theft_combined
 
     # Function to combine all dataframes into one
     def combine_all_attacks(dataframes):
         combined_df = pd.concat(dataframes, ignore_index=True)
+        print("attacks combined...")
         return combined_df
 
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
@@ -457,6 +461,7 @@ if dataset_used == "IOTBOTNET":
 
     X_test = all_attacks_test[relevant_features_iotbotnet]
     y_test = all_attacks_test['Label']
+    print("Dataframes Succesfully Splitted..")
 
     # Replace inf values with NaN and then drop them
     X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -468,6 +473,7 @@ if dataset_used == "IOTBOTNET":
 
     X_test = X_test.dropna()
     y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
+    print("Nan and inf values Removed...")
 
     # Initialize the scaler
     scaler = MinMaxScaler(feature_range=(0, 1))

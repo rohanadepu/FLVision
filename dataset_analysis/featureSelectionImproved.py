@@ -199,6 +199,35 @@ feature_importances = pd.Series(importances, index=X_reduced.columns)
 top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
 print(f"Top features by Random Forest importance: {top_features_rf}")
 
+# ---                   Scaling                     --- #
+
+# Setting up Scaler for Features
+scaler = MinMaxScaler(feature_range=(0, 1))
+
+# train the scalar on train data features
+scaler.fit(ciciot_train_data[num_cols])  # replace
+
+# Save the Scaler for use in other files
+# joblib.dump(scaler, 'RobustScaler_.pkl')
+# joblib.dump(scaler, f'./MinMaxScaler.pkl')
+# joblib.dump(scaler, 'PowerTransformer_.pkl')
+
+# Scale the features in the real train dataframe
+ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])  # replace
+ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])  # replace
+
+# prove if the data is loaded properly
+print("Real data After Scaling (TRAIN):")
+print(ciciot_train_data.head())  # replace
+# print(real_train_data[:2])
+print(ciciot_train_data.shape)  # replace
+
+# prove if the data is loaded properly
+print("Real data After Scaling (TEST):")
+print(ciciot_test_data.head())  # replace
+# print(real_train_data[:2])
+print(ciciot_test_data.shape)  # replace
+
 #########################################################
 # Step 3C: Apply RFE with Random Forest                  #
 #########################################################
