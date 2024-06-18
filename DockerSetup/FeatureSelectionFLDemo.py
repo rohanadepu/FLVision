@@ -202,34 +202,30 @@ if dataset_used == "CICIOT":
     print(ciciot_train_data.head(), "\n")
 
     # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data.drop(columns=['label'])
-    y_train_data = ciciot_train_data['label']
-
-    X_test_data = ciciot_test_data.drop(columns=['label'])
-    y_test_data = ciciot_test_data['label']
+    X_FS_data = ciciot_train_data.drop(columns=['label'])
+    y_FS_data = ciciot_train_data['label']
 
     # Print the shapes of the resulting splits
-    print("X_train shape:", X_train_data.shape)
-    print("y_train shape:", y_train_data.shape)
+    print("X_train shape:", X_FS_data.shape)
+    print("y_train shape:", y_FS_data.shape)
 
     #########################################################
     # Step 2: Remove Correlated Features                    #
     #########################################################
 
-    correlation_matrix = X_train_data.corr().abs()
+    correlation_matrix = X_FS_data.corr().abs()
     upper_triangle = correlation_matrix.where(np.triu(np.ones(correlation_matrix.shape), k=1).astype(bool))
     to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > 0.70)]
 
-    X_train_reduced = X_train_data.drop(to_drop, axis=1)
-    X_test_reduced = X_test_data.drop(to_drop, axis=1) # make sure to process the test data as well
+    X_FS_reduced = X_FS_data.drop(to_drop, axis=1)
     print(f"Removed correlated features: {to_drop}")
 
     #########################################################
     # Step 3A: Apply Mutual Information                      #
     #########################################################
 
-    mi = mutual_info_classif(X_train_reduced, y_train_data, random_state=42)
-    mi_series = pd.Series(mi, index=X_train_reduced.columns)
+    mi = mutual_info_classif(X_FS_reduced, y_FS_data, random_state=42)
+    mi_series = pd.Series(mi, index=X_FS_reduced.columns)
 
     top_features_mi = mi_series.sort_values(ascending=False).head(30).index
     print(f"Top features by mutual information: {top_features_mi}")
@@ -262,33 +258,28 @@ if dataset_used == "CICIOT":
     scalerFeatureSelection = MinMaxScaler(feature_range=(0, 1))
 
     # Scale the numeric features present in X_reduced
-    scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
+    scaled_num_cols = [col for col in num_cols if col in X_FS_reduced.columns]
     print(scaled_num_cols)
 
-    scalerFeatureSelection.fit(X_train_reduced[scaled_num_cols])
+    scalerFeatureSelection.fit(X_FS_reduced[scaled_num_cols])
 
-    X_train_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_train_reduced[scaled_num_cols])
-    X_test_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_test_reduced[scaled_num_cols])
+    X_FS_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_FS_reduced[scaled_num_cols])
+
 
     # prove if the data is loaded properly
     print("feature data After Scaling (TRAIN):")
-    print(X_train_reduced.head())
-    print(X_train_reduced.shape)
-
-    # prove if the data is loaded properly
-    print("feature data After Scaling (TEST):")
-    print(X_test_reduced.head())
-    print(X_test_reduced.shape)
+    print(X_FS_reduced.head())
+    print(X_FS_reduced.shape)
 
     #########################################################
     # Step 3B: Tree-Based Feature Importance                #
     #########################################################
 
     model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train_reduced, y_train_data)
+    model.fit(X_FS_reduced, y_FS_data)
 
     importances = model.feature_importances_
-    feature_importances = pd.Series(importances, index=X_train_reduced.columns)
+    feature_importances = pd.Series(importances, index=X_FS_reduced.columns)
 
     top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
     print(f"Top features by Random Forest importance: {top_features_rf}")
@@ -298,7 +289,7 @@ if dataset_used == "CICIOT":
     #########################################################
     # modelRFE = RandomForestClassifier(n_estimators=100, random_state=42)
     # rfe = RFE(estimator=modelRFE, n_features_to_select=16, step=1)
-    # rfe.fit(X_train_reduced, y_train_data)
+    # rfe.fit(X_FS_reduced, y_FS_data)
     #
     # top_features_rfe = X_train_reduced.columns[rfe.support_]
     # print(f"Top features by RFE: {top_features_rfe}")
