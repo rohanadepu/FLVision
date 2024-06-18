@@ -242,6 +242,12 @@ if dataset_used == "CICIOT":
     feature_names = ciciot_train_data.columns.tolist()
     print("Remaining Features in the dataset", feature_names)
 
+    # Set difference to find features not in top_features_mi, excluding any label column if present
+    remaining_features = [feature for feature in feature_names if feature not in top_features_mi and feature != 'label']
+
+    # Print the remaining features
+    print("Features not in the top mutual information list, excluding 'label':", remaining_features)
+
     #########################################################
     # Step 1C: Scale the Features                            #
     #########################################################
