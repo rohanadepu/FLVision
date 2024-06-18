@@ -301,6 +301,9 @@ if dataset_used == "CICIOT":
     combined_features = list(set(top_features_mi))
     print(f"Combined top features: {combined_features}")
 
+    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+
     # Feature / Label Split (X y split)
     X_train_data = ciciot_train_data.drop(columns=['label'])
     y_train_data = ciciot_train_data['label']
