@@ -90,9 +90,12 @@ if dataset_used == "CICIOT":
         'ICMP', 'IPv', 'LLC', 'label'
     ]
 
-    irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
-                           'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
-                           'Max', 'AVG', 'Std']
+    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
+    #                        'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
+    #                        'Max', 'AVG', 'Std']
+    irrelevant_features = ['ece_flag_number', 'cwr_flag_number', 'Covariance',
+                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum', 'Min',
+                           ]
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
