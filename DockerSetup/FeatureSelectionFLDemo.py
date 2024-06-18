@@ -243,18 +243,38 @@ if dataset_used == "CICIOT":
 
     # Scale the numeric features present in X_reduced
     scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
+    print(scaled_num_cols)
 
-    scaler.fit(X_train_reduced[scaled_num_cols])
+    scaler.fit(ciciot_train_data[num_cols])
+
+    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
+    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
+
+    # prove if the data is loaded properly
+    print("WHOLE data After Scaling (TRAIN):")
+    print(ciciot_train_data.head())
+    print(ciciot_train_data.shape)
+
+    # prove if the data is loaded properly
+    print("WHOLE data After Scaling (TEST):")
+    print(ciciot_test_data.head())
+    print(ciciot_test_data.shape)
+
+    #############
+    scalerFeatureSelection = MinMaxScaler(feature_range=(0, 1))
+
+    scalerFeatureSelection.fit(X_train_reduced[scaled_num_cols])
 
     X_train_reduced[scaled_num_cols] = scaler.transform(X_train_reduced[scaled_num_cols])
     X_test_reduced[scaled_num_cols] = scaler.transform(X_test_reduced[scaled_num_cols])
 
     # prove if the data is loaded properly
-    print("Real data After Scaling (TRAIN):")
+    print("feature data After Scaling (TRAIN):")
     print(X_train_reduced.head())
     print(X_train_reduced.shape)
 
-    print("Real data After Scaling (TEST):")
+    # prove if the data is loaded properly
+    print("feature data After Scaling (TEST):")
     print(X_test_reduced.head())
     print(X_test_reduced.shape)
 
@@ -289,13 +309,24 @@ if dataset_used == "CICIOT":
     combined_features = list(set(top_features_mi) | set(top_features_rf))
     print(f"Combined top features: {combined_features}")
 
-    X_selected = X_train_reduced[combined_features]
+    # Feature / Label Split (X y split)
+    X_train_data = ciciot_train_data[combined_features]
+    y_train_data = ciciot_train_data['label']
 
-    X_train_data = X_selected
-    X_test_data = X_test_data[combined_features]  # Ensure test data has the same features
+    X_test_data = ciciot_test_data[combined_features]
+    y_test_data = ciciot_test_data['label']
 
-    print("Final X_train shape:", X_train_data.shape)
-    print("Final X_test shape:", X_test_data.shape)
+    # Print the shapes of the resulting splits
+    print("X_train shape:", X_train_data.shape)
+    print("y_train shape:", y_train_data.shape)
+
+    # X_selected = X_train_reduced[combined_features]
+    #
+    # X_train_data = X_selected
+    # X_test_data = X_test_data[combined_features]  # Ensure test data has the same features
+    #
+    # print("Final X_train shape:", X_train_data.shape)
+    # print("Final X_test shape:", X_test_data.shape)
 
 #########################################################
 #    Model Initialization & Setup                       #

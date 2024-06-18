@@ -184,13 +184,11 @@ if dataset_used == "CICIOT":
     # prove if the data is loaded properly
     print("Real data After Scaling (TRAIN):")
     print(ciciot_train_data.head())
-    # print(real_train_data[:2])
     print(ciciot_train_data.shape)
 
     # prove if the data is loaded properly
     print("Real data After Scaling (TEST):")
     print(ciciot_test_data.head())
-    # print(real_train_data[:2])
     print(ciciot_test_data.shape)
 
 # ---                   Labeling                     --- #
