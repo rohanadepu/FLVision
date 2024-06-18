@@ -7,7 +7,7 @@ import flwr as fl
 import tensorflow as tf
 
 import tensorflow_privacy as tfp
-import syft as sy
+# import syft as sy
 import torch
 
 # import numpy as np
@@ -592,29 +592,39 @@ model.summary()
 #    Federated Learning Setup                           #
 #########################################################
 
-hook = sy.TFEHook()
-num_clients = 2  # Example number of clients
-clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
+# hook = sy.TFEHook()
+# num_clients = 2  # Example number of clients
+# clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
 
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
 
+    # def fit(self, parameters, config):
+    #     model.set_weights(parameters)
+    #     model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
+    #
+    #     # Secure aggregation using secret sharing
+    #     encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
+    #     return encrypted_weights, len(X_train_data), {}
+
+    # def evaluate(self, parameters, config):
+    #     # Decrypt the model weights
+    #     decrypted_weights = [w.get().float_precision() for w in parameters]
+    #
+    #     model.set_weights(decrypted_weights)
+    #     loss, accuracy = model.evaluate(X_test_data, y_test_data)
+    #     return loss, len(X_test_data), {"accuracy": float(accuracy)}
+
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
-
-        # Secure aggregation using secret sharing
-        encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
-        return encrypted_weights, len(X_train_data), {}
+        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)  # Change dataset here
+        return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        # Decrypt the model weights
-        decrypted_weights = [w.get().float_precision() for w in parameters]
-
-        model.set_weights(decrypted_weights)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)
+        model.set_weights(parameters)
+        loss, accuracy = model.evaluate(X_test_data, y_test_data)  # change dataset here
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
 #########################################################
