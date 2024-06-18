@@ -218,17 +218,23 @@ if dataset_used == "CICIOT":
     to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > 0.70)]
 
     X_FS_reduced = X_FS_data.drop(to_drop, axis=1)
+
+    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+
+    ciciot_train_data = ciciot_train_data.drop(to_drop, axis=1)
+    ciciot_test_data = ciciot_test_data.drop(to_drop, axis=1)
     print(f"Removed correlated features: {to_drop}")
 
     #########################################################
     # Step 3A: Apply Mutual Information                      #
     #########################################################
 
-    mi = mutual_info_classif(X_FS_reduced, y_FS_data, random_state=42)
-    mi_series = pd.Series(mi, index=X_FS_reduced.columns)
-
-    top_features_mi = mi_series.sort_values(ascending=False).head(30).index
-    print(f"Top features by mutual information: {top_features_mi}")
+    # mi = mutual_info_classif(X_FS_reduced, y_FS_data, random_state=42)
+    # mi_series = pd.Series(mi, index=X_FS_reduced.columns)
+    #
+    # top_features_mi = mi_series.sort_values(ascending=False).head(30).index
+    # print(f"Top features by mutual information: {top_features_mi}")
 
     #########################################################
     # Step 1C: Scale the Features                            #
@@ -298,11 +304,11 @@ if dataset_used == "CICIOT":
     #########################################################
 
     # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
-    combined_features = list(set(top_features_mi))
-    print(f"Combined top features: {combined_features}")
+    # combined_features = list(set(top_features_mi))
+    # print(f"Combined top features: {combined_features}")
 
-    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+    # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
     # Feature / Label Split (X y split)
     X_train_data = ciciot_train_data.drop(columns=['label'])
