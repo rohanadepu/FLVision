@@ -7,7 +7,7 @@ import flwr as fl
 import tensorflow as tf
 
 import tensorflow_privacy as tfp
-# import syft as sy
+
 import torch
 
 # import numpy as np
@@ -546,7 +546,7 @@ print("Input Dim:", input_dim)
 # Define a dense neural network for anomaly detection based on the dataset
 if dataset_used == "CICIOT":
 
-    model = tf.keras.Sequential([
+    model = tf.keras.models.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
@@ -559,7 +559,7 @@ if dataset_used == "IOTBOTNET":
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = tf.keras.Sequential([
+    model = tf.keras.models.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dense(4, activation='relu'),
