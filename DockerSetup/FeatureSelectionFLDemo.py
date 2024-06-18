@@ -285,8 +285,8 @@ if dataset_used == "CICIOT":
     # Step 3D: Combine features from different methods               #
     #########################################################
 
-    combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
-    # combined_features = list(set(top_features_mi) | set(top_features_rf))
+    # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
+    combined_features = list(set(top_features_mi) | set(top_features_rf))
     print(f"Combined top features: {combined_features}")
 
     X_selected = X_train_reduced[combined_features]
