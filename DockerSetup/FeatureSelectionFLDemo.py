@@ -238,12 +238,8 @@ if dataset_used == "CICIOT":
     # Step 1C: Scale the Features                            #
     #########################################################
 
-    # Setting up Scaler for Features
+    # Setting up Scaler for DATASET
     scaler = MinMaxScaler(feature_range=(0, 1))
-
-    # Scale the numeric features present in X_reduced
-    scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
-    print(scaled_num_cols)
 
     scaler.fit(ciciot_train_data[num_cols])
 
@@ -261,7 +257,13 @@ if dataset_used == "CICIOT":
     print(ciciot_test_data.shape)
 
     #############
+    # Setting up Scaler for Feature Selection Data
+
     scalerFeatureSelection = MinMaxScaler(feature_range=(0, 1))
+
+    # Scale the numeric features present in X_reduced
+    scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
+    print(scaled_num_cols)
 
     scalerFeatureSelection.fit(X_train_reduced[scaled_num_cols])
 
