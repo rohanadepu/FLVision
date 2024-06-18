@@ -82,7 +82,7 @@ if dataset_used == "CICIOT":
     # ]
     num_cols = ['Duration','Rate', 'Srate', 'ack_count', 'syn_count','fin_count','Tot size', 'IAT', 'Number','Weight']
 
-    # num_cols = ['Duration', 'Rate', 'IAT']
+    num_cols = ['Duration', 'Rate', 'IAT']
 
     cat_cols = [
         'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
@@ -206,7 +206,7 @@ if dataset_used == "CICIOT":
         print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
     print(ciciot_train_data.head(), "\n")
 
-    # Feature / Label Split for feature selection (X y split)
+    # Feature / Label Split (X y split)
     X_FS_data = ciciot_train_data.drop(columns=['label'])
     y_FS_data = ciciot_train_data['label']
 
@@ -224,6 +224,9 @@ if dataset_used == "CICIOT":
 
     X_FS_reduced = X_FS_data.drop(to_drop, axis=1)
 
+    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+
     ciciot_train_data = ciciot_train_data.drop(to_drop, axis=1)
     ciciot_test_data = ciciot_test_data.drop(to_drop, axis=1)
     print(f"Removed correlated features: {to_drop}")
@@ -232,11 +235,11 @@ if dataset_used == "CICIOT":
     # Step 3A: Apply Mutual Information                      #
     #########################################################
 
-    mi = mutual_info_classif(X_FS_reduced, y_FS_data, random_state=42)
-    mi_series = pd.Series(mi, index=X_FS_reduced.columns)
-
-    top_features_mi = mi_series.sort_values(ascending=False).head(30).index
-    print(f"Top features by mutual information: {top_features_mi}")
+    # mi = mutual_info_classif(X_FS_reduced, y_FS_data, random_state=42)
+    # mi_series = pd.Series(mi, index=X_FS_reduced.columns)
+    #
+    # top_features_mi = mi_series.sort_values(ascending=False).head(30).index
+    # print(f"Top features by mutual information: {top_features_mi}")
 
     #########################################################
     # Step 1C: Scale the Features                            #
@@ -245,14 +248,10 @@ if dataset_used == "CICIOT":
     # Setting up Scaler for DATASET
     scaler = MinMaxScaler(feature_range=(0, 1))
 
-    # Scale the numeric features present in X_reduced
-    scaled_num_cols = [col for col in num_cols if col in X_FS_reduced.columns]
-    print(scaled_num_cols)
+    scaler.fit(ciciot_train_data[num_cols])
 
-    scaler.fit(ciciot_train_data[scaled_num_cols])
-
-    ciciot_train_data[scaled_num_cols] = scaler.transform(ciciot_train_data[scaled_num_cols])
-    ciciot_test_data[scaled_num_cols] = scaler.transform(ciciot_test_data[scaled_num_cols])
+    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
+    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
 
     # prove if the data is loaded properly
     print("WHOLE data After Scaling (TRAIN):")
@@ -268,6 +267,10 @@ if dataset_used == "CICIOT":
     # Setting up Scaler for Feature Selection Data
 
     scalerFeatureSelection = MinMaxScaler(feature_range=(0, 1))
+
+    # Scale the numeric features present in X_reduced
+    scaled_num_cols = [col for col in num_cols if col in X_FS_reduced.columns]
+    print(scaled_num_cols)
 
     scalerFeatureSelection.fit(X_FS_reduced[scaled_num_cols])
 
@@ -306,14 +309,17 @@ if dataset_used == "CICIOT":
     #########################################################
 
     # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
-    combined_features = list(set(top_features_mi))
-    print(f"Combined top features: {combined_features}")
+    # combined_features = list(set(top_features_mi))
+    # print(f"Combined top features: {combined_features}")
+
+    # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
     # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data[combined_features]
+    X_train_data = ciciot_train_data.drop(columns=['label'])
     y_train_data = ciciot_train_data['label']
 
-    X_test_data = ciciot_test_data[combined_features]
+    X_test_data = ciciot_test_data.drop(columns=['label'])
     y_test_data = ciciot_test_data['label']
 
     # Print the shapes of the resulting splits
