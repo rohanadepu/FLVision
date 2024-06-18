@@ -275,14 +275,14 @@ if dataset_used == "CICIOT":
     # Step 3B: Tree-Based Feature Importance                #
     #########################################################
 
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_FS_reduced, y_FS_data)
-
-    importances = model.feature_importances_
-    feature_importances = pd.Series(importances, index=X_FS_reduced.columns)
-
-    top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
-    print(f"Top features by Random Forest importance: {top_features_rf}")
+    # model = RandomForestClassifier(n_estimators=100, random_state=42)
+    # model.fit(X_FS_reduced, y_FS_data)
+    #
+    # importances = model.feature_importances_
+    # feature_importances = pd.Series(importances, index=X_FS_reduced.columns)
+    #
+    # top_features_rf = feature_importances.sort_values(ascending=False).head(30).index
+    # print(f"Top features by Random Forest importance: {top_features_rf}")
 
     #########################################################
     # Step 3C: Apply RFE with Random Forest                  #
@@ -299,7 +299,7 @@ if dataset_used == "CICIOT":
     #########################################################
 
     # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
-    combined_features = list(set(top_features_mi) | set(top_features_rf))
+    combined_features = list(set(top_features_mi))
     print(f"Combined top features: {combined_features}")
 
     # Feature / Label Split (X y split)
