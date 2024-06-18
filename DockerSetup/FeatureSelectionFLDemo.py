@@ -82,6 +82,8 @@ if dataset_used == "CICIOT":
     # ]
     num_cols = ['Duration','Rate', 'Srate', 'ack_count', 'syn_count','fin_count','Tot size', 'IAT', 'Number','Weight']
 
+    num_cols = ['Duration', 'Rate', 'IAT']
+
     cat_cols = [
         'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
         'psh_flag_number', 'ack_flag_number', 'ece_flag_number',
