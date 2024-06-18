@@ -537,21 +537,19 @@ if dataset_used == "CIFAR":
 #    Model Initialization & Setup                       #
 #########################################################
 
-input_dim = X_train_data.shape[1]
-
-print("///////////////////////////////////////////////")
-print("Unique Labels:", unique_labels)
-print("Input Dim:", input_dim)
-
 # Define a dense neural network for anomaly detection based on the dataset
 if dataset_used == "CICIOT":
+    input_dim = X_train_data.shape[1]
+    print("///////////////////////////////////////////////")
+    print("Unique Labels:", unique_labels)
+    print("Input Dim:", input_dim)
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(unique_labels, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(unique_labels, activation='sigmoid')
     ])
 
 if dataset_used == "IOTBOTNET":
@@ -568,13 +566,12 @@ if dataset_used == "IOTBOTNET":
     ])
 
 # Set the privacy parameters
-noise_multiplier = 1.1  # Adjust as needed
+noise_multiplier = 1.1
 l2_norm_clip = 1.0
-num_microbatches = 32  # Should be a divisor of batch size
+num_microbatches = 32
+batch_size = 32
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-
-# Create a differentially private optimizer
 dp_optimizer = tfp.DPKerasAdamOptimizer(
     l2_norm_clip=l2_norm_clip,
     noise_multiplier=noise_multiplier,
@@ -595,7 +592,6 @@ model.summary()
 # hook = sy.TFEHook()
 # num_clients = 2  # Example number of clients
 # clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
-
 
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
@@ -619,12 +615,12 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)  # Change dataset here
+        model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size)
         return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
 #########################################################
