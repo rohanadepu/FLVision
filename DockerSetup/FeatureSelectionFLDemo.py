@@ -98,6 +98,7 @@ if dataset_used == "CICIOT":
     irrelevant_features = ['ece_flag_number', 'cwr_flag_number', 'Covariance',
                            'flow_duration', 'Header_Length', 'urg_count', 'Tot sum', 'Min',
                            ]
+    relevant_features = ['Protocol Type', 'ICMP', 'psh_flag_number', 'urg_count', 'ARP', 'IAT', 'SSH', 'SMTP', 'ece_flag_number', 'Rate', 'TCP', 'Telnet', 'DNS', 'HTTPS', 'Drate', 'IRC', 'Min', 'flow_duration', 'DHCP', 'Tot sum', 'Covariance', 'HTTP', 'fin_flag_number', 'cwr_flag_number', 'UDP', 'Header_Length', 'syn_flag_number', 'Duration']
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
@@ -238,6 +239,9 @@ if dataset_used == "CICIOT":
     top_features_mi = mi_series.sort_values(ascending=False).head(30).index
     print(f"Top features by mutual information: {top_features_mi}")
 
+    feature_names = ciciot_train_data.columns.tolist()
+    print("Remaining Features in the dataset", feature_names)
+
     #########################################################
     # Step 1C: Scale the Features                            #
     #########################################################
@@ -315,6 +319,9 @@ if dataset_used == "CICIOT":
 
     X_test_data = ciciot_test_data[combined_features]
     y_test_data = ciciot_test_data['label']
+
+    print(X_train_data.head())
+    print(X_train_data.shape)
 
     # Print the shapes of the resulting splits
     print("X_train shape:", X_train_data.shape)
