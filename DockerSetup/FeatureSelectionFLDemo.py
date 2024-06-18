@@ -273,17 +273,17 @@ if dataset_used == "CICIOT":
     #########################################################
 
     rfe = RFE(estimator=model, n_features_to_select=16, step=1)
-    rfe.fit(X_reduced, y_train_data)
+    rfe.fit(X_train_reduced, y_train_data)
 
-    top_features_rfe = X_reduced.columns[rfe.support_]
+    top_features_rfe = X_train_reduced.columns[rfe.support_]
     print(f"Top features by RFE: {top_features_rfe}")
 
     #########################################################
     # Step 3D: Combine features from different methods               #
     #########################################################
 
-    # combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
-    combined_features = list(set(top_features_mi) | set(top_features_rf))
+    combined_features = list(set(top_features_mi) | set(top_features_rf) | set(top_features_rfe))
+    # combined_features = list(set(top_features_mi) | set(top_features_rf))
     print(f"Combined top features: {combined_features}")
 
     X_selected = X_train_reduced[combined_features]
