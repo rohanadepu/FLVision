@@ -274,12 +274,12 @@ if dataset_used == "CICIOT":
     #########################################################
     # Step 3C: Apply RFE with Random Forest                  #
     #########################################################
-
-    rfe = RFE(estimator=model, n_features_to_select=16, step=1)
-    rfe.fit(X_train_reduced, y_train_data)
-
-    top_features_rfe = X_train_reduced.columns[rfe.support_]
-    print(f"Top features by RFE: {top_features_rfe}")
+    # modelRFE = RandomForestClassifier(n_estimators=100, random_state=42)
+    # rfe = RFE(estimator=modelRFE, n_features_to_select=16, step=1)
+    # rfe.fit(X_train_reduced, y_train_data)
+    #
+    # top_features_rfe = X_train_reduced.columns[rfe.support_]
+    # print(f"Top features by RFE: {top_features_rfe}")
 
     #########################################################
     # Step 3D: Combine features from different methods               #
