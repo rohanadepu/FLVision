@@ -267,8 +267,8 @@ if dataset_used == "CICIOT":
 
     scalerFeatureSelection.fit(X_train_reduced[scaled_num_cols])
 
-    X_train_reduced[scaled_num_cols] = scaler.transform(X_train_reduced[scaled_num_cols])
-    X_test_reduced[scaled_num_cols] = scaler.transform(X_test_reduced[scaled_num_cols])
+    X_train_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_train_reduced[scaled_num_cols])
+    X_test_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_test_reduced[scaled_num_cols])
 
     # prove if the data is loaded properly
     print("feature data After Scaling (TRAIN):")
