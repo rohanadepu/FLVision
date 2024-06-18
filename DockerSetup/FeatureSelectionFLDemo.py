@@ -265,7 +265,6 @@ if dataset_used == "CICIOT":
 
     X_FS_reduced[scaled_num_cols] = scalerFeatureSelection.transform(X_FS_reduced[scaled_num_cols])
 
-
     # prove if the data is loaded properly
     print("feature data After Scaling (TRAIN):")
     print(X_FS_reduced.head())
@@ -303,15 +302,26 @@ if dataset_used == "CICIOT":
     print(f"Combined top features: {combined_features}")
 
     # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data[combined_features]
+    X_train_data = ciciot_train_data.drop(columns=['label'])
     y_train_data = ciciot_train_data['label']
 
-    X_test_data = ciciot_test_data[combined_features]
+    X_test_data = ciciot_test_data.drop(columns=['label'])
     y_test_data = ciciot_test_data['label']
 
     # Print the shapes of the resulting splits
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
+
+    # # Feature / Label Split (X y split)
+    # X_train_data = ciciot_train_data[combined_features]
+    # y_train_data = ciciot_train_data['label']
+    #
+    # X_test_data = ciciot_test_data[combined_features]
+    # y_test_data = ciciot_test_data['label']
+    #
+    # # Print the shapes of the resulting splits
+    # print("X_train shape:", X_train_data.shape)
+    # print("y_train shape:", y_train_data.shape)
 
     # X_selected = X_train_reduced[combined_features]
     #
