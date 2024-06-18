@@ -243,8 +243,11 @@ if dataset_used == "CICIOT":
 
     # Scale the numeric features present in X_reduced
     scaled_num_cols = [col for col in num_cols if col in X_train_reduced.columns]
-    X_train_reduced[scaled_num_cols] = scaler.fit_transform(X_train_reduced[scaled_num_cols])
-    X_test_reduced[scaled_num_cols] = scaler.fit_transform(X_test_reduced[scaled_num_cols])
+
+    scaler.fit(X_train_reduced[scaled_num_cols])
+
+    X_train_reduced[scaled_num_cols] = scaler.transform(X_train_reduced[scaled_num_cols])
+    X_test_reduced[scaled_num_cols] = scaler.transform(X_test_reduced[scaled_num_cols])
 
     # prove if the data is loaded properly
     print("Real data After Scaling (TRAIN):")
