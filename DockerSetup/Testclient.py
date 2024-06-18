@@ -200,17 +200,13 @@ if dataset_used == "CICIOT":
     # ---                   Scaling                     --- #
 
     # Setting up Scaler for Features
-    # scaler = RobustScaler()
     scaler = MinMaxScaler(feature_range=(0, 1))
-    # transformer = PowerTransformer(method='yeo-johnson')
 
     # train the scalar on train data features
     scaler.fit(ciciot_train_data[num_cols])
 
     # Save the Scaler for use in other files
-    # joblib.dump(scaler, 'RobustScaler_.pkl')
     # joblib.dump(scaler, f'./MinMaxScaler.pkl')
-    # joblib.dump(scaler, 'PowerTransformer_.pkl')
 
     # Scale the features in the real train dataframe
     ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])

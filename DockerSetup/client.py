@@ -136,31 +136,31 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-    ## Remapping for other Classifications ##
+        ## Remapping for other Classifications ##
 
-    if ciciot_label_class == "7+1":
-        # Relabel the 'label' column using dict_7classes
-        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
-        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
+        if ciciot_label_class == "7+1":
+            # Relabel the 'label' column using dict_7classes
+            ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
+            ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
 
-    if ciciot_label_class == "1+1":
-        # Relabel the 'label' column using dict_2classes
-        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
-        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
+        if ciciot_label_class == "1+1":
+            # Relabel the 'label' column using dict_2classes
+            ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
+            ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
-    # Drop the irrelevant features
-    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+        # Drop the irrelevant features
+        ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+        ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-    # Shuffle data
-    ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
+        # Shuffle data
+        ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
 
-    # prints an instance of each class
-    print("Before Encoding and Scaling:")
-    unique_labels = ciciot_train_data['label'].unique()
-    for label in unique_labels:
-        print(f"First instance of {label}:")
-        print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
+        # prints an instance of each class
+        print("Before Encoding and Scaling:")
+        unique_labels = ciciot_train_data['label'].unique()
+        for label in unique_labels:
+            print(f"First instance of {label}:")
+            print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
         # ---                   Labeling                     --- #
 
@@ -222,16 +222,16 @@ if dataset_used == "CICIOT":
         print(ciciot_test_data.head())
         print(ciciot_test_data.shape)
 
-    # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data.drop(columns=['label'])
-    y_train_data = ciciot_train_data['label']
+        # Feature / Label Split (X y split)
+        X_train_data = ciciot_train_data.drop(columns=['label'])
+        y_train_data = ciciot_train_data['label']
 
-    X_test_data = ciciot_test_data.drop(columns=['label'])
-    y_test_data = ciciot_test_data['label']
+        X_test_data = ciciot_test_data.drop(columns=['label'])
+        y_test_data = ciciot_test_data['label']
 
-    # Print the shapes of the resulting splits
-    print("X_train shape:", X_train_data.shape)
-    print("y_train shape:", y_train_data.shape)
+        # Print the shapes of the resulting splits
+        print("X_train shape:", X_train_data.shape)
+        print("y_train shape:", y_train_data.shape)
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
