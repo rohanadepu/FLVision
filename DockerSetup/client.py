@@ -162,69 +162,65 @@ if dataset_used == "CICIOT":
         print(f"First instance of {label}:")
         print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
-    # ---                   Scaling                     --- #
+        # ---                   Labeling                     --- #
 
-    # Setting up Scaler for Features
-    # scaler = RobustScaler()
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    # transformer = PowerTransformer(method='yeo-johnson')
+        # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
+        unique_labels = ciciot_train_data['label'].nunique()
 
-    # train the scalar on train data features
-    scaler.fit(ciciot_train_data[num_cols])
+        # Print the number of unique labels
+        print(f"There are {unique_labels} unique labels in the dataset.")
 
-    # Save the Scaler for use in other files
-    # joblib.dump(scaler, 'RobustScaler_.pkl')
-    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
-    # joblib.dump(scaler, 'PowerTransformer_.pkl')
+        # print the amount of instances for each label
+        class_counts = ciciot_train_data['label'].value_counts()
+        print(class_counts)
 
-    # Scale the features in the real train dataframe
-    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
-    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
+        # Display the first few entries to verify the changes
+        print(ciciot_train_data.head())
 
-    # prove if the data is loaded properly
-    print("Real data After Scaling (TRAIN):")
-    print(ciciot_train_data.head())
-    print(ciciot_train_data.shape)
+        # Encodes the training label
+        label_encoder = LabelEncoder()
+        ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
+        ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
 
-    # prove if the data is loaded properly
-    print("Real data After Scaling (TEST):")
-    print(ciciot_test_data.head())
-    print(ciciot_test_data.shape)
+        # Store label mappings
+        label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
+        print("Label mappings:", label_mapping)
 
-# ---                   Labeling                     --- #
+        # Retrieve the numeric codes for classes
+        class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
-    # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
-    unique_labels = ciciot_train_data['label'].nunique()
+        # Print specific instances after label encoding
+        print("Real data After Encoding:")
+        for label, code in class_codes.items():
+            # Print the first instance of each class
+            print(f"First instance of {label} (code {code}):")
+            print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+        print(ciciot_train_data.head(), "\n")
 
-    # Print the number of unique labels
-    print(f"There are {unique_labels} unique labels in the dataset.")
+        # ---                   Scaling                     --- #
 
-    # print the amount of instances for each label
-    class_counts = ciciot_train_data['label'].value_counts()
-    print(class_counts)
+        # Setting up Scaler for Features
+        scaler = MinMaxScaler(feature_range=(0, 1))
 
-    # Display the first few entries to verify the changes
-    print(ciciot_train_data.head())
+        # train the scalar on train data features
+        scaler.fit(ciciot_train_data[num_cols])
 
-    # Encodes the training label
-    label_encoder = LabelEncoder()
-    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-    ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
+        # Save the Scaler for use in other files
+        # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-    # Store label mappings
-    label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
-    print("Label mappings:", label_mapping)
+        # Scale the features in the real train dataframe
+        ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
+        ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
 
-    # Retrieve the numeric codes for classes
-    class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
+        # prove if the data is loaded properly
+        print("Real data After Scaling (TRAIN):")
+        print(ciciot_train_data.head())
+        print(ciciot_train_data.shape)
 
-    # Print specific instances after label encoding
-    print("Real data After Encoding:")
-    for label, code in class_codes.items():
-        # Print the first instance of each class
-        print(f"First instance of {label} (code {code}):")
-        print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
-    print(ciciot_train_data.head(), "\n")
+        # prove if the data is loaded properly
+        print("Real data After Scaling (TEST):")
+        print(ciciot_test_data.head())
+        print(ciciot_test_data.shape)
 
     # Feature / Label Split (X y split)
     X_train_data = ciciot_train_data.drop(columns=['label'])
@@ -378,7 +374,7 @@ if dataset_used == "IOTBOTNET":
     # theft_train, theft_test = split_train_test(theft_combined)
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
-    # Debug ##
+    ## Debug ##
 
     # # Display the first few rows of the combined DataFrames
     # print("DDoS UDP Data:")
@@ -410,8 +406,8 @@ if dataset_used == "IOTBOTNET":
     #
     # print("Theft Keylogging Data:")
     # print(theft_keylogging_data.head())
-
-    # Display the first few rows of each combined DataFrame
+    #
+    # # Display the first few rows of each combined DataFrame
     # print("DDoS Combined Data (Train):")
     # print(ddos_train.head())
     #
@@ -436,11 +432,11 @@ if dataset_used == "IOTBOTNET":
     # print("Theft Combined Data (Test):")
     # print(theft_test.head())
     #
-    print("All Attacks Combined Data (Train):")
-    print(all_attacks_train.head())
-
-    print("All Attacks Combined Data (Test):")
-    print(all_attacks_test.head())
+    # print("All Attacks Combined Data (Train):")
+    # print(all_attacks_train.head())
+    #
+    # print("All Attacks Combined Data (Test):")
+    # print(all_attacks_test.head())
 
     ## end of debug ##
 
