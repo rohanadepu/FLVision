@@ -549,7 +549,7 @@ if dataset_used == "CICIOT":
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(unique_labels, activation='sigmoid')
+        tf.keras.layers.Dense(1, activation='sigmoid')
     ])
 
 if dataset_used == "IOTBOTNET":
@@ -562,7 +562,7 @@ if dataset_used == "IOTBOTNET":
         tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dense(4, activation='relu'),
         tf.keras.layers.Dense(2, activation='relu'),
-        tf.keras.layers.Dense(2, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
     ])
 
 # Set the privacy parameters

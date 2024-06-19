@@ -369,9 +369,8 @@ if dataset_used == "CICIOT":
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(unique_labels, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
     ])
-
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
