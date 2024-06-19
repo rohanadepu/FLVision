@@ -566,7 +566,7 @@ if dataset_used == "IOTBOTNET":
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy'])
+              metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
 
 model.summary()
 
