@@ -374,7 +374,7 @@ if dataset_used == "CICIOT":
 
 
 model.compile(optimizer='adam',
-              loss=tf.keras.losses.sparse_categorical_crossentropy,
+              loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy'])
 
 model.summary()
