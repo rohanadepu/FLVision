@@ -568,7 +568,7 @@ if dataset_used == "IOTBOTNET":
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
-num_microbatches = 32
+num_microbatches = 16
 batch_size = 32
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -615,7 +615,7 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size)
+        model.fit(X_train_data, y_train_data, epochs=25, batch_size=batch_size)
         return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
