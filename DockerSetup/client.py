@@ -586,7 +586,7 @@ class FLClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
         loss, accuracy, precision, recall, auc = model.evaluate(X_test_data, y_test_data)  # change dataset here
-        return loss, len(X_test_data), {"accuracy": float(accuracy)}
+        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc}
 
 #########################################################
 #    Start the client                                   #
