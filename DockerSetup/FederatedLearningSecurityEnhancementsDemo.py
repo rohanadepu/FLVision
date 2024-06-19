@@ -580,7 +580,7 @@ dp_optimizer = tfp.DPKerasAdamOptimizer(
 )
 
 model.compile(optimizer=dp_optimizer,
-              loss=tf.keras.losses.sparse_categorical_crossentropy,
+              loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy'])
 
 model.summary()
