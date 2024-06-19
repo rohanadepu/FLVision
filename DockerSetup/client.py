@@ -566,7 +566,7 @@ if dataset_used == "IOTBOTNET":
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
+              metrics=['accuracy', Precision(), Recall(), AUC()])
 
 model.summary()
 
@@ -585,7 +585,7 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        loss, accuracy, precision, recall, auc = model.evaluate(X_test_data, y_test_data)  # change dataset here
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
 #########################################################
