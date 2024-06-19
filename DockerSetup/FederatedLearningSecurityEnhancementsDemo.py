@@ -568,7 +568,7 @@ if dataset_used == "IOTBOTNET":
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
-num_microbatches = 4
+num_microbatches = 1
 batch_size = 32
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -635,4 +635,4 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
