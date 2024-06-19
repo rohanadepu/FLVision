@@ -593,9 +593,7 @@ model.summary()
 # num_clients = 2  # Example number of clients
 # clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
-class FLClient(fl.client.NumPyClient):
-    def get_parameters(self, config):
-        return model.get_weights()
+
 
     # def fit(self, parameters, config):
     #     model.set_weights(parameters)
@@ -613,9 +611,19 @@ class FLClient(fl.client.NumPyClient):
     #     loss, accuracy = model.evaluate(X_test_data, y_test_data)
     #     return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
+class FLClient(fl.client.NumPyClient):
+    def get_parameters(self, config):
+        return model.get_weights()
+
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        model.fit(X_train_data, y_train_data, epochs=25, batch_size=batch_size)
+        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
+        history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size)
+
+        # Debugging: Print the shape of the loss
+        loss_tensor = history.history['loss']
+        print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+
         return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
@@ -627,4 +635,4 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient())
