@@ -5,6 +5,7 @@
 import os
 import flwr as fl
 import tensorflow as tf
+from tensorflow.keras.metrics import AUC, Precision, Recall
 
 # import numpy as np
 import pandas as pd
@@ -527,7 +528,7 @@ if dataset_used == "CIFAR":
     model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.sparse_categorical_crossentropy,
-                  metrics=['accuracy'])
+                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
 
 #########################################################
 #    Model Initialization & Setup                       #
