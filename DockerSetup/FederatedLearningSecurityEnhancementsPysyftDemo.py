@@ -6,7 +6,7 @@ import os
 import flwr as fl
 import tensorflow as tf
 
-import tensorflow_privacy as tfp
+
 import syft as sy
 
 import torch
@@ -567,22 +567,25 @@ if dataset_used == "IOTBOTNET":
         tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
     ])
 
+# Import PySyft's differential privacy optimizer
+from syft.frameworks.torch.dp import Adam
+
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
 batch_size = 32
-num_microbatches = batch_size  # this is bugged
 
-
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-dp_optimizer = tfp.DPKerasAdamOptimizer(
-    l2_norm_clip=l2_norm_clip,
+# Define PySyft's DP optimizer
+optimizer = Adam(
+    params=model.parameters(),
+    lr=0.001,
     noise_multiplier=noise_multiplier,
-    num_microbatches=num_microbatches,
-    learning_rate=0.001
+    l2_norm_clip=l2_norm_clip,
+    batch_size=batch_size
 )
 
-model.compile(optimizer=dp_optimizer,
+# Compile the model with the PySyft DP optimizer
+model.compile(optimizer=optimizer,
               loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy'])
 
@@ -591,7 +594,7 @@ model.summary()
 #########################################################
 #    Federated Learning Setup                           #
 #########################################################
-hook = sy.KerasHook(tf.keras)
+hook = sy.TFEHook()
 num_clients = 2  # Example number of clients
 clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
@@ -602,7 +605,6 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
         history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
 
         # Debugging: Print the shape of the loss
