@@ -611,7 +611,7 @@ def encrypt_weights(weights, tenseal_context):
 
 def decrypt_weights(encrypted_weights, tenseal_context):
     print(f"Context type in decrypt_weights: {type(tenseal_context)}")
-    decrypted_weights = [ts.ckks_vector_from(tenseal_context, ew).decrypt().tolist() for ew in encrypted_weights]
+    decrypted_weights = [ts.ckks_vector_from(tenseal_context, ew.decrypt().tolist()).deserialize() for ew in encrypted_weights]
     return decrypted_weights
 
 class FLClient(fl.client.NumPyClient):
