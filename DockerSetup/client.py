@@ -212,13 +212,15 @@ if dataset_used == "CICIOT":
         # Setting up Scaler for Features
         scaler = MinMaxScaler(feature_range=(0, 1))
 
+        # select the num cols that are relevant
+        relevant_num_cols = [col for col in num_cols if col in relevant_features]
+
         # train the scalar on train data features
-        scaler.fit(ciciot_train_data[num_cols])
+        scaler.fit(ciciot_train_data[relevant_num_cols])
 
         # Save the Scaler for use in other files
         # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-        relevant_num_cols = [col for col in num_cols if col in relevant_features]
         # Scale the features in the real train dataframe
         ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
         ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
