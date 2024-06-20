@@ -88,9 +88,19 @@ if dataset_used == "CICIOT":
         'ICMP', 'IPv', 'LLC', 'label'
     ]
 
-    irrelevant_features = ['Srate','ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
-                           'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
-                           'Max', 'AVG', 'Std']
+    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
+    #                        'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
+    #                        'Max', 'AVG', 'Std']
+    #
+    # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
+    #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
+    #                        'Covariance', 'Variance', 'Weight']
+
+    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number', 'ack_count', 'syn_count',
+                           'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue',
+                           'Radius', 'Covariance', 'Variance', 'Weight', 'flow_duration', 'Header_Length', 'urg_count',
+                           'Tot sum']
+
 
     relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum',
        'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
@@ -157,11 +167,11 @@ if dataset_used == "CICIOT":
             ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
         # Drop the irrelevant features
-        # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-        # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+        ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+        ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-        ciciot_train_data = ciciot_train_data[relevant_features]
-        ciciot_test_data = ciciot_test_data[relevant_features]
+        # ciciot_train_data = ciciot_train_data[relevant_features]
+        # ciciot_test_data = ciciot_test_data[relevant_features]
 
         # Shuffle data
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
