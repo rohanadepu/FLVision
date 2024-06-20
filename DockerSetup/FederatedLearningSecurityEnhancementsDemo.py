@@ -7,7 +7,7 @@ import flwr as fl
 import tensorflow as tf
 
 import tensorflow_privacy as tfp
-
+import syft as sy
 
 import torch
 
