@@ -7,7 +7,7 @@ import flwr as fl
 import tensorflow as tf
 
 import tensorflow_privacy as tfp
-import tenseal as ts
+import syft as sy
 
 import torch
 
@@ -570,8 +570,9 @@ if dataset_used == "IOTBOTNET":
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
-num_microbatches = 1  # this is bugged
 batch_size = 32
+num_microbatches = batch_size  # this is bugged
+
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dp_optimizer = tfp.DPKerasAdamOptimizer(
@@ -590,63 +591,37 @@ model.summary()
 #########################################################
 #    Federated Learning Setup                           #
 #########################################################
+hook = sy.TFEHook()
+num_clients = 2  # Example number of clients
+clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
 # Function to create a TenSEAL context
-def create_tenseal_context():
-    tenseal_context = ts.context(
-        ts.SCHEME_TYPE.CKKS,
-        poly_modulus_degree=8192,
-        coeff_mod_bit_sizes=[60, 40, 40, 60]
-    )
-    tenseal_context.generate_galois_keys()
-    tenseal_context.global_scale = 2**40
-    print(f"Context created with type: {type(tenseal_context)}")
-    return tenseal_context
-
-# Encryption and Decryption Functions
-def encrypt_weights(weights, tenseal_context):
-    print(f"Context type in encrypt_weights: {type(tenseal_context)}")
-    encrypted_weights = [ts.ckks_vector(tenseal_context, w.flatten().tolist()).serialize() for w in weights]
-    return encrypted_weights
-
-def decrypt_weights(encrypted_weights, tenseal_context):
-    print(f"Context type in decrypt_weights: {type(tenseal_context)}")
-    decrypted_weights = [ts.ckks_vector_from(tenseal_context, ew.decrypt().tolist()).deserialize() for ew in encrypted_weights]
-    return decrypted_weights
-
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, tenseal_context):
-        self.tenseal_context = tenseal_context
-
     def get_parameters(self, config):
-        print("Getting parameters")
-        encrypted_weights = encrypt_weights(model.get_weights(), self.tenseal_context)
-        print(f"Encrypted weights: {encrypted_weights}")
-        return encrypted_weights
+        return model.get_weights()
 
     def fit(self, parameters, config):
-        print("Fitting model")
-        decrypted_parameters = decrypt_weights(parameters, self.tenseal_context)
-        model.set_weights(decrypted_parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
-        encrypted_weights = encrypt_weights(model.get_weights(), self.tenseal_context)
-        print(f"Encrypted weights after fit: {encrypted_weights}")
+        model.set_weights(parameters)
+        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
+        history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
+
+        # Debugging: Print the shape of the loss
+        loss_tensor = history.history['loss']
+        print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+
+        encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
         return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        print("Evaluating model")
-        decrypted_parameters = decrypt_weights(parameters, self.tenseal_context)
-        model.set_weights(decrypted_parameters)
+        # Decrypt the model weights
+        decrypted_weights = [w.get().float_precision() for w in parameters]
+
+        model.set_weights(decrypted_weights)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
-
-# Initialize the TenSEAL context
-tenseal_context  = create_tenseal_context()
-print(f"Context type: {type(tenseal_context )}")
-
 
 #########################################################
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(tenseal_context ).to_client())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
