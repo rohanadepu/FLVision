@@ -606,12 +606,12 @@ def create_tenseal_context():
 # Encryption and Decryption Functions
 def encrypt_weights(weights, tenseal_context):
     print(f"Context type in encrypt_weights: {type(tenseal_context)}")
-    encrypted_weights = [ts.ckks_vector(tenseal_context, w.flatten().tolist()).serialize() for w in weights]
+    encrypted_weights = [ts.CKKSVector(tenseal_context, w.flatten().tolist()).serialize() for w in weights]
     return encrypted_weights
 
 def decrypt_weights(encrypted_weights, tenseal_context):
     print(f"Context type in decrypt_weights: {type(tenseal_context)}")
-    decrypted_weights = [ts.ckks_vector.deserialize(tenseal_context, bytes(ew)).decrypt() for ew in encrypted_weights]
+    decrypted_weights = [ts.CKKSVector.deserialize(tenseal_context, bytes(ew)).decrypt() for ew in encrypted_weights]
     return decrypted_weights
 
 class FLClient(fl.client.NumPyClient):
