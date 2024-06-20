@@ -96,7 +96,7 @@ if dataset_used == "CICIOT":
        'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
        'syn_flag_number', 'UDP', 'ICMP', 'fin_flag_number', 'psh_flag_number',
        'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH', 'Telnet',
-       'DHCP', 'ARP', 'Drate', 'cwr_flag_number']
+       'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
@@ -159,8 +159,8 @@ if dataset_used == "CICIOT":
         # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
         # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-        ciciot_train_data = ciciot_train_data[relevant_features, 'label']
-        ciciot_test_data = ciciot_test_data[relevant_features, 'label']
+        ciciot_train_data = ciciot_train_data[relevant_features]
+        ciciot_test_data = ciciot_test_data[relevant_features]
 
         # Shuffle data
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
