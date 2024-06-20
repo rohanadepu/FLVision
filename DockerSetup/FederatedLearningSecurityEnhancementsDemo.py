@@ -5,7 +5,7 @@
 import os
 import flwr as fl
 import tensorflow as tf
-
+import tf_encrypted as tfe
 import tensorflow_privacy as tfp
 
 
