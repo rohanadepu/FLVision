@@ -643,12 +643,12 @@ class FLClient(fl.client.NumPyClient):
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
 # Initialize the TenSEAL context
-context = create_tenseal_context()
-print(f"Context type: {type(context)}")
+tenseal_context  = create_tenseal_context()
+print(f"Context type: {type(tenseal_context )}")
 
 
 #########################################################
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(context).to_client())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(tenseal_context ).to_client())
