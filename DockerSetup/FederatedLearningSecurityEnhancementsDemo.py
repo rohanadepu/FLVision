@@ -593,18 +593,24 @@ model.summary()
 
 # Function to create a TenSEAL context
 def create_tenseal_context():
-    context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192, coeff_mod_bit_sizes=[60, 40, 40, 60])
+    context = ts.context(
+        ts.SCHEME_TYPE.CKKS,
+        poly_modulus_degree=8192,
+        coeff_mod_bit_sizes=[60, 40, 40, 60]
+    )
     context.global_scale = 2**40
     context.generate_galois_keys()
     return context
 
 # Function to encrypt model weights
 def encrypt_weights(weights, context):
-    return [ts.ckks_vector(context, w.flatten().tolist()) for w in weights]
+    encrypted_weights = [ts.ckks_vector(context, w.flatten().tolist()) for w in weights]
+    return encrypted_weights
 
-# Function to decrypt model weights
-def decrypt_weights(encrypted_weights):
-    return [ew.decrypt().tolist() for ew in encrypted_weights]
+def decrypt_weights(encrypted_weights, context):
+    decrypted_weights = [ts.ckks_vector(context, ew.serialize()).decrypt().tolist() for ew in encrypted_weights]
+    return decrypted_weights
+
 
 
 class FLClient(fl.client.NumPyClient):
