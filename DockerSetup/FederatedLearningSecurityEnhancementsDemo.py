@@ -593,51 +593,51 @@ model.summary()
 
 # Function to create a TenSEAL context
 def create_tenseal_context():
-    context = ts.context(
+    tenseal_context = ts.context(
         ts.SCHEME_TYPE.CKKS,
         poly_modulus_degree=8192,
         coeff_mod_bit_sizes=[60, 40, 40, 60]
     )
-    context.global_scale = 2**40
-    context.generate_galois_keys()
-    print(f"Context created with type: {type(context)}")
-    return context
+    tenseal_context.global_scale = 2**40
+    tenseal_context.generate_galois_keys()
+    print(f"Context created with type: {type(tenseal_context)}")
+    return tenseal_context
 
-# Function to encrypt model weights
-def encrypt_weights(weights, context):
-    print(f"Context type in encrypt_weights: {type(context)}")
-    encrypted_weights = [ts.ckks_vector(context, w.flatten().tolist()) for w in weights]
+# Encryption and Decryption Functions
+def encrypt_weights(weights, tenseal_context):
+    print(f"Context type in encrypt_weights: {type(tenseal_context)}")
+    encrypted_weights = [ts.ckks_vector(tenseal_context, w.flatten().tolist()) for w in weights]
     return encrypted_weights
 
-def decrypt_weights(encrypted_weights, context):
-    print(f"Context type in decrypt_weights: {type(context)}")
-    decrypted_weights = [ts.ckks_vector(context, ew.serialize()).decrypt().tolist() for ew in encrypted_weights]
+def decrypt_weights(encrypted_weights, tenseal_context):
+    print(f"Context type in decrypt_weights: {type(tenseal_context)}")
+    decrypted_weights = [ts.ckks_vector(tenseal_context, ew.serialize()).decrypt().tolist() for ew in encrypted_weights]
     return decrypted_weights
 
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, context):
-        self.context = context
+    def __init__(self, tenseal_context):
+        self.tenseal_context = tenseal_context
 
     def get_parameters(self, config):
         print("Getting parameters")
-        encrypted_weights = encrypt_weights(model.get_weights(), self.context)
+        encrypted_weights = encrypt_weights(model.get_weights(), self.tenseal_context)
         print(f"Encrypted weights: {encrypted_weights}")
         return encrypted_weights
 
     def fit(self, parameters, config):
         print("Fitting model")
-        decrypted_parameters = decrypt_weights(parameters, self.context)
+        decrypted_parameters = decrypt_weights(parameters, self.tenseal_context)
         model.set_weights(decrypted_parameters)
-        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
-        encrypted_weights = encrypt_weights(model.get_weights(), self.context)
+        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
+        encrypted_weights = encrypt_weights(model.get_weights(), self.tenseal_context)
         print(f"Encrypted weights after fit: {encrypted_weights}")
         return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         print("Evaluating model")
-        decrypted_parameters = decrypt_weights(parameters, self.context)
+        decrypted_parameters = decrypt_weights(parameters, self.tenseal_context)
         model.set_weights(decrypted_parameters)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
