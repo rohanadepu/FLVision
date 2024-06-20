@@ -11,7 +11,7 @@ import syft as sy
 
 # import torch
 
-# import numpy as np
+import numpy as np
 import pandas as pd
 # import math
 # import glob
@@ -567,25 +567,13 @@ if dataset_used == "IOTBOTNET":
         tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
     ])
 
-# Import PySyft's differential privacy optimizer
-from syft.frameworks.torch.dp import Adam
-
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
 batch_size = 32
 
-# Define PySyft's DP optimizer
-optimizer = Adam(
-    params=model.parameters(),
-    lr=0.001,
-    noise_multiplier=noise_multiplier,
-    l2_norm_clip=l2_norm_clip,
-    batch_size=batch_size
-)
-
 # Compile the model with the PySyft DP optimizer
-model.compile(optimizer=optimizer,
+model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy'])
 
@@ -598,6 +586,17 @@ hook = sy.TFEHook()
 num_clients = 2  # Example number of clients
 clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
+def add_noise_to_gradients(gradients, noise_multiplier, l2_norm_clip):
+    # Compute the l2 norm of the gradients
+    norm = np.linalg.norm([np.linalg.norm(g) for g in gradients])
+    if norm > l2_norm_clip:
+        # Clip gradients if they exceed the threshold
+        gradients = [g * l2_norm_clip / norm for g in gradients]
+
+    # Add Gaussian noise to each gradient
+    gradients = [g + np.random.normal(0, noise_multiplier * l2_norm_clip, g.shape) for g in gradients]
+    return gradients
+
 # Function to create a TenSEAL context
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
@@ -605,11 +604,19 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
+        print(f"Training with batch_size={batch_size}")
         history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+
+        # Add noise to gradients
+        gradients = model.optimizer.get_gradients(model.total_loss, model.trainable_variables)
+        noisy_gradients = add_noise_to_gradients(gradients, noise_multiplier, l2_norm_clip)
+
+        # Update model with noisy gradients
+        model.optimizer.apply_gradients(zip(noisy_gradients, model.trainable_variables))
 
         encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
         return encrypted_weights, len(X_train_data), {}
