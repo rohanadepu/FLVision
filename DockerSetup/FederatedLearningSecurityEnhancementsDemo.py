@@ -598,8 +598,8 @@ def create_tenseal_context():
         poly_modulus_degree=8192,
         coeff_mod_bit_sizes=[60, 40, 40, 60]
     )
-    tenseal_context.global_scale = 2**40
     tenseal_context.generate_galois_keys()
+    tenseal_context.global_scale = 2**40
     print(f"Context created with type: {type(tenseal_context)}")
     return tenseal_context
 
