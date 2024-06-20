@@ -604,6 +604,7 @@ def create_tenseal_context():
 
 # Function to encrypt model weights
 def encrypt_weights(weights, context):
+    print(f"Context type in encrypt_weights: {type(context)}")
     encrypted_weights = [ts.ckks_vector(context, w.flatten().tolist()) for w in weights]
     return encrypted_weights
 
@@ -634,6 +635,7 @@ class FLClient(fl.client.NumPyClient):
 
 # Initialize the TenSEAL context
 context = create_tenseal_context()
+print(f"Context type: {type(context)}")
 
 
 #########################################################
