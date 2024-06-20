@@ -600,6 +600,7 @@ def create_tenseal_context():
     )
     context.global_scale = 2**40
     context.generate_galois_keys()
+    print(f"Context created with type: {type(context)}")
     return context
 
 # Function to encrypt model weights
@@ -609,6 +610,7 @@ def encrypt_weights(weights, context):
     return encrypted_weights
 
 def decrypt_weights(encrypted_weights, context):
+    print(f"Context type in decrypt_weights: {type(context)}")
     decrypted_weights = [ts.ckks_vector(context, ew.serialize()).decrypt().tolist() for ew in encrypted_weights]
     return decrypted_weights
 
@@ -619,15 +621,22 @@ class FLClient(fl.client.NumPyClient):
         self.context = context
 
     def get_parameters(self, config):
-        return encrypt_weights(model.get_weights(), self.context)
+        print("Getting parameters")
+        encrypted_weights = encrypt_weights(model.get_weights(), self.context)
+        print(f"Encrypted weights: {encrypted_weights}")
+        return encrypted_weights
 
     def fit(self, parameters, config):
+        print("Fitting model")
         decrypted_parameters = decrypt_weights(parameters, self.context)
         model.set_weights(decrypted_parameters)
         model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
-        return encrypt_weights(model.get_weights(), self.context), len(X_train_data), {}
+        encrypted_weights = encrypt_weights(model.get_weights(), self.context)
+        print(f"Encrypted weights after fit: {encrypted_weights}")
+        return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
+        print("Evaluating model")
         decrypted_parameters = decrypt_weights(parameters, self.context)
         model.set_weights(decrypted_parameters)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
