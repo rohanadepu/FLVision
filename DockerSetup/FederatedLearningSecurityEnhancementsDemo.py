@@ -570,7 +570,7 @@ if dataset_used == "IOTBOTNET":
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
-num_microbatches = 1 # this is bugged
+num_microbatches = 1  # this is bugged
 batch_size = 32
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -608,26 +608,25 @@ def decrypt_weights(encrypted_weights):
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, model, context):
-        self.model = model
+    def __init__(self, context):
         self.context = context
 
     def get_parameters(self, config):
-        return encrypt_weights(self.model.get_weights(), self.context)
+        return encrypt_weights(model.get_weights(), self.context)
 
     def fit(self, parameters, config):
         decrypted_parameters = decrypt_weights(parameters)
-        self.model.set_weights(decrypted_parameters)
-        self.model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
-        return encrypt_weights(self.model.get_weights(), self.context), len(X_train_data), {}
+        model.set_weights(decrypted_parameters)
+        model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
+        return encrypt_weights(model.get_weights(), self.context), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         decrypted_parameters = decrypt_weights(parameters)
-        self.model.set_weights(decrypted_parameters)
-        loss, accuracy = self.model.evaluate(X_test_data, y_test_data)
+        model.set_weights(decrypted_parameters)
+        loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
-# Initialize the model and TenSEAL context
+# Initialize the TenSEAL context
 context = create_tenseal_context()
 
 
@@ -635,4 +634,4 @@ context = create_tenseal_context()
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
+fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(context).to_client())
