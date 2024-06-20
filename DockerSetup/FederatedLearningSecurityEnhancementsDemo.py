@@ -7,7 +7,7 @@ import flwr as fl
 import tensorflow as tf
 
 import tensorflow_privacy as tfp
-import syft as sy
+import tenseal as ts
 
 import torch
 
@@ -591,51 +591,45 @@ model.summary()
 #    Federated Learning Setup                           #
 #########################################################
 
-hook = sy.TFEHook()
-num_clients = 2  # Example number of clients
-clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
+# Function to create a TenSEAL context
+def create_tenseal_context():
+    context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192, coeff_mod_bit_sizes=[60, 40, 40, 60])
+    context.global_scale = 2**40
+    context.generate_galois_keys()
+    return context
 
+# Function to encrypt model weights
+def encrypt_weights(weights, context):
+    return [ts.ckks_vector(context, w.flatten().tolist()) for w in weights]
 
+# Function to decrypt model weights
+def decrypt_weights(encrypted_weights):
+    return [ew.decrypt().tolist() for ew in encrypted_weights]
 
-    # def fit(self, parameters, config):
-    #     model.set_weights(parameters)
-    #     model.fit(X_train_data, y_train_data, epochs=1, batch_size=32, steps_per_epoch=3)
-    #
-    #     # Secure aggregation using secret sharing
-    #     encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
-    #     return encrypted_weights, len(X_train_data), {}
-
-    # def evaluate(self, parameters, config):
-    #     # Decrypt the model weights
-    #     decrypted_weights = [w.get().float_precision() for w in parameters]
-    #
-    #     model.set_weights(decrypted_weights)
-    #     loss, accuracy = model.evaluate(X_test_data, y_test_data)
-    #     return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
 class FLClient(fl.client.NumPyClient):
+    def __init__(self, model, context):
+        self.model = model
+        self.context = context
+
     def get_parameters(self, config):
-        return model.get_weights()
+        return encrypt_weights(self.model.get_weights(), self.context)
 
     def fit(self, parameters, config):
-        model.set_weights(parameters)
-        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
-        history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
-
-        # Debugging: Print the shape of the loss
-        loss_tensor = history.history['loss']
-        print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
-
-        encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
-        return encrypted_weights, len(X_train_data), {}
+        decrypted_parameters = decrypt_weights(parameters)
+        self.model.set_weights(decrypted_parameters)
+        self.model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
+        return encrypt_weights(self.model.get_weights(), self.context), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        # Decrypt the model weights
-        decrypted_weights = [w.get().float_precision() for w in parameters]
-
-        model.set_weights(decrypted_weights)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)
+        decrypted_parameters = decrypt_weights(parameters)
+        self.model.set_weights(decrypted_parameters)
+        loss, accuracy = self.model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
+
+# Initialize the model and TenSEAL context
+context = create_tenseal_context()
+
 
 #########################################################
 #    Start the client                                   #
