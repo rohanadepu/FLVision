@@ -5,11 +5,8 @@
 import os
 import flwr as fl
 import tensorflow as tf
-
+from tensorflow.keras.metrics import AUC, Precision, Recall
 import tensorflow_privacy as tfp
-
-
-import torch
 
 # import numpy as np
 import pandas as pd
@@ -25,7 +22,6 @@ import os
 # import pickle
 import joblib
 from sklearn.model_selection import train_test_split
-
 
 # import sklearn.cluster as cluster
 # from sklearn.model_selection import cross_val_score
@@ -93,9 +89,25 @@ if dataset_used == "CICIOT":
         'ICMP', 'IPv', 'LLC', 'label'
     ]
 
-    irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
-                           'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
-                           'Max', 'AVG', 'Std']
+    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
+    #                        'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
+    #                        'Max', 'AVG', 'Std']
+    #
+    # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
+    #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
+    #                        'Covariance', 'Variance', 'Weight']
+
+    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number', 'ack_count', 'syn_count',
+                           'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue',
+                           'Radius', 'Covariance', 'Variance', 'Weight', 'flow_duration', 'Header_Length', 'urg_count',
+                           'Tot sum']
+
+
+    relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum',
+       'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
+       'syn_flag_number', 'UDP', 'ICMP', 'fin_flag_number', 'psh_flag_number',
+       'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH', 'Telnet',
+       'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
@@ -142,113 +154,118 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-    ## Remapping for other Classifications ##
+        # ---                   Feature Selection and Reclassify                     --- #
 
-    if ciciot_label_class == "7+1":
-        # Relabel the 'label' column using dict_7classes
-        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
-        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
+        # Remapping for other Classifications
+        if ciciot_label_class == "7+1":
+            # Relabel the 'label' column using dict_7classes
+            ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
+            ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
 
-    if ciciot_label_class == "1+1":
-        # Relabel the 'label' column using dict_2classes
-        ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
-        ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
+        if ciciot_label_class == "1+1":
+            # Relabel the 'label' column using dict_2classes
+            ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
+            ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
-    # Drop the irrelevant features
-    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+        # Drop the irrelevant features
+        ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+        ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-    # Shuffle data
-    ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
+        # ciciot_train_data = ciciot_train_data[relevant_features]
+        # ciciot_test_data = ciciot_test_data[relevant_features]
 
-    # prints an instance of each class
-    print("Before Encoding and Scaling:")
-    unique_labels = ciciot_train_data['label'].unique()
-    for label in unique_labels:
-        print(f"First instance of {label}:")
-        print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
+        # Shuffle data
+        ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
 
-    # ---                   Scaling                     --- #
+        # prints an instance of each class
+        print("Before Encoding and Scaling:")
+        unique_labels = ciciot_train_data['label'].unique()
+        for label in unique_labels:
+            print(f"First instance of {label}:")
+            print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
-    # Setting up Scaler for Features
-    # scaler = RobustScaler()
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    # transformer = PowerTransformer(method='yeo-johnson')
+        # ---                   Labeling                     --- #
 
-    # train the scalar on train data features
-    scaler.fit(ciciot_train_data[num_cols])
+        # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
+        unique_labels = ciciot_train_data['label'].nunique()
 
-    # Save the Scaler for use in other files
-    # joblib.dump(scaler, 'RobustScaler_.pkl')
-    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
-    # joblib.dump(scaler, 'PowerTransformer_.pkl')
+        # Print the number of unique labels
+        print(f"There are {unique_labels} unique labels in the dataset.")
 
-    # Scale the features in the real train dataframe
-    ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
-    ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
+        # print the amount of instances for each label
+        class_counts = ciciot_train_data['label'].value_counts()
+        print(class_counts)
 
-    # prove if the data is loaded properly
-    print("Real data After Scaling (TRAIN):")
-    print(ciciot_train_data.head())
-    # print(real_train_data[:2])
-    print(ciciot_train_data.shape)
+        # Display the first few entries to verify the changes
+        print(ciciot_train_data.head())
 
-    # prove if the data is loaded properly
-    print("Real data After Scaling (TEST):")
-    print(ciciot_test_data.head())
-    # print(real_train_data[:2])
-    print(ciciot_test_data.shape)
+        # Encodes the training label
+        label_encoder = LabelEncoder()
+        ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
+        ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
 
-# ---                   Labeling                     --- #
+        # Store label mappings
+        label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
+        print("Label mappings:", label_mapping)
 
-    # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
-    unique_labels = ciciot_train_data['label'].nunique()
+        # Retrieve the numeric codes for classes
+        class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
-    # Print the number of unique labels
-    print(f"There are {unique_labels} unique labels in the dataset.")
+        # Print specific instances after label encoding
+        print("Real data After Encoding:")
+        for label, code in class_codes.items():
+            # Print the first instance of each class
+            print(f"First instance of {label} (code {code}):")
+            print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+        print(ciciot_train_data.head(), "\n")
 
-    # print the amount of instances for each label
-    class_counts = ciciot_train_data['label'].value_counts()
-    print(class_counts)
+        # ---                   Scaling                     --- #
 
-    # Display the first few entries to verify the changes
-    print(ciciot_train_data.head())
+        # Setting up Scaler for Features
+        scaler = MinMaxScaler(feature_range=(0, 1))
 
-    # Encodes the training label
-    label_encoder = LabelEncoder()
-    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-    ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
+        # select the num cols that are relevant
+        relevant_num_cols = [col for col in num_cols if col in relevant_features]
 
-    # Store label mappings
-    label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
-    print("Label mappings:", label_mapping)
+        # train the scalar on train data features
+        scaler.fit(ciciot_train_data[relevant_num_cols])
 
-    # Retrieve the numeric codes for classes
-    class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
+        # Save the Scaler for use in other files
+        # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-    # Print specific instances after label encoding
-    print("Real data After Encoding:")
-    for label, code in class_codes.items():
-        # Print the first instance of each class
-        print(f"First instance of {label} (code {code}):")
-        print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
-    print(ciciot_train_data.head(), "\n")
+        # Scale the features in the real train dataframe
+        ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
+        ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
-    # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data.drop(columns=['label'])
-    y_train_data = ciciot_train_data['label']
+        # prove if the data is loaded properly
+        print("Real data After Scaling (TRAIN):")
+        print(ciciot_train_data.head())
+        print(ciciot_train_data.shape)
 
-    X_test_data = ciciot_test_data.drop(columns=['label'])
-    y_test_data = ciciot_test_data['label']
+        # prove if the data is loaded properly
+        print("Real data After Scaling (TEST):")
+        print(ciciot_test_data.head())
+        print(ciciot_test_data.shape)
 
-    # Print the shapes of the resulting splits
-    print("X_train shape:", X_train_data.shape)
-    print("y_train shape:", y_train_data.shape)
+        # ---                   Assigining / X y Split                   --- #
+
+        # Feature / Label Split (X y split)
+        X_train_data = ciciot_train_data.drop(columns=['label'])
+        y_train_data = ciciot_train_data['label']
+
+        X_test_data = ciciot_test_data.drop(columns=['label'])
+        y_test_data = ciciot_test_data['label']
+
+        # Print the shapes of the resulting splits
+        print("X_train shape:", X_train_data.shape)
+        print("y_train shape:", y_train_data.shape)
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
 #########################################################
 if dataset_used == "IOTBOTNET":
+
+    # ---                   Functions                   --- #
 
     def load_files_from_directory(directory, file_extension=".csv", sample_size=None):
         # Check if the directory exists
@@ -274,6 +291,7 @@ if dataset_used == "IOTBOTNET":
         for file_path in all_files:
             df = pd.read_csv(file_path)  # Modify this line if files are in a different format
             dataframes.append(df)
+            print("Sample Selected:", file_path)
 
         print("Files Loaded...")
         return dataframes
@@ -281,6 +299,7 @@ if dataset_used == "IOTBOTNET":
     # Function to split a DataFrame into train and test sets
     def split_train_test(dataframe, test_size=0.2):
         train_df, test_df = train_test_split(dataframe, test_size=test_size)
+        print("Dataset Test Train Splitted...")
         return train_df, test_df
 
     # Function to combine subcategories into general classes
@@ -289,12 +308,17 @@ if dataset_used == "IOTBOTNET":
         dos_combined = pd.concat(dos_dataframes, ignore_index=True)
         scan_combined = pd.concat(scan_dataframes, ignore_index=True)
         theft_combined = pd.concat(theft_dataframes, ignore_index=True)
+        print("attacks combined...")
         return ddos_combined, dos_combined, scan_combined, theft_combined
 
     # Function to combine all dataframes into one
     def combine_all_attacks(dataframes):
         combined_df = pd.concat(dataframes, ignore_index=True)
+        print("attacks combined...")
         return combined_df
+
+
+    # ---                   Loading Specific Classes                    --- #
 
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
@@ -343,6 +367,8 @@ if dataset_used == "IOTBOTNET":
     # theft_keylogging_directory = './iotbotnet2020_archive/theft/keylogging'
     # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
+    # ---                   Concatenations to combine all classes                    --- #
+
     # Optionally, concatenate all dataframes if needed
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
@@ -375,6 +401,8 @@ if dataset_used == "IOTBOTNET":
 
     # all_attacks_combined = scan_os_data
 
+    # ---                   Train Test Split                  --- #
+
     # Split each combined DataFrame into train and test sets
     # ddos_train, ddos_test = split_train_test(ddos_combined)
     # dos_train, dos_test = split_train_test(dos_combined)
@@ -382,7 +410,7 @@ if dataset_used == "IOTBOTNET":
     # theft_train, theft_test = split_train_test(theft_combined)
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
-    # Debug ##
+    ## Debug ##
 
     # # Display the first few rows of the combined DataFrames
     # print("DDoS UDP Data:")
@@ -414,8 +442,8 @@ if dataset_used == "IOTBOTNET":
     #
     # print("Theft Keylogging Data:")
     # print(theft_keylogging_data.head())
-
-    # Display the first few rows of each combined DataFrame
+    #
+    # # Display the first few rows of each combined DataFrame
     # print("DDoS Combined Data (Train):")
     # print(ddos_train.head())
     #
@@ -440,17 +468,19 @@ if dataset_used == "IOTBOTNET":
     # print("Theft Combined Data (Test):")
     # print(theft_test.head())
     #
-    print("All Attacks Combined Data (Train):")
-    print(all_attacks_train.head())
-
-    print("All Attacks Combined Data (Test):")
-    print(all_attacks_test.head())
+    # print("All Attacks Combined Data (Train):")
+    # print(all_attacks_train.head())
+    #
+    # print("All Attacks Combined Data (Test):")
+    # print(all_attacks_test.head())
 
     ## end of debug ##
 
 #########################################################
 #    Process Dataset For IOTBOTNET 2020                 #
 #########################################################
+
+    # ---                   Feature Selection                     --- #
     print("Processing data...")
     relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
@@ -463,6 +493,9 @@ if dataset_used == "IOTBOTNET":
 
     X_test = all_attacks_test[relevant_features_iotbotnet]
     y_test = all_attacks_test['Label']
+    print("Dataframes Succesfully Splitted..")
+
+    # ---                   Cleaning                     --- #
 
     # Replace inf values with NaN and then drop them
     X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -474,6 +507,9 @@ if dataset_used == "IOTBOTNET":
 
     X_test = X_test.dropna()
     y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
+    print("Nan and inf values Removed...")
+
+    # ---                   Scaling                     --- #
 
     # Initialize the scaler
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -488,6 +524,7 @@ if dataset_used == "IOTBOTNET":
     X_train_scaled = pd.DataFrame(X_train_scaled, columns=relevant_features_iotbotnet, index=X_train.index)
     X_test_scaled = pd.DataFrame(X_test_scaled, columns=relevant_features_iotbotnet, index=X_test.index)
 
+    # ---                   Labeling                     --- #
     # Initialize the encoder
     label_encoder = LabelEncoder()
 
@@ -500,8 +537,10 @@ if dataset_used == "IOTBOTNET":
     # Optionally, shuffle the training data
     X_train_scaled, y_train_encoded = shuffle(X_train_scaled, y_train_encoded, random_state=47)
 
-    ## Create a DataFrame for y_train_encoded to align indices
+    # Create a DataFrame for y_train_encoded to align indices
     y_train_encoded_df = pd.Series(y_train_encoded, index=X_train_scaled.index)
+
+    # ---                   Assigining                    --- #
 
     # Print an instance of each class in the new train data
     print("After Encoding and Scaling:")
@@ -509,8 +548,6 @@ if dataset_used == "IOTBOTNET":
     for label in unique_labels:
         print(f"First instance of {label}:")
         print(X_train_scaled[y_train_encoded_df == label].iloc[0])
-
-    # renaming all datasets to match the format for the models
 
     # train
     X_train_data = X_train_scaled
@@ -521,7 +558,7 @@ if dataset_used == "IOTBOTNET":
     y_test_data = y_test_encoded
 
 #########################################################
-#    Dataset Processing For Default Cifar10             #
+#    Model Initialization & Setup Default DEMO Cifar10  #
 #########################################################
 
 if dataset_used == "CIFAR":
@@ -529,24 +566,24 @@ if dataset_used == "CIFAR":
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
     #### DEMO MODEL ######
-    # initialize model with TF and keras
     model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.sparse_categorical_crossentropy,
-                  metrics=['accuracy'])
+                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
 
 #########################################################
-#    Model Initialization & Setup                       #
+#    Model Initialization & Setup                    #
 #########################################################
 
-# Define a dense neural network for anomaly detection based on the dataset
+# ---                   CICIOT Model                   --- #
+
 if dataset_used == "CICIOT":
     input_dim = X_train_data.shape[1]
     print("///////////////////////////////////////////////")
     print("Unique Labels:", unique_labels)
     print("Input Dim:", input_dim)
 
-    model = tf.keras.models.Sequential([
+    model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
@@ -554,24 +591,29 @@ if dataset_used == "CICIOT":
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
 
+# ---                   IOTBOTNET Model                  --- #
+
 if dataset_used == "IOTBOTNET":
     input_dim = X_train_data.shape[1]
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = tf.keras.models.Sequential([
+    model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dense(4, activation='relu'),
         tf.keras.layers.Dense(2, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(1, activation='sigmoid')
     ])
+
+# ---                   Differential Privacy                   --- #
 
 # Set the privacy parameters
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
 batch_size = 32
 num_microbatches = 1  # this is bugged
+
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dp_optimizer = tfp.DPKerasAdamOptimizer(
@@ -581,9 +623,12 @@ dp_optimizer = tfp.DPKerasAdamOptimizer(
     learning_rate=0.001
 )
 
+# ---                   Model Compile                    --- #
+
 model.compile(optimizer=dp_optimizer,
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy'])
+              metrics=['accuracy', Precision(), Recall(), AUC()]  # shows this during the training loading screen
+              )
 
 model.summary()
 
@@ -597,8 +642,7 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
-        history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
+        history =model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)  # Change dataset here
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
@@ -608,8 +652,8 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy = model.evaluate(X_test_data, y_test_data)
-        return loss, len(X_test_data), {"accuracy": float(accuracy)}
+        loss, accuracy, precision, recall, auc = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc}
 
 #########################################################
 #    Start the client                                   #
