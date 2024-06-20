@@ -571,7 +571,7 @@ if dataset_used == "IOTBOTNET":
 noise_multiplier = 1.1
 l2_norm_clip = 1.0
 batch_size = 32
-num_microbatches = 2  # this is bugged
+num_microbatches = 1  # this is bugged
 
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
