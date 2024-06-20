@@ -159,8 +159,8 @@ if dataset_used == "CICIOT":
         # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
         # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-        ciciot_train_data = ciciot_train_data[relevant_features]
-        ciciot_test_data = ciciot_test_data[relevant_features]
+        ciciot_train_data = ciciot_train_data[relevant_features, 'label']
+        ciciot_test_data = ciciot_test_data[relevant_features, 'label']
 
         # Shuffle data
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
