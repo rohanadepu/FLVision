@@ -143,8 +143,9 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-        ## Remapping for other Classifications ##
+        # ---                   Feature Selection and Reclassify                     --- #
 
+        # Remapping for other Classifications
         if ciciot_label_class == "7+1":
             # Relabel the 'label' column using dict_7classes
             ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
@@ -235,6 +236,8 @@ if dataset_used == "CICIOT":
         print(ciciot_test_data.head())
         print(ciciot_test_data.shape)
 
+        # ---                   Assigining / X y Split                   --- #
+
         # Feature / Label Split (X y split)
         X_train_data = ciciot_train_data.drop(columns=['label'])
         y_train_data = ciciot_train_data['label']
@@ -250,6 +253,8 @@ if dataset_used == "CICIOT":
 #    Load Dataset For IOTBOTNET 2023                    #
 #########################################################
 if dataset_used == "IOTBOTNET":
+
+    # ---                   Functions                   --- #
 
     def load_files_from_directory(directory, file_extension=".csv", sample_size=None):
         # Check if the directory exists
@@ -301,6 +306,9 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return combined_df
 
+
+    # ---                   Loading Specific Classes                    --- #
+
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
@@ -348,6 +356,8 @@ if dataset_used == "IOTBOTNET":
     # theft_keylogging_directory = './iotbotnet2020_archive/theft/keylogging'
     # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
+    # ---                   Concatenations to combine all classes                    --- #
+
     # Optionally, concatenate all dataframes if needed
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
@@ -379,6 +389,8 @@ if dataset_used == "IOTBOTNET":
     ])
 
     # all_attacks_combined = scan_os_data
+
+    # ---                   Train Test Split                  --- #
 
     # Split each combined DataFrame into train and test sets
     # ddos_train, ddos_test = split_train_test(ddos_combined)
@@ -456,6 +468,8 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 #    Process Dataset For IOTBOTNET 2020                 #
 #########################################################
+
+    # ---                   Feature Selection                     --- #
     print("Processing data...")
     relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
@@ -470,6 +484,8 @@ if dataset_used == "IOTBOTNET":
     y_test = all_attacks_test['Label']
     print("Dataframes Succesfully Splitted..")
 
+    # ---                   Cleaning                     --- #
+
     # Replace inf values with NaN and then drop them
     X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
     X_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -481,6 +497,8 @@ if dataset_used == "IOTBOTNET":
     X_test = X_test.dropna()
     y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
     print("Nan and inf values Removed...")
+
+    # ---                   Scaling                     --- #
 
     # Initialize the scaler
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -495,6 +513,7 @@ if dataset_used == "IOTBOTNET":
     X_train_scaled = pd.DataFrame(X_train_scaled, columns=relevant_features_iotbotnet, index=X_train.index)
     X_test_scaled = pd.DataFrame(X_test_scaled, columns=relevant_features_iotbotnet, index=X_test.index)
 
+    # ---                   Labeling                     --- #
     # Initialize the encoder
     label_encoder = LabelEncoder()
 
@@ -507,8 +526,10 @@ if dataset_used == "IOTBOTNET":
     # Optionally, shuffle the training data
     X_train_scaled, y_train_encoded = shuffle(X_train_scaled, y_train_encoded, random_state=47)
 
-    ## Create a DataFrame for y_train_encoded to align indices
+    # Create a DataFrame for y_train_encoded to align indices
     y_train_encoded_df = pd.Series(y_train_encoded, index=X_train_scaled.index)
+
+    # ---                   Assigining                    --- #
 
     # Print an instance of each class in the new train data
     print("After Encoding and Scaling:")
@@ -516,8 +537,6 @@ if dataset_used == "IOTBOTNET":
     for label in unique_labels:
         print(f"First instance of {label}:")
         print(X_train_scaled[y_train_encoded_df == label].iloc[0])
-
-    # renaming all datasets to match the format for the models
 
     # train
     X_train_data = X_train_scaled
@@ -528,7 +547,7 @@ if dataset_used == "IOTBOTNET":
     y_test_data = y_test_encoded
 
 #########################################################
-#    Dataset Processing For Default Cifar10             #
+#    Model Initialization & Setup Default DEMO Cifar10  #
 #########################################################
 
 if dataset_used == "CIFAR":
@@ -536,32 +555,32 @@ if dataset_used == "CIFAR":
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
     #### DEMO MODEL ######
-    # initialize model with TF and keras
     model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.sparse_categorical_crossentropy,
                   metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
 
 #########################################################
-#    Model Initialization & Setup                       #
+#    Model Initialization & Setup                    #
 #########################################################
 
-input_dim = X_train_data.shape[1]
+# ---                   CICIOT Model                   --- #
 
-print("///////////////////////////////////////////////")
-print("Unique Labels:", unique_labels)
-print("Input Dim:", input_dim)
-
-# Define a dense neural network for anomaly detection based on the dataset
 if dataset_used == "CICIOT":
+    input_dim = X_train_data.shape[1]
+    print("///////////////////////////////////////////////")
+    print("Unique Labels:", unique_labels)
+    print("Input Dim:", input_dim)
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         tf.keras.layers.Dense(32, activation='relu'),
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(1, activation='sigmoid')
     ])
+
+# ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
     input_dim = X_train_data.shape[1]
@@ -573,12 +592,15 @@ if dataset_used == "IOTBOTNET":
         tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dense(4, activation='relu'),
         tf.keras.layers.Dense(2, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')  # unique_labels is the number of classes
+        tf.keras.layers.Dense(1, activation='sigmoid')
     ])
+
+# ---                   Model Compile                    --- #
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC()])
+              metrics=['accuracy', Precision(), Recall(), AUC()]  # shows this during the training loading screen
+              )
 
 model.summary()
 
