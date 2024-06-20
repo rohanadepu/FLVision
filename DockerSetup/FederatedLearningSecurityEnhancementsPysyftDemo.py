@@ -591,7 +591,11 @@ model.summary()
 #########################################################
 #    Federated Learning Setup                           #
 #########################################################
+hook = sy.KerasHook(tf.keras)
+num_clients = 2  # Example number of clients
+clients = [sy.VirtualWorker(hook, id=f"client_{i}") for i in range(num_clients)]
 
+# Function to create a TenSEAL context
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
@@ -605,10 +609,14 @@ class FLClient(fl.client.NumPyClient):
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
-        return model.get_weights(), len(X_train_data), {}
+        encrypted_weights = [w.fix_precision().share(*clients) for w in model.get_weights()]
+        return encrypted_weights, len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        model.set_weights(parameters)
+        # Decrypt the model weights
+        decrypted_weights = [w.get().float_precision() for w in parameters]
+
+        model.set_weights(decrypted_weights)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
 
