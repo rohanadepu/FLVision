@@ -621,13 +621,13 @@ class FLClient(fl.client.NumPyClient):
         return encrypt_weights(model.get_weights(), self.context)
 
     def fit(self, parameters, config):
-        decrypted_parameters = decrypt_weights(parameters)
+        decrypted_parameters = decrypt_weights(parameters, self.context)
         model.set_weights(decrypted_parameters)
         model.fit(X_train_data, y_train_data, epochs=1, batch_size=32)
         return encrypt_weights(model.get_weights(), self.context), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
-        decrypted_parameters = decrypt_weights(parameters)
+        decrypted_parameters = decrypt_weights(parameters, self.context)
         model.set_weights(decrypted_parameters)
         loss, accuracy = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": float(accuracy)}
