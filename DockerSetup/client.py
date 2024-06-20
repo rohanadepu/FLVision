@@ -218,9 +218,10 @@ if dataset_used == "CICIOT":
         # Save the Scaler for use in other files
         # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
+        relevant_num_cols = [col for col in num_cols if col in relevant_features]
         # Scale the features in the real train dataframe
-        ciciot_train_data[num_cols] = scaler.transform(ciciot_train_data[num_cols])
-        ciciot_test_data[num_cols] = scaler.transform(ciciot_test_data[num_cols])
+        ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
+        ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
         # prove if the data is loaded properly
         print("Real data After Scaling (TRAIN):")
