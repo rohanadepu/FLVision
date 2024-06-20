@@ -88,9 +88,15 @@ if dataset_used == "CICIOT":
         'ICMP', 'IPv', 'LLC', 'label'
     ]
 
-    irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
+    irrelevant_features = ['Srate','ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
                            'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
                            'Max', 'AVG', 'Std']
+
+    relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum',
+       'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
+       'syn_flag_number', 'UDP', 'ICMP', 'fin_flag_number', 'psh_flag_number',
+       'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH', 'Telnet',
+       'DHCP', 'ARP', 'Drate', 'cwr_flag_number']
 
     # Mapping Labels
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
@@ -150,8 +156,11 @@ if dataset_used == "CICIOT":
             ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
         # Drop the irrelevant features
-        ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-        ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+        # ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+        # ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+
+        ciciot_train_data = ciciot_train_data[relevant_features]
+        ciciot_test_data = ciciot_test_data[relevant_features]
 
         # Shuffle data
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
