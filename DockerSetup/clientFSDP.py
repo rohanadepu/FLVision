@@ -13,6 +13,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.losses import LogCosh
 
 import tensorflow_privacy as tfp
 
@@ -40,7 +41,7 @@ from sklearn.utils import shuffle
 # from sklearn.impute import SimpleImputer
 # from sklearn.pipeline import Pipeline
 # from sklearn.metrics import confusion_matrix
-# from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import matthews_corrcoef
 # from sklearn.metrics import accuracy_score, f1_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -732,9 +733,14 @@ dp_optimizer = tfp.DPKerasAdamOptimizer(
 
 # ---                   Model Compile                    --- #
 
+def matthews_correlation(y_true, y_pred):
+    return tf.py_function(matthews_corrcoef, (y_true, y_pred), tf.double)
+
+f1_score = (2 * Precision() * Recall()) / (Precision() + Recall())
+
 model.compile(optimizer=dp_optimizer,
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC()]  # shows this during the training loading screen
+              metrics=['accuracy', Precision(), Recall(), f1_score, AUC(), LogCosh(), matthews_correlation]  # shows this during the training loading screen
               )
 
 model.summary()
@@ -759,8 +765,10 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy, precision, recall, auc = model.evaluate(X_test_data, y_test_data)  # change dataset here
-        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc}
+        loss, accuracy, precision, recall, f1_score, auc, LogCosh, matthews_correlation = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall,
+                                        "F1_Score": f1_score, "auc": auc, "LogCosh": LogCosh,
+                                        "matthews_corr": matthews_correlation}
 
 #########################################################
 #    Start the client                                   #
