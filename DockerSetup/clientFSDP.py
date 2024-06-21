@@ -736,11 +736,10 @@ dp_optimizer = tfp.DPKerasAdamOptimizer(
 def matthews_correlation(y_true, y_pred):
     return tf.py_function(matthews_corrcoef, (y_true, y_pred), tf.double)
 
-f1_score = (2 * Precision() * Recall()) / (Precision() + Recall())
 
 model.compile(optimizer=dp_optimizer,
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), f1_score, AUC(), LogCosh(), matthews_correlation]  # shows this during the training loading screen
+              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh(), matthews_correlation]  # shows this during the training loading screen
               )
 
 model.summary()
@@ -765,10 +764,9 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy, precision, recall, f1_score, auc, LogCosh, matthews_correlation = model.evaluate(X_test_data, y_test_data)  # change dataset here
-        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall,
-                                        "F1_Score": f1_score, "auc": auc, "LogCosh": LogCosh,
-                                        "matthews_corr": matthews_correlation}
+        loss, accuracy, precision, recall, auc, LogCosh, matthews_correlation = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
+                                        "LogCosh": LogCosh, "matthews_corr": matthews_correlation}
 
 #########################################################
 #    Start the client                                   #
