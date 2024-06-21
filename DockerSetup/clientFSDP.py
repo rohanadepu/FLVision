@@ -669,9 +669,9 @@ if dataset_used == "CICIOT":
 
     learning_rate = 0.001  # will be optimized
     betas = [0.9, 0.999]  # Best to keep as is
-    alpha = 0.01  # Increase if overfitting, decrease if underfitting
+    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 5  # will be optimized
+    epochs = 100  # will be optimized
     steps_per_epoch = ciciot_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
@@ -682,13 +682,13 @@ if dataset_used == "CICIOT":
     # --- Model Definition --- #
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(32, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(16, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(8, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),
         Dense(1, activation='sigmoid')
@@ -710,9 +710,9 @@ if dataset_used == "IOTBOTNET":
 
     learning_rate = 0.001  # will be optimized
     betas = [0.9, 0.999]  # Best to keep as is
-    alpha = 0.01  # Increase if overfitting, decrease if underfitting
+    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 5  # will be optimized
+    epochs = 100  # will be optimized
     steps_per_epoch = iotbotnet_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
@@ -722,16 +722,16 @@ if dataset_used == "IOTBOTNET":
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(16, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(8, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(2, activation='relu', kernel_regularizer=l2(alpha)),
+        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
         BatchNormalization(),
         Dropout(0.5),
         Dense(1, activation='sigmoid')
