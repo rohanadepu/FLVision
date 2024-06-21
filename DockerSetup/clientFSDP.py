@@ -857,7 +857,7 @@ model.compile(optimizer=dp_optimizer,
 # ---                   Callback components                   --- #
 
 # set hyperparameters for callback
-es_patience = 3
+es_patience = 4
 
 l2lr_patience = 3
 l2lr_factor = 0.1
