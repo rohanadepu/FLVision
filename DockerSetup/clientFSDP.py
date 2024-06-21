@@ -299,6 +299,10 @@ if dataset_used == "CICIOT":
         print("X_train shape:", X_train_data.shape)
         print("y_train shape:", y_train_data.shape)
 
+        # Get the sample size
+        ciciot_df_size = X_train_data.shape[0]
+        print("Sample size:", ciciot_df_size)
+
         print("Datasets Ready...")
 
 #########################################################
@@ -616,10 +620,6 @@ if dataset_used == "IOTBOTNET":
     # Print the shapes of the resulting splits
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
-
-    # Get the sample size
-    ciciot_df_size = X_train_data.shape[0]
-    print("Sample size:", ciciot_df_size)
 
     print("Datasets Ready...")
 
