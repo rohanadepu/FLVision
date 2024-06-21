@@ -91,11 +91,16 @@ if dataset_used == "CICIOT":
 
     # num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
     #             'Weight']
+
+    # num_cols = ['flow duration', 'Header Length', 'Rate', 'Srate', 'Drate', 'ack count', 'syn count', 'fin count',
+    #             'urg count', 'rst count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+    #             'Magnitude', 'Radius', 'Covariance', 'Variance', 'Weight'
+    #             ]
     # END OF DEBUG
 
-    num_cols = ['flow duration', 'Header Length', 'Rate', 'Srate', 'Drate', 'ack count', 'syn count', 'fin count',
-                'urg count', 'rst count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-                'Magnitude', 'Radius', 'Covariance', 'Variance', 'Weight'
+    num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
+                'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+                'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight'
                 ]
 
     cat_cols = [
@@ -117,14 +122,14 @@ if dataset_used == "CICIOT":
     # END OF DEBUG
 
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
-                           'ack_count', 'syn_count','fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
-                           'Tot size', 'Number', 'Magnitue','Radius', 'Covariance', 'Variance', 'Weight',
+                           'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
+                           'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
                            'flow_duration', 'Header_Length', 'urg_count', 'Tot sum']  # being used
 
     relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum', 'Protocol Type',
                          'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate', 'syn_flag_number', 'UDP', 'ICMP',
-                         'fin_flag_number', 'psh_flag_number','HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
-                         'Telnet','DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']  # not being used
+                         'fin_flag_number', 'psh_flag_number', 'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
+                         'Telnet', 'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']  # not being used
 
     # ---                   Label Mapping for 1+1 and 7+1                      --- #
 
