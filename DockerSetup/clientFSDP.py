@@ -80,25 +80,33 @@ if dataset_used == "CICIOT":
 
     # ---                   Feature Mapping for numerical and categorical features       --- #
 
+    # DEBUG
     # num_cols = [
     #     'flow_duration', 'Header_Length', 'Duration',
     #     'Rate', 'Srate', 'ack_count', 'syn_count',
     #     'fin_count', 'urg_count', 'rst_count', 'Tot sum',
     #     'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
     #     'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-    # ] # backup
+    # ]
 
-    num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
-                'Weight']
+    # num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
+    #             'Weight']
+    # END OF DEBUG
+
+    num_cols = ['flow duration', 'Header Length', 'Rate', 'Srate', 'Drate', 'ack count', 'syn count', 'fin count',
+                'urg count', 'rst count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+                'Magnitude', 'Radius', 'Covariance', 'Variance', 'Weight'
+                ]
 
     cat_cols = [
-        'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number', 'psh_flag_number',
-        'ack_flag_number', 'ece_flag_number','cwr_flag_number', 'HTTP', 'HTTPS', 'DNS', 'Telnet','SMTP', 'SSH', 'IRC',
-        'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC', 'label'
+        'Protocol Type', 'Duration', 'fin flag number', 'syn flag number', 'rst flag number', 'psh flag number',
+        'ack flag number', 'ece flag number', 'cwr flag number', 'HTTP', 'HTTPS', 'DNS', 'Telnet', 'SMTP', 'SSH', 'IRC',
+        'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC'
     ]
 
     # ---                   irrelevant features and relevant features                     --- #
 
+    # DEBUG
     # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius',
     #                        'Covariance', 'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count',
     #                        'Tot sum', 'Min', 'Max', 'AVG', 'Std']
@@ -106,6 +114,7 @@ if dataset_used == "CICIOT":
     # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
     #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
     #                        'Covariance', 'Variance', 'Weight']
+    # END OF DEBUG
 
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
                            'ack_count', 'syn_count','fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
@@ -247,6 +256,8 @@ if dataset_used == "CICIOT":
 
         # select the num cols that are relevant
         relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
+        # Debug
+        #relevant_num_cols = [col for col in num_cols if col in relevant_features]
 
         # train the scalar on train data features
         scaler.fit(ciciot_train_data[relevant_num_cols])
@@ -264,7 +275,7 @@ if dataset_used == "CICIOT":
         print(ciciot_train_data.shape)
 
         # # DEBUG prove if the data is loaded properly
-        # print("Real data After Scaling (TEST):")
+        # print("Test Data After Normalization:")
         # print(ciciot_test_data.head())
         # print(ciciot_test_data.shape)
 
