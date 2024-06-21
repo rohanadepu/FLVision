@@ -679,6 +679,10 @@ if dataset_used == "CICIOT":
 
     input_dim = X_train_data.shape[1]  # dependant
 
+    # Convert DataFrames to NumPy arrays
+    X_train_data_np = X_train_data.to_numpy()
+    y_train_data_np = y_train_data.to_numpy()
+
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
@@ -719,6 +723,10 @@ if dataset_used == "IOTBOTNET":
     steps_per_epoch = iotbotnet_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
+
+    # Convert DataFrames to NumPy arrays
+    X_train_data_np = X_train_data.to_numpy()
+    y_train_data_np = y_train_data.to_numpy()
 
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
@@ -787,11 +795,9 @@ class FLClient(fl.client.NumPyClient):
 
         # K-Fold Cross-Validation
         kf = KFold(n_splits=5)
-        for train_index, val_index in kf.split(X_train_data):
-            X_train, X_val = X_train_data[train_index], X_train_data[val_index]
-            y_train, y_val = y_train_data[train_index], y_train_data[val_index]
-
-            # model fitting
+        for train_index, val_index in kf.split(X_train_data_np):
+            X_train, X_val = X_train_data_np[train_index], X_train_data_np[val_index]
+            y_train, y_val = y_train_data_np[train_index], y_train_data_np[val_index]
             history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
                                 epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                                 callbacks=[early_stopping, lr_scheduler, model_checkpoint])
