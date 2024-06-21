@@ -254,7 +254,7 @@ if dataset_used == "CICIOT":
         # Save the Scaler for use in other files
         # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-        # Scale the features in the real train dataframe
+        # Scale the features in the train test dataframe
         ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
         ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
