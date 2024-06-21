@@ -92,10 +92,6 @@ if dataset_used == "CICIOT":
     # num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
     #             'Weight']
 
-    # num_cols = ['flow duration', 'Header Length', 'Rate', 'Srate', 'Drate', 'ack count', 'syn count', 'fin count',
-    #             'urg count', 'rst count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-    #             'Magnitude', 'Radius', 'Covariance', 'Variance', 'Weight'
-    #             ]
     # END OF DEBUG
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
@@ -109,7 +105,7 @@ if dataset_used == "CICIOT":
         'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC'
     ]
 
-    # ---                   irrelevant features and relevant features                     --- #
+    # ---                   irrelevant features and relevant features mappings                    --- #
 
     # DEBUG
     # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius',
@@ -119,17 +115,17 @@ if dataset_used == "CICIOT":
     # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
     #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
     #                        'Covariance', 'Variance', 'Weight']
+    # ---
+    # relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum', 'Protocol Type',
+    #                      'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate', 'syn_flag_number', 'UDP', 'ICMP',
+    #                      'fin_flag_number', 'psh_flag_number', 'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
+    #                      'Telnet', 'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']
     # END OF DEBUG
 
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
                            'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
                            'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
                            'flow_duration', 'Header_Length', 'urg_count', 'Tot sum']  # being used
-
-    relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum', 'Protocol Type',
-                         'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate', 'syn_flag_number', 'UDP', 'ICMP',
-                         'fin_flag_number', 'psh_flag_number', 'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
-                         'Telnet', 'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']  # not being used
 
     # ---                   Label Mapping for 1+1 and 7+1                      --- #
 
@@ -707,7 +703,7 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        history =model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch)  # Change dataset here
+        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch)  # Change dataset here
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
