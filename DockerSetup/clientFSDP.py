@@ -46,13 +46,17 @@ print("DATASET BEING USED:", dataset_used, "\n")
 #    Loading Dataset For CICIOT 2023                    #
 #########################################################
 if dataset_used == "CICIOT":
-    ### Inputs ###
+
+    # ---                   Settings                     --- #
+
     ciciot_sample_size = 2  # input: 2 at minimum
+
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
-
     DATASET_DIRECTORY = '../../trainingDataset/'
+
+    # ---     Load in two separate sets of file samples for the train and test datasets                     --- #
 
     # List the files in the dataset
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
@@ -71,15 +75,18 @@ if dataset_used == "CICIOT":
     print("Training Sets:\n", training_data_sets, "\n")
     print("Test Sets:\n", test_data_sets)
 
-    # Mapping Features
+    # ---                   Feature Mapping for numerical and categorical features       --- #
+
     # num_cols = [
     #     'flow_duration', 'Header_Length', 'Duration',
     #     'Rate', 'Srate', 'ack_count', 'syn_count',
     #     'fin_count', 'urg_count', 'rst_count', 'Tot sum',
     #     'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
     #     'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-    # ]
-    num_cols = ['Duration','Rate', 'Srate', 'ack_count', 'syn_count','fin_count','Tot size', 'IAT', 'Number','Weight']
+    # ] # backup
+
+    num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
+                'Weight']
 
     cat_cols = [
         'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
@@ -88,6 +95,8 @@ if dataset_used == "CICIOT":
         'SMTP', 'SSH', 'IRC', 'TCP', 'UDP', 'DHCP', 'ARP',
         'ICMP', 'IPv', 'LLC', 'label'
     ]
+
+    # ---                   irrelevant features and relevant features                     --- #
 
     # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
     #                        'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
@@ -100,16 +109,17 @@ if dataset_used == "CICIOT":
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number', 'ack_count', 'syn_count',
                            'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue',
                            'Radius', 'Covariance', 'Variance', 'Weight', 'flow_duration', 'Header_Length', 'urg_count',
-                           'Tot sum']
+                           'Tot sum'] # being used
 
 
     relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum',
        'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
        'syn_flag_number', 'UDP', 'ICMP', 'fin_flag_number', 'psh_flag_number',
        'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH', 'Telnet',
-       'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']
+       'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label'] # not being used
 
-    # Mapping Labels
+    # ---                   Label Mapping for 1+1 and 7+1                      --- #
+
     dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
                      'DDoS-UDP_Flood': 'DDoS', 'DDoS-TCP_Flood': 'DDoS', 'DDoS-ICMP_Flood': 'DDoS',
                      'DDoS-SynonymousIP_Flood': 'DDoS', 'DDoS-ACK_Fragmentation': 'DDoS', 'DDoS-UDP_Fragmentation': 'DDoS',
@@ -135,17 +145,22 @@ if dataset_used == "CICIOT":
                      'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
                      'DictionaryBruteForce': 'Attack'}
 
+    # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
+
     # Extracting data from csv to input into data frame
+
+    # Train Dataframe
     ciciot_train_data = pd.DataFrame()
     for data_set in training_data_sets:
-        print(f"data set {data_set} out of {len(training_data_sets)} \n")
+        print(f"Training dataset sample {data_set} out of {len(training_data_sets)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
         df = pd.read_csv(data_path)
         ciciot_train_data = pd.concat([ciciot_train_data, df])  # dataframe to manipulate
 
+    # Test Dataframe
     ciciot_test_data = pd.DataFrame()
     for test_set in test_data_sets:
-        print(f"Testing set {test_set} out of {len(test_data_sets)} \n")
+        print(f"Testing dataset sample {test_set} out of {len(test_data_sets)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, test_set)
         df = pd.read_csv(data_path)
         ciciot_test_data = pd.concat([df])
@@ -154,37 +169,41 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-        # ---                   Feature Selection and Reclassify                     --- #
+        # ---                   Feature Selection and Reclassify Labels                 --- #
 
         # Remapping for other Classifications
+
+        print("Remapping Labels and Selecting Features...")
+
+        # general labels
         if ciciot_label_class == "7+1":
             # Relabel the 'label' column using dict_7classes
             ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_7classes)
             ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_7classes)
 
+        # binary labels
         if ciciot_label_class == "1+1":
             # Relabel the 'label' column using dict_2classes
             ciciot_train_data['label'] = ciciot_train_data['label'].map(dict_2classes)
             ciciot_test_data['label'] = ciciot_test_data['label'].map(dict_2classes)
 
-        # Drop the irrelevant features
+        # Drop the irrelevant features (Feature selection)
         ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
         ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-        # ciciot_train_data = ciciot_train_data[relevant_features]
-        # ciciot_test_data = ciciot_test_data[relevant_features]
-
         # Shuffle data
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
+        ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
 
-        # prints an instance of each class
+        # prints an instance of each class in training data
         print("Before Encoding and Scaling:")
         unique_labels = ciciot_train_data['label'].unique()
         for label in unique_labels:
             print(f"First instance of {label}:")
             print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
-        # ---                   Labeling                     --- #
+        # ---                   Encoding                     --- #
+        print("Encoding...")
 
         # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
         unique_labels = ciciot_train_data['label'].nunique()
@@ -212,14 +231,15 @@ if dataset_used == "CICIOT":
         class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
         # Print specific instances after label encoding
-        print("Real data After Encoding:")
+        print("Training Data After Encoding:")
         for label, code in class_codes.items():
             # Print the first instance of each class
             print(f"First instance of {label} (code {code}):")
             print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
         print(ciciot_train_data.head(), "\n")
 
-        # ---                   Scaling                     --- #
+        # ---                    Normalizing                      --- #
+        print("Normalizing...")
 
         # Setting up Scaler for Features
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -238,16 +258,16 @@ if dataset_used == "CICIOT":
         ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
         # prove if the data is loaded properly
-        print("Real data After Scaling (TRAIN):")
+        print("Training Data After Normalization:")
         print(ciciot_train_data.head())
         print(ciciot_train_data.shape)
 
-        # prove if the data is loaded properly
-        print("Real data After Scaling (TEST):")
-        print(ciciot_test_data.head())
-        print(ciciot_test_data.shape)
+        # # DEBUG prove if the data is loaded properly
+        # print("Real data After Scaling (TEST):")
+        # print(ciciot_test_data.head())
+        # print(ciciot_test_data.shape)
 
-        # ---                   Assigining / X y Split                   --- #
+        # ---                   Assigning / X y Split                   --- #
 
         # Feature / Label Split (X y split)
         X_train_data = ciciot_train_data.drop(columns=['label'])
@@ -259,6 +279,8 @@ if dataset_used == "CICIOT":
         # Print the shapes of the resulting splits
         print("X_train shape:", X_train_data.shape)
         print("y_train shape:", y_train_data.shape)
+
+        print("Datasets Ready...")
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
@@ -286,12 +308,12 @@ if dataset_used == "IOTBOTNET":
         if sample_size is not None:
             random.shuffle(all_files)
             all_files = all_files[:sample_size]
-            print("Sample Selected:", all_files)
+            print("Sample(s) Selected:", all_files)
 
         for file_path in all_files:
             df = pd.read_csv(file_path)  # Modify this line if files are in a different format
             dataframes.append(df)
-            print("Sample Selected:", file_path)
+            print("Sample(s) Selected:", file_path)
 
         print("Files Loaded...")
         return dataframes
@@ -299,7 +321,7 @@ if dataset_used == "IOTBOTNET":
     # Function to split a DataFrame into train and test sets
     def split_train_test(dataframe, test_size=0.2):
         train_df, test_df = train_test_split(dataframe, test_size=test_size)
-        print("Dataset Test Train Splitted...")
+        print("Dataset Test Train Split...")
         return train_df, test_df
 
     # Function to combine subcategories into general classes
@@ -368,6 +390,7 @@ if dataset_used == "IOTBOTNET":
     # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     # ---                   Concatenations to combine all classes                    --- #
+    print("Further Concatonation...")
 
     # Optionally, concatenate all dataframes if needed
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
@@ -402,6 +425,7 @@ if dataset_used == "IOTBOTNET":
     # all_attacks_combined = scan_os_data
 
     # ---                   Train Test Split                  --- #
+    print("Train Test Split...")
 
     # Split each combined DataFrame into train and test sets
     # ddos_train, ddos_test = split_train_test(ddos_combined)
@@ -481,7 +505,7 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 
     # ---                   Feature Selection                     --- #
-    print("Processing data...")
+    print("Selecting Features and X y Split...")
     relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
                                    'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
@@ -493,10 +517,11 @@ if dataset_used == "IOTBOTNET":
 
     X_test = all_attacks_test[relevant_features_iotbotnet]
     y_test = all_attacks_test['Label']
-    print("Dataframes Succesfully Splitted..")
+    print("Features Selected and Dataframes Split...")
 
     # ---                   Cleaning                     --- #
 
+    print("Cleaning...")
     # Replace inf values with NaN and then drop them
     X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
     X_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -509,8 +534,27 @@ if dataset_used == "IOTBOTNET":
     y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
     print("Nan and inf values Removed...")
 
-    # ---                   Scaling                     --- #
+    # ---                   Encoding                      --- #
+    print("Encoding...")
+    # Initialize the encoder
+    label_encoder = LabelEncoder()
 
+    # Fit and transform the training labels
+    y_train_encoded = label_encoder.fit_transform(y_train)
+
+    # Transform the test labels
+    y_test_encoded = label_encoder.transform(y_test)
+
+    # Optionally, shuffle the training data
+    X_train, y_train_encoded = shuffle(X_train, y_train_encoded, random_state=47)
+
+    # Create a DataFrame for y_train_encoded to align indices
+    y_train_encoded_df = pd.Series(y_train_encoded, index=X_train.index)
+
+    print("Labels Encoded...")
+
+    # ---                   Normalizing                     --- #
+    print("Normalizing...")
     # Initialize the scaler
     scaler = MinMaxScaler(feature_range=(0, 1))
 
@@ -524,26 +568,10 @@ if dataset_used == "IOTBOTNET":
     X_train_scaled = pd.DataFrame(X_train_scaled, columns=relevant_features_iotbotnet, index=X_train.index)
     X_test_scaled = pd.DataFrame(X_test_scaled, columns=relevant_features_iotbotnet, index=X_test.index)
 
-    # ---                   Labeling                     --- #
-    # Initialize the encoder
-    label_encoder = LabelEncoder()
-
-    # Fit and transform the training labels
-    y_train_encoded = label_encoder.fit_transform(y_train)
-
-    # Transform the test labels
-    y_test_encoded = label_encoder.transform(y_test)
-
-    # Optionally, shuffle the training data
-    X_train_scaled, y_train_encoded = shuffle(X_train_scaled, y_train_encoded, random_state=47)
-
-    # Create a DataFrame for y_train_encoded to align indices
-    y_train_encoded_df = pd.Series(y_train_encoded, index=X_train_scaled.index)
-
-    # ---                   Assigining                    --- #
+    # ---                   Assigning                    --- #
 
     # Print an instance of each class in the new train data
-    print("After Encoding and Scaling:")
+    print("After Encoding and Normalization:")
     unique_labels = y_train_encoded_df.unique()
     for label in unique_labels:
         print(f"First instance of {label}:")
@@ -556,6 +584,12 @@ if dataset_used == "IOTBOTNET":
     # test
     y_train_data = y_train_encoded
     y_test_data = y_test_encoded
+
+    # Print the shapes of the resulting splits
+    print("X_train shape:", X_train_data.shape)
+    print("y_train shape:", y_train_data.shape)
+
+    print("Datasets Ready...")
 
 #########################################################
 #    Model Initialization & Setup Default DEMO Cifar10  #
@@ -575,12 +609,25 @@ if dataset_used == "CIFAR":
 #    Model Initialization & Setup                    #
 #########################################################
 
+# ---                   Hyper parameters                   --- #
+
+# Set the privacy parameters
+noise_multiplier = 1.1
+l2_norm_clip = 1.0
+batch_size = 32
+num_microbatches = 1  # this is bugged keep at 1
+learning_rate = 0.001
+betas = []
+
+epochs = 5
+steps_per_epoch = 3
+
+input_dim = X_train_data.shape[1]
+
 # ---                   CICIOT Model                   --- #
 
 if dataset_used == "CICIOT":
-    input_dim = X_train_data.shape[1]
     print("///////////////////////////////////////////////")
-    print("Unique Labels:", unique_labels)
     print("Input Dim:", input_dim)
 
     model = tf.keras.Sequential([
@@ -594,7 +641,6 @@ if dataset_used == "CICIOT":
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
-    input_dim = X_train_data.shape[1]
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
@@ -608,19 +654,12 @@ if dataset_used == "IOTBOTNET":
 
 # ---                   Differential Privacy                   --- #
 
-# Set the privacy parameters
-noise_multiplier = 1.1
-l2_norm_clip = 1.0
-batch_size = 32
-num_microbatches = 1  # this is bugged
-
-
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 dp_optimizer = tfp.DPKerasAdamOptimizer(
     l2_norm_clip=l2_norm_clip,
     noise_multiplier=noise_multiplier,
     num_microbatches=num_microbatches,
-    learning_rate=0.001
+    learning_rate=learning_rate
 )
 
 # ---                   Model Compile                    --- #
@@ -642,7 +681,7 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        history =model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)  # Change dataset here
+        history =model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch)  # Change dataset here
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
