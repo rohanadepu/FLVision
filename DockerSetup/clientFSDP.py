@@ -202,6 +202,7 @@ if dataset_used == "CICIOT":
             print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
         # ---                   Encoding                     --- #
+
         print("Encoding...")
 
         # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
@@ -238,6 +239,7 @@ if dataset_used == "CICIOT":
         print(ciciot_train_data.head(), "\n")
 
         # ---                    Normalizing                      --- #
+
         print("Normalizing...")
 
         # Setting up Scaler for Features
@@ -425,6 +427,7 @@ if dataset_used == "IOTBOTNET":
     # all_attacks_combined = scan_os_data
 
     # ---                   Train Test Split                  --- #
+
     print("Train Test Split...")
 
     # Split each combined DataFrame into train and test sets
@@ -505,10 +508,14 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 
     # ---                   Feature Selection                     --- #
+
     print("Selecting Features and X y Split...")
-    relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
-                                   'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
-                                   'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
+
+    relevant_features_iotbotnet = [
+        'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
+        'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
+        'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg'
+    ]
 
     # Split the dataset into features and labels
     X_train = all_attacks_train[relevant_features_iotbotnet]
@@ -521,6 +528,7 @@ if dataset_used == "IOTBOTNET":
     # ---                   Cleaning                     --- #
 
     print("Cleaning...")
+
     # Replace inf values with NaN and then drop them
     X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
     X_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -534,7 +542,9 @@ if dataset_used == "IOTBOTNET":
     print("Nan and inf values Removed...")
 
     # ---                   Encoding                      --- #
+
     print("Encoding...")
+
     # Initialize the encoder
     label_encoder = LabelEncoder()
 
