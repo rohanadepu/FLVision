@@ -15,7 +15,7 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-
+from sklearn.model_selection import KFold
 import tensorflow_privacy as tfp
 
 import numpy as np
@@ -674,7 +674,7 @@ if dataset_used == "CICIOT":
     betas = [0.9, 0.999]  # Best to keep as is
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 100  # will be optimized
+    epochs = 10  # will be optimized
     steps_per_epoch = ciciot_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
@@ -715,7 +715,7 @@ if dataset_used == "IOTBOTNET":
     betas = [0.9, 0.999]  # Best to keep as is
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 100  # will be optimized
+    epochs = 10  # will be optimized
     steps_per_epoch = iotbotnet_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
@@ -784,8 +784,17 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
-                            steps_per_epoch=steps_per_epoch, callbacks=[early_stopping, lr_scheduler, model_checkpoint])  # Change dataset here
+
+        # K-Fold Cross-Validation
+        kf = KFold(n_splits=5)
+        for train_index, val_index in kf.split(X_train_data):
+            X_train, X_val = X_train_data[train_index], X_train_data[val_index]
+            y_train, y_val = y_train_data[train_index], y_train_data[val_index]
+
+            # model fitting
+            history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
+                                epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                                callbacks=[early_stopping, lr_scheduler, model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
