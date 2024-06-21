@@ -246,7 +246,7 @@ if dataset_used == "CICIOT":
         scaler = MinMaxScaler(feature_range=(0, 1))
 
         # select the num cols that are relevant
-        relevant_num_cols = [col for col in num_cols if col in relevant_features]
+        relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
 
         # train the scalar on train data features
         scaler.fit(ciciot_train_data[relevant_num_cols])
@@ -563,6 +563,7 @@ if dataset_used == "IOTBOTNET":
     print("Labels Encoded...")
 
     # ---                   Normalizing                     --- #
+
     print("Normalizing...")
     # Initialize the scaler
     scaler = MinMaxScaler(feature_range=(0, 1))
