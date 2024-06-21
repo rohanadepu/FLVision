@@ -658,23 +658,23 @@ if dataset_used == "CICIOT":
 
     # Set the hyperparameters
 
-    model_name = dataset_used
+    model_name = dataset_used  # name for file
 
-    noise_multiplier = 1.1
+    noise_multiplier = 1.1  # Privacy param - noise budget:
 
-    l2_norm_clip = 1.0
+    l2_norm_clip = 1.0  # privacy param:
 
-    batch_size = 32
+    batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
     num_microbatches = 1  # this is bugged keep at 1
 
-    learning_rate = 0.001
-    betas = [0.9, 0.999]
-    alpha = 0.01
+    learning_rate = 0.001  # will be optimized
+    betas = [0.9, 0.999]  # Best to keep as is
+    alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 5
-    steps_per_epoch = ciciot_df_size // batch_size
+    epochs = 5  # will be optimized
+    steps_per_epoch = ciciot_df_size // batch_size  # dependant
 
-    input_dim = X_train_data.shape[1]
+    input_dim = X_train_data.shape[1]  # dependant
 
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
@@ -699,23 +699,23 @@ if dataset_used == "CICIOT":
 if dataset_used == "IOTBOTNET":
 
     # Set the hyperparameters
-    model_name = dataset_used
+    model_name = dataset_used  # name for file
 
-    noise_multiplier = 1.1
+    noise_multiplier = 1.1  # Privacy param - noise budget:
 
-    l2_norm_clip = 1.0
+    l2_norm_clip = 1.0  # privacy param:
 
-    batch_size = 32
+    batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
     num_microbatches = 1  # this is bugged keep at 1
 
-    learning_rate = 0.001  # 0.001 - 0.0001; maybe 0.0005
-    betas = [0.9, 0.999]
+    learning_rate = 0.001  # will be optimized
+    betas = [0.9, 0.999]  # Best to keep as is
     alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 5
-    steps_per_epoch = iotbotnet_df_size // batch_size
+    epochs = 5  # will be optimized
+    steps_per_epoch = iotbotnet_df_size // batch_size  # dependant
 
-    input_dim = X_train_data.shape[1]
+    input_dim = X_train_data.shape[1]  # dependant
 
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
