@@ -674,7 +674,7 @@ if dataset_used == "CICIOT":
     betas = [0.9, 0.999]  # Best to keep as is
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 8  # being optimized
+    epochs = 7  # being optimized
     steps_per_epoch = ciciot_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
@@ -687,7 +687,7 @@ if dataset_used == "CICIOT":
     print("Input Dim:", input_dim)
 
     # --- Model Definition --- #
-    model_selection = 2
+    model_selection = 1
 
     if model_selection == 1:
         model = tf.keras.Sequential([
@@ -808,7 +808,7 @@ if dataset_used == "IOTBOTNET":
     betas = [0.9, 0.999]  # Best to keep as is
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-    epochs = 10  # will be optimized
+    epochs = 7  # will be optimized
     steps_per_epoch = iotbotnet_df_size // batch_size  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
