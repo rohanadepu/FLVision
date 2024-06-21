@@ -45,6 +45,7 @@ print("DATASET BEING USED:", dataset_used, "\n")
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
 #########################################################
+
 if dataset_used == "CICIOT":
 
     # ---                   Settings                     --- #
@@ -56,7 +57,9 @@ if dataset_used == "CICIOT":
 
     DATASET_DIRECTORY = '../../trainingDataset/'
 
-    # ---     Load in two separate sets of file samples for the train and test datasets                     --- #
+    # ---     Load in two separate sets of file samples for the train and test datasets --- #
+
+    print("Loading Network Traffic Data...")
 
     # List the files in the dataset
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
@@ -89,34 +92,30 @@ if dataset_used == "CICIOT":
                 'Weight']
 
     cat_cols = [
-        'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number',
-        'psh_flag_number', 'ack_flag_number', 'ece_flag_number',
-        'cwr_flag_number', 'HTTP', 'HTTPS', 'DNS', 'Telnet',
-        'SMTP', 'SSH', 'IRC', 'TCP', 'UDP', 'DHCP', 'ARP',
-        'ICMP', 'IPv', 'LLC', 'label'
+        'Protocol Type', 'Drate', 'fin_flag_number', 'syn_flag_number', 'rst_flag_number', 'psh_flag_number',
+        'ack_flag_number', 'ece_flag_number','cwr_flag_number', 'HTTP', 'HTTPS', 'DNS', 'Telnet','SMTP', 'SSH', 'IRC',
+        'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC', 'label'
     ]
 
     # ---                   irrelevant features and relevant features                     --- #
 
-    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius', 'Covariance',
-    #                        'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count', 'Tot sum', 'Min',
-    #                        'Max', 'AVG', 'Std']
+    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius',
+    #                        'Covariance', 'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count',
+    #                        'Tot sum', 'Min', 'Max', 'AVG', 'Std']
     #
     # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
     #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
     #                        'Covariance', 'Variance', 'Weight']
 
-    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number', 'ack_count', 'syn_count',
-                           'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue',
-                           'Radius', 'Covariance', 'Variance', 'Weight', 'flow_duration', 'Header_Length', 'urg_count',
-                           'Tot sum'] # being used
+    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
+                           'ack_count', 'syn_count','fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
+                           'Tot size', 'Number', 'Magnitue','Radius', 'Covariance', 'Variance', 'Weight',
+                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum']  # being used
 
-
-    relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum',
-       'Protocol Type', 'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate',
-       'syn_flag_number', 'UDP', 'ICMP', 'fin_flag_number', 'psh_flag_number',
-       'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH', 'Telnet',
-       'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label'] # not being used
+    relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum', 'Protocol Type',
+                         'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate', 'syn_flag_number', 'UDP', 'ICMP',
+                         'fin_flag_number', 'psh_flag_number','HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
+                         'Telnet','DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']  # not being used
 
     # ---                   Label Mapping for 1+1 and 7+1                      --- #
 
@@ -285,6 +284,7 @@ if dataset_used == "CICIOT":
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
 #########################################################
+
 if dataset_used == "IOTBOTNET":
 
     # ---                   Functions                   --- #
@@ -417,7 +417,7 @@ if dataset_used == "IOTBOTNET":
     #     ddos_combined, dos_combined, scan_combined, theft_combined
     # ])
 
-     # Combine all attacks into one DataFrame
+    # Combine all attacks into one DataFrame
     all_attacks_combined = combine_all_attacks([
         ddos_udp_data, ddos_tcp_data, ddos_http_data
     ])
@@ -509,7 +509,6 @@ if dataset_used == "IOTBOTNET":
     relevant_features_iotbotnet = ['Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
                                    'Flow_IAT_Mean', 'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s',
                                    'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg']
-
 
     # Split the dataset into features and labels
     X_train = all_attacks_train[relevant_features_iotbotnet]
