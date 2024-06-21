@@ -3,26 +3,33 @@
 #########################################################
 
 import os
+import random
+# import time
+
 import flwr as fl
+
 import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.metrics import AUC, Precision, Recall
+
 import tensorflow_privacy as tfp
 
-# import numpy as np
+import numpy as np
 import pandas as pd
+
 # import math
 # import glob
-import random
+
+# from IPython.display import clear_output
 # from tqdm import tqdm
-#from IPython.display import clear_output
-import os
-# import time
 # import matplotlib.pyplot as plt
 # import seaborn as sns
+
 # import pickle
 import joblib
-from sklearn.model_selection import train_test_split
 
+from sklearn.model_selection import train_test_split
 # import sklearn.cluster as cluster
 # from sklearn.model_selection import cross_val_score
 # from sklearn.model_selection import cross_val_predict
@@ -33,7 +40,6 @@ from sklearn.utils import shuffle
 # from sklearn.pipeline import Pipeline
 # from sklearn.metrics import confusion_matrix
 # from sklearn.metrics import matthews_corrcoef
-# from sklearn.model_selection import train_test_split
 # from sklearn.metrics import accuracy_score, f1_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -611,6 +617,10 @@ if dataset_used == "IOTBOTNET":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    # Get the sample size
+    ciciot_df_size = X_train_data.shape[0]
+    print("Sample size:", ciciot_df_size)
+
     print("Datasets Ready...")
 
 #########################################################
@@ -631,47 +641,62 @@ if dataset_used == "CIFAR":
 #    Model Initialization & Setup                    #
 #########################################################
 
-# ---                   Hyper parameters                   --- #
-
-# Set the privacy parameters
-noise_multiplier = 1.1
-l2_norm_clip = 1.0
-batch_size = 32
-num_microbatches = 1  # this is bugged keep at 1
-learning_rate = 0.001
-betas = []
-
-epochs = 5
-steps_per_epoch = 3
-
-input_dim = X_train_data.shape[1]
-
 # ---                   CICIOT Model                   --- #
 
 if dataset_used == "CICIOT":
+
+    # Set the privacy parameters
+    noise_multiplier = 1.1
+    l2_norm_clip = 1.0
+    batch_size = 32
+    num_microbatches = 1  # this is bugged keep at 1
+    learning_rate = 0.001
+    betas = [0.9, 0.999]
+
+    epochs = 5
+    steps_per_epoch = ciciot_df_size // batch_size
+
+    input_dim = X_train_data.shape[1]
+
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(16, activation='relu'),
-        tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
+    model = Sequential([
+        Dense(64, input_dim=input_dim, activation='relu'),  # First hidden layer with 64 neurons
+        Dropout(0.5),  # Dropout layer with 50% dropout rate
+        Dense(32, activation='relu'),  # Second hidden layer with 32 neurons
+        Dropout(0.5),  # Dropout layer with 50% dropout rate
+        Dense(16, activation='relu'),  # Third hidden layer with 16 neurons
+        Dense(1, activation='sigmoid')  # Output layer for binary classification
     ])
 
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
+
+    # Set the privacy parameters
+    noise_multiplier = 1.1
+    l2_norm_clip = 1.0
+    batch_size = 32
+    num_microbatches = 1  # this is bugged keep at 1
+    learning_rate = 0.001
+    betas = [0.9, 0.999]
+
+    epochs = 5
+    steps_per_epoch = 3
+
+    input_dim = X_train_data.shape[1]
+
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        tf.keras.layers.Dense(8, activation='relu'),
-        tf.keras.layers.Dense(4, activation='relu'),
-        tf.keras.layers.Dense(2, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
+    model = Sequential([
+        Dense(64, input_dim=input_dim, activation='relu'),  # First hidden layer with 64 neurons
+        Dropout(0.5),  # Dropout layer with 50% dropout rate
+        Dense(32, activation='relu'),  # Second hidden layer with 32 neurons
+        Dropout(0.5),  # Dropout layer with 50% dropout rate
+        Dense(16, activation='relu'),  # Third hidden layer with 16 neurons
+        Dense(1, activation='sigmoid')  # Output layer for binary classification
     ])
 
 # ---                   Differential Privacy                   --- #
