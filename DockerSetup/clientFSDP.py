@@ -14,6 +14,7 @@ from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 import tensorflow_privacy as tfp
 
@@ -41,7 +42,7 @@ from sklearn.utils import shuffle
 # from sklearn.impute import SimpleImputer
 # from sklearn.pipeline import Pipeline
 # from sklearn.metrics import confusion_matrix
-from sklearn.metrics import matthews_corrcoef
+# from sklearn.metrics import matthews_corrcoef
 # from sklearn.metrics import accuracy_score, f1_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -133,7 +134,8 @@ if dataset_used == "CICIOT":
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
                            'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
                            'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum']  # being used
+                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum'
+                           ]  # being used
 
     # ---                   Label Mapping for 1+1 and 7+1                      --- #
 
@@ -147,7 +149,8 @@ if dataset_used == "CICIOT":
                      'VulnerabilityScan': 'Recon', 'Recon-HostDiscovery': 'Recon', 'DNS_Spoofing': 'Spoofing',
                      'MITM-ArpSpoofing': 'Spoofing', 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Web',
                      'Backdoor_Malware': 'Web', 'XSS': 'Web', 'Uploading_Attack': 'Web', 'SqlInjection': 'Web',
-                     'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'}
+                     'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'
+                     }
 
     dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
                      'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
@@ -160,7 +163,8 @@ if dataset_used == "CICIOT":
                      'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
                      'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack', 'XSS': 'Attack',
                      'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
-                     'DictionaryBruteForce': 'Attack'}
+                     'DictionaryBruteForce': 'Attack'
+                     }
 
     # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
 
@@ -641,7 +645,8 @@ if dataset_used == "CIFAR":
     model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.sparse_categorical_crossentropy,
-                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()])
+                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()]
+                  )
 
 #########################################################
 #    Model Initialization & Setup                    #
@@ -651,11 +656,17 @@ if dataset_used == "CIFAR":
 
 if dataset_used == "CICIOT":
 
-    # Set the privacy parameters
+    # Set the hyperparameters
+
+    model_name = dataset_used
+
     noise_multiplier = 1.1
+
     l2_norm_clip = 1.0
+
     batch_size = 32
     num_microbatches = 1  # this is bugged keep at 1
+
     learning_rate = 0.001
     betas = [0.9, 0.999]
     alpha = 0.01
@@ -687,12 +698,17 @@ if dataset_used == "CICIOT":
 
 if dataset_used == "IOTBOTNET":
 
-    # Set the privacy parameters
+    # Set the hyperparameters
+    model_name = dataset_used
+
     noise_multiplier = 1.1
+
     l2_norm_clip = 1.0
+
     batch_size = 32
     num_microbatches = 1  # this is bugged keep at 1
-    learning_rate = 0.001
+
+    learning_rate = 0.001  # 0.001 - 0.0001; maybe 0.0005
     betas = [0.9, 0.999]
     alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
@@ -733,20 +749,25 @@ dp_optimizer = tfp.DPKerasAdamOptimizer(
 
 # ---                   Model Compile                    --- #
 
-def matthews_correlation(y_true, y_pred):
-    return tf.py_function(matthews_corrcoef, (y_true, y_pred), tf.double)
-
-
 model.compile(optimizer=dp_optimizer,
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]  # shows this during the training loading screen
+              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
               )
+
+# ---                   Callback components                   --- #
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3)
+model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
+
+# ---                   Model Analysis                   --- #
 
 model.summary()
 
 #########################################################
 #    Federated Learning Setup                           #
 #########################################################
+
 
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
@@ -764,12 +785,14 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
-        loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)  # change dataset here
+        loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
-                                        "LogCosh": LogCosh}
+                                        "LogCosh": LogCosh
+                                        }
 
 #########################################################
 #    Start the client                                   #
 #########################################################
+
 
 fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
