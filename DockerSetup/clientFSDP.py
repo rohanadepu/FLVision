@@ -638,11 +638,14 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 
 if dataset_used == "CIFAR":
+
     # Creates the train and test dataset from calling cifar10 in TF
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
+    input_dim = X_train.shape[1]  # feature size
+
     #### DEMO MODEL ######
-    model = tf.keras.applications.MobileNetV2((46), classes=34, weights=None)
+    model = tf.keras.applications.MobileNetV2((input_dim), classes=2, weights=None)
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.sparse_categorical_crossentropy,
                   metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()]
@@ -756,8 +759,14 @@ model.compile(optimizer=dp_optimizer,
 
 # ---                   Callback components                   --- #
 
-early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3)
+# set hyperparameters for callback
+es_patience = 5
+
+l2lr_patience = 3
+l2lr_factor = 0.1
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
+lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
 
 # ---                   Model Analysis                   --- #
@@ -775,7 +784,8 @@ class FLClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         model.set_weights(parameters)
-        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch)  # Change dataset here
+        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
+                            steps_per_epoch=steps_per_epoch, callbacks=[early_stopping, lr_scheduler, model_checkpoint])  # Change dataset here
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
