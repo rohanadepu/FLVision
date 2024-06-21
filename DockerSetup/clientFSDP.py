@@ -10,7 +10,8 @@ import flwr as fl
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
+from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 
 import tensorflow_privacy as tfp
@@ -621,6 +622,10 @@ if dataset_used == "IOTBOTNET":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    # Get the sample size
+    iotbotnet_df_size = X_train_data.shape[0]
+    print("Sample size:", iotbotnet_df_size)
+
     print("Datasets Ready...")
 
 #########################################################
@@ -652,6 +657,7 @@ if dataset_used == "CICIOT":
     num_microbatches = 1  # this is bugged keep at 1
     learning_rate = 0.001
     betas = [0.9, 0.999]
+    alpha = 0.01
 
     epochs = 5
     steps_per_epoch = ciciot_df_size // batch_size
@@ -661,13 +667,19 @@ if dataset_used == "CICIOT":
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = Sequential([
-        Dense(64, input_dim=input_dim, activation='relu'),  # First hidden layer with 64 neurons
+    # --- Model Definition --- #
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(input_dim,)),
+        Dense(32, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
         Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(32, activation='relu'),  # Second hidden layer with 32 neurons
-        Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(16, activation='relu'),  # Third hidden layer with 16 neurons
-        Dense(1, activation='sigmoid')  # Output layer for binary classification
+        Dense(16, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(8, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
     ])
 
 # ---                   IOTBOTNET Model                  --- #
@@ -681,22 +693,31 @@ if dataset_used == "IOTBOTNET":
     num_microbatches = 1  # this is bugged keep at 1
     learning_rate = 0.001
     betas = [0.9, 0.999]
+    alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
     epochs = 5
-    steps_per_epoch = 3
+    steps_per_epoch = iotbotnet_df_size // batch_size
 
     input_dim = X_train_data.shape[1]
 
     print("///////////////////////////////////////////////")
     print("Input Dim:", input_dim)
 
-    model = Sequential([
-        Dense(64, input_dim=input_dim, activation='relu'),  # First hidden layer with 64 neurons
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(input_dim,)),
+        Dense(16, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
         Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(32, activation='relu'),  # Second hidden layer with 32 neurons
-        Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(16, activation='relu'),  # Third hidden layer with 16 neurons
-        Dense(1, activation='sigmoid')  # Output layer for binary classification
+        Dense(8, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(4, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(2, activation='relu', kernel_regularizer=l2(alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
     ])
 
 # ---                   Differential Privacy                   --- #
