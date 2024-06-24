@@ -882,7 +882,7 @@ es_patience = 5
 l2lr_patience = 3
 l2lr_factor = 0.1
 
-early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
+# early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
 lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
 
@@ -909,7 +909,7 @@ class FLClient(fl.client.NumPyClient):
             y_train, y_val = y_train_data_np[train_index], y_train_data_np[val_index]
             history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
                                 epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                                callbacks=[early_stopping, lr_scheduler, model_checkpoint])
+                                callbacks=[lr_scheduler, model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
