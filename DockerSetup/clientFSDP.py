@@ -684,7 +684,17 @@ if dataset_used == "CICIOT":
     y_train_data_np = y_train_data.to_numpy()
 
     print("///////////////////////////////////////////////")
+    print("HyperParameters:")
     print("Input Dim:", input_dim)
+    print("Epochs:", epochs)
+    print("Batch Size:", input_dim)
+    print("MicroBatches", num_microbatches)
+    print(f"Steps per epoch ({len(X_train_data)} // {batch_size}):", steps_per_epoch)
+    print("Betas:", betas)
+    print("Learning Rate:", learning_rate)
+    print("L2_alpha:", l2_alpha)
+    print("L2_norm clip:", l2_norm_clip)
+    print("Noise Multiplier:", noise_multiplier)
 
     # --- Model Definition --- #
     model_selection = 1
@@ -818,7 +828,17 @@ if dataset_used == "IOTBOTNET":
     y_train_data_np = y_train_data.to_numpy()
 
     print("///////////////////////////////////////////////")
+    print("HyperParameters:")
     print("Input Dim:", input_dim)
+    print("Epochs:", epochs)
+    print("Batch Size:", input_dim)
+    print("MicroBatches", num_microbatches)
+    print(f"Steps per epoch ({len(X_train_data)} // {batch_size}):", steps_per_epoch)
+    print("Betas:", betas)
+    print("Learning Rate:", learning_rate)
+    print("L2_alpha:", l2_alpha)
+    print("L2_norm clip:", l2_norm_clip)
+    print("Noise Multiplier:", noise_multiplier)
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
