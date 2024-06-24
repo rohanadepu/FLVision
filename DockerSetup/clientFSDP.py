@@ -801,7 +801,7 @@ if dataset_used == "IOTBOTNET":
 
     l2_norm_clip = 1.0  # privacy param:
 
-    batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
+    batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
     num_microbatches = 1  # this is bugged keep at 1
 
     learning_rate = 0.001  # will be optimized
