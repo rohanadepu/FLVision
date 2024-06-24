@@ -675,7 +675,7 @@ if dataset_used == "CICIOT":
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
     epochs = 5  # being optimized
-    steps_per_epoch = len(X_train_data) // batch_size  # dependant
+    steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
 
     input_dim = X_train_data.shape[1]  # dependant
 
@@ -689,7 +689,7 @@ if dataset_used == "CICIOT":
     print("Epochs:", epochs)
     print("Batch Size:", input_dim)
     print("MicroBatches", num_microbatches)
-    print(f"Steps per epoch ({len(X_train_data)} // {batch_size}):", steps_per_epoch)
+    print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
     print("Betas:", betas)
     print("Learning Rate:", learning_rate)
     print("L2_alpha:", l2_alpha)
@@ -833,7 +833,7 @@ if dataset_used == "IOTBOTNET":
     print("Epochs:", epochs)
     print("Batch Size:", input_dim)
     print("MicroBatches", num_microbatches)
-    print(f"Steps per epoch ({len(X_train_data)} // {batch_size}):", steps_per_epoch)
+    print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
     print("Betas:", betas)
     print("Learning Rate:", learning_rate)
     print("L2_alpha:", l2_alpha)
