@@ -47,7 +47,7 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-dataset_used = "IOTBOTNET"
+dataset_used = "CICIOT"
 
 print("DATASET BEING USED:", dataset_used, "\n")
 
