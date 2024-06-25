@@ -834,13 +834,20 @@ model.compile(optimizer=dp_optimizer,
 
 # set hyperparameters for callback
 es_patience = 5
+restor_best_w = True
 
 l2lr_patience = 3
 l2lr_factor = 0.1
 
-early_stopping = EarlyStopping(monitor='auc', patience=es_patience, restore_best_weights=True)
-lr_scheduler = ReduceLROnPlateau(monitor='auc', factor=l2lr_factor, patience=l2lr_patience)
-model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
+metric_to_monitor = 'auc'
+
+save_best_only = True
+checkpoint_mode = "min"
+
+early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
+lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
+model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
+                                   monitor=metric_to_monitor, mode=checkpoint_mode)
 
 # ---                   Model Analysis                   --- #
 
