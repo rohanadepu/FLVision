@@ -47,7 +47,7 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-dataset_used = "CICIOT"
+dataset_used = "IOTBOTNET"
 
 print("DATASET BEING USED:", dataset_used, "\n")
 
@@ -844,7 +844,7 @@ metric_to_monitor = 'auc'
 save_best_only = True
 checkpoint_mode = "min"
 
-early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
+# early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
 # lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
                                    monitor=metric_to_monitor, mode=checkpoint_mode)
@@ -867,7 +867,7 @@ class FLClient(fl.client.NumPyClient):
 
         # K-Fold Cross-Validation
         history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                            callbacks=[early_stopping, model_checkpoint])
+                            callbacks=[model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
