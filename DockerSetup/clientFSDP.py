@@ -838,8 +838,8 @@ es_patience = 5
 l2lr_patience = 3
 l2lr_factor = 0.1
 
-early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
-lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=l2lr_factor, patience=l2lr_patience)
+early_stopping = EarlyStopping(monitor='auc', patience=es_patience, restore_best_weights=True)
+lr_scheduler = ReduceLROnPlateau(monitor='auc', factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
 
 # ---                   Model Analysis                   --- #
