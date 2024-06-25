@@ -697,9 +697,7 @@ if dataset_used == "CICIOT":
     print("Noise Multiplier:", noise_multiplier)
 
     # --- Model Definition --- #
-    model_selection = 1
-
-    if model_selection == 1:
+    def build_model(input_dim):
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -713,91 +711,7 @@ if dataset_used == "CICIOT":
             Dropout(0.5),
             Dense(1, activation='sigmoid')
         ])
-
-    if model_selection == 2:
-        # --- Model Definition --- #
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-        if model_selection == 3:
-            # --- Model Definition --- #
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
-
-        if model_selection == 4:
-            # --- Model Definition --- #
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
-
-        if model_selection == 5:
-            # --- Model Definition --- #
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+        return model
 
 
 # ---                   IOTBOTNET Model                  --- #
@@ -903,8 +817,24 @@ class FLClient(fl.client.NumPyClient):
         model.set_weights(parameters)
 
         # K-Fold Cross-Validation
-        history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                            callbacks=[early_stopping, lr_scheduler, model_checkpoint])
+        kf = KFold(n_splits=5)
+        for train_index, val_index in kf.split(X_train_data_np):
+            X_train, X_val = X_train_data_np[train_index], X_train_data_np[val_index]
+            y_train, y_val = y_train_data_np[train_index], y_train_data_np[val_index]
+
+            # Rebuild and compile the model for each fold
+            model = build_model(input_dim)
+            model.compile(optimizer=dp_optimizer,
+                          loss=tf.keras.losses.binary_crossentropy,
+                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+
+            history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
+                                epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+                                callbacks=[early_stopping, lr_scheduler, model_checkpoint])
+
+        # history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
+        #                     epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+        #                     callbacks=[early_stopping, lr_scheduler, model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
