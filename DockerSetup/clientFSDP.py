@@ -655,46 +655,42 @@ if dataset_used == "CIFAR":
 #    Model Initialization & Setup                    #
 #########################################################
 
+# ---                  Hyper Parameters                  --- #
+
+model_name = dataset_used  # name for file
+
+noise_multiplier = 1.1  # Privacy param - noise budget:
+
+l2_norm_clip = 1.0  # privacy param:
+
+batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
+num_microbatches = 1  # this is bugged keep at 1
+
+learning_rate = 0.001  # will be optimized
+betas = [0.9, 0.999]  # Best to keep as is
+l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
+epochs = 5  # will be optimized
+steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
+
+input_dim = X_train_data.shape[1]  # dependant
+
+print("///////////////////////////////////////////////")
+print("HyperParameters:")
+print("Input Dim:", input_dim)
+print("Epochs:", epochs)
+print("Batch Size:", input_dim)
+print("MicroBatches", num_microbatches)
+print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
+print("Betas:", betas)
+print("Learning Rate:", learning_rate)
+print("L2_alpha:", l2_alpha)
+print("L2_norm clip:", l2_norm_clip)
+print("Noise Multiplier:", noise_multiplier)
+
 # ---                   CICIOT Model                   --- #
 
 if dataset_used == "CICIOT":
-
-    # Set the hyperparameters
-
-    model_name = dataset_used  # name for file
-
-    noise_multiplier = 1.1  # Privacy param - noise budget:
-
-    l2_norm_clip = 1.0  # privacy param:
-
-    batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
-    num_microbatches = 1  # this is bugged keep at 1
-
-    learning_rate = 0.001  # will be optimized
-    betas = [0.9, 0.999]  # Best to keep as is
-    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
-
-    epochs = 5  # being optimized
-    steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
-
-    input_dim = X_train_data.shape[1]  # dependant
-
-    # Convert DataFrames to NumPy arrays for cross validation
-    X_train_data_np = X_train_data.to_numpy()
-    y_train_data_np = y_train_data.to_numpy()
-
-    print("///////////////////////////////////////////////")
-    print("HyperParameters:")
-    print("Input Dim:", input_dim)
-    print("Epochs:", epochs)
-    print("Batch Size:", input_dim)
-    print("MicroBatches", num_microbatches)
-    print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
-    print("Betas:", betas)
-    print("Learning Rate:", learning_rate)
-    print("L2_alpha:", l2_alpha)
-    print("L2_norm clip:", l2_norm_clip)
-    print("Noise Multiplier:", noise_multiplier)
 
     # --- Model Definition --- #
     model_selection = 1
@@ -715,7 +711,6 @@ if dataset_used == "CICIOT":
         ])
 
     if model_selection == 2:
-        # --- Model Definition --- #
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -734,7 +729,6 @@ if dataset_used == "CICIOT":
         ])
 
         if model_selection == 3:
-            # --- Model Definition --- #
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -756,7 +750,6 @@ if dataset_used == "CICIOT":
             ])
 
         if model_selection == 4:
-            # --- Model Definition --- #
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -778,7 +771,6 @@ if dataset_used == "CICIOT":
             ])
 
         if model_selection == 5:
-            # --- Model Definition --- #
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -799,46 +791,10 @@ if dataset_used == "CICIOT":
                 Dense(1, activation='sigmoid')
             ])
 
-
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
-
-    # Set the hyperparameters
-    model_name = dataset_used  # name for file
-
-    noise_multiplier = 1.1  # Privacy param - noise budget:
-
-    l2_norm_clip = 1.0  # privacy param:
-
-    batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
-    num_microbatches = 1  # this is bugged keep at 1
-
-    learning_rate = 0.001  # will be optimized
-    betas = [0.9, 0.999]  # Best to keep as is
-    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
-
-    epochs = 5  # will be optimized
-    steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
-
-    input_dim = X_train_data.shape[1]  # dependant
-
-    # Convert DataFrames to NumPy arrays
-    X_train_data_np = X_train_data.to_numpy()
-    y_train_data_np = y_train_data.to_numpy()
-
-    print("///////////////////////////////////////////////")
-    print("HyperParameters:")
-    print("Input Dim:", input_dim)
-    print("Epochs:", epochs)
-    print("Batch Size:", input_dim)
-    print("MicroBatches", num_microbatches)
-    print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
-    print("Betas:", betas)
-    print("Learning Rate:", learning_rate)
-    print("L2_alpha:", l2_alpha)
-    print("L2_norm clip:", l2_norm_clip)
-    print("Noise Multiplier:", noise_multiplier)
+    # --- Model Definition --- #
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
@@ -903,7 +859,7 @@ class FLClient(fl.client.NumPyClient):
         model.set_weights(parameters)
 
         # K-Fold Cross-Validation
-        history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                             callbacks=[early_stopping, lr_scheduler, model_checkpoint])
 
         # Debugging: Print the shape of the loss
