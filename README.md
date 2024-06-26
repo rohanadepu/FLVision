@@ -38,12 +38,12 @@ Client File Summary:
   * Data Load / Processing CICIOT
     * Loading
       * Sampling Files
-    * Processing
+      * Processing
 
   * Data Load / Processing IOTBOTNET
     * Loading
       * Sampling Files
-    * Processing
+      * Processing
   
   * Model Setup
     * Hyperparameters
