@@ -698,7 +698,7 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    model_selection = 1
+    model_selection = 3
 
     if model_selection == 1:
         model = tf.keras.Sequential([
@@ -820,6 +820,7 @@ if dataset_used == "IOTBOTNET":
 
 # ---                   Differential Privacy                   --- #
 
+# Making Custom Optimizer Component with Differential Privacy
 optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 dp_optimizer = tfp.DPKerasAdamOptimizer(
     l2_norm_clip=l2_norm_clip,
