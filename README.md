@@ -32,3 +32,33 @@ Undergraduate Researchers:
   * Ensure all files are downloaded and files are configured.
   * in clients use 'python3 client.py'
   * in server use 'python3 server.py'
+
+
+Client File Summary:
+  * Data Load / Processing CICIOT
+    * Loading
+      * Sampling Files
+    * Processing
+
+  * Data Load / Processing IOTBOTNET
+    * Loading
+      * Sampling Files
+    * Processing
+  
+  * Model Setup
+    * Hyperparameters
+    * CICIOT MODEL
+    * IOTBOTNET MODEL
+    * Differential Privacy
+    * Compile Model
+    * Callback Components
+    * Model Analysis
+
+  * Federated Learning Setup
+    * Setting weights Def
+    * Fitting Model Def
+    * Evaluating Model Def
+
+  * Start Client
+
+  

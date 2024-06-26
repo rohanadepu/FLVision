@@ -799,8 +799,8 @@ if dataset_used == "CICIOT":
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
-    # --- Model Definition --- #
 
+    # --- Model Definition --- #
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(input_dim,)),
         Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
