@@ -59,7 +59,8 @@ if dataset_used == "CICIOT":
 
     # ---                   Settings                     --- #
 
-    ciciot_sample_size = 2  # input: 2 at minimum
+    ciciot_train_sample_size = 2  # input: 3 samples for training
+    ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
@@ -74,18 +75,22 @@ if dataset_used == "CICIOT":
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
     print(csv_filepaths)
 
-    # If there are more than X CSV files, randomly select X files from the list
-    if len(csv_filepaths) > ciciot_sample_size:
-        csv_filepaths = random.sample(csv_filepaths, ciciot_sample_size)
-        print(csv_filepaths)
-    csv_filepaths.sort()
-    split_index = int(len(csv_filepaths) * 0.5)
+    # Randomly select the specified number of files for training and testing
+    if len(csv_filepaths) > (ciciot_train_sample_size + ciciot_test_sample_size):
+        train_sample_files = random.sample(csv_filepaths, ciciot_train_sample_size)  # samples the file names from filepaths list
+        remaining_files = [file for file in csv_filepaths if file not in train_sample_files]  # takes the remaining files not from the training set
+        test_sample_files = random.sample(remaining_files, ciciot_test_sample_size)  # samples from the remaining set of files
+    else:
+        # If there are not enough files, use all available files for training and testing
+        train_sample_files = csv_filepaths[:ciciot_train_sample_size]
+        test_sample_files = csv_filepaths[ciciot_train_sample_size:ciciot_train_sample_size + ciciot_test_sample_size]
 
-    training_data_sets = csv_filepaths[:split_index]
-    test_data_sets = csv_filepaths[split_index:]
+    # Sort the file paths (optional)
+    train_sample_files.sort()
+    test_sample_files.sort()
 
-    print("Training Sets:\n", training_data_sets, "\n")
-    print("Test Sets:\n", test_data_sets)
+    print("Training Sets:\n", train_sample_files, "\n")
+    print("Test Sets:\n", test_sample_files)
 
     # ---                   Feature Mapping for numerical and categorical features       --- #
 
@@ -172,16 +177,16 @@ if dataset_used == "CICIOT":
 
     # Train Dataframe
     ciciot_train_data = pd.DataFrame()
-    for data_set in training_data_sets:
-        print(f"Training dataset sample {data_set} out of {len(training_data_sets)} \n")
+    for data_set in train_sample_files:
+        print(f"Training dataset sample {data_set} out of {len(train_sample_files)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
         df = pd.read_csv(data_path)
         ciciot_train_data = pd.concat([ciciot_train_data, df])  # dataframe to manipulate
 
     # Test Dataframe
     ciciot_test_data = pd.DataFrame()
-    for test_set in test_data_sets:
-        print(f"Testing dataset sample {test_set} out of {len(test_data_sets)} \n")
+    for test_set in test_sample_files:
+        print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, test_set)
         df = pd.read_csv(data_path)
         ciciot_test_data = pd.concat([df])
@@ -865,7 +870,7 @@ class FLClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         model.set_weights(parameters)
 
-        # K-Fold Cross-Validation
+        # Train Model
         history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
                             callbacks=[model_checkpoint])
 
@@ -877,6 +882,8 @@ class FLClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         model.set_weights(parameters)
+
+        # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
