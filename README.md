@@ -37,19 +37,33 @@ Undergraduate Researchers:
 Client File Summary:
   * Data Load / Processing CICIOT
     * Loading
-      * Sampling Files
-      * Processing
+      * Sampling Files & Train/Test Split
+      * Extracting to Dataframe
+    * Processing
+      * Remapping & Feature Selection
+      * Encoding
+      * Normalizing
+      * X y Split
+      
 
   * Data Load / Processing IOTBOTNET
     * Loading
-      * Sampling Files
-      * Processing
+      * Functions
+      * Loading Specific Attack Data into Dataframes
+      * Combine Specific Attacks into a Single Dataframe & Make it Binary Labels
+      * Train Test Split
+    * Processing
+      * Feature Selection
+      * Cleaning
+      * Encoding
+      * Normalizing
+      * X y Split
   
   * Model Setup
     * Hyperparameters
     * CICIOT MODEL
     * IOTBOTNET MODEL
-    * Differential Privacy
+    * Custom Optimizer for Differential Privacy
     * Compile Model
     * Callback Components
     * Model Analysis
