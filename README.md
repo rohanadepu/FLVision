@@ -34,7 +34,7 @@ Undergraduate Researchers:
   * in server use 'python3 server.py'
 
 
-Client File Summary:
+## Client File Summary:
   * Data Load / Processing CICIOT
     * Loading
       * Sampling Files & Train/Test Split
@@ -44,7 +44,7 @@ Client File Summary:
       * Encoding
       * Normalizing
       * X y Split
-      
+
 
   * Data Load / Processing IOTBOTNET
     * Loading
@@ -59,6 +59,7 @@ Client File Summary:
       * Normalizing
       * X y Split
   
+
   * Model Setup
     * Hyperparameters
     * CICIOT MODEL
@@ -68,10 +69,12 @@ Client File Summary:
     * Callback Components
     * Model Analysis
 
+
   * Federated Learning Setup
     * Setting weights Def
     * Fitting Model Def
     * Evaluating Model Def
+
 
   * Start Client
 
