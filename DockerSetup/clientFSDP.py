@@ -180,7 +180,7 @@ if dataset_used == "CICIOT":
         data = pd.read_csv(file_path)
 
         # Remap the labels to the right classification
-        print("Remap Sample Labels into Binary Categories...")
+        print(f"Remap Sample Labels into {ciciot_label_class} Categories...")
         data['label'] = data['label'].map(label_class_dict)
 
         if load_balanced == True:
@@ -722,6 +722,7 @@ if dataset_used == "CICIOT":
     model_selection = 3
 
     if model_selection == 1:
+        print("Picked 1st model")
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -737,6 +738,7 @@ if dataset_used == "CICIOT":
         ])
 
     if model_selection == 2:
+        print("Picked 2nd model")
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -754,7 +756,9 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
+
         if model_selection == 3:
+            print("Picked 3rd model")
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -776,6 +780,8 @@ if dataset_used == "CICIOT":
             ])
 
         if model_selection == 4:
+            print("Picked 4th model")
+
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -797,6 +803,8 @@ if dataset_used == "CICIOT":
             ])
 
         if model_selection == 5:
+            print("Picked 5th model")
+
             model = tf.keras.Sequential([
                 tf.keras.layers.Input(shape=(input_dim,)),
                 Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
