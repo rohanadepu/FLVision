@@ -59,7 +59,7 @@ if dataset_used == "CICIOT":
 
     # ---                   Settings                     --- #
 
-    ciciot_train_sample_size = 20  # input: 3 samples for training
+    ciciot_train_sample_size = 2  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
@@ -77,15 +77,18 @@ if dataset_used == "CICIOT":
 
     # Randomly select the specified number of files for training and testing
     if len(csv_filepaths) > (ciciot_train_sample_size + ciciot_test_sample_size):
-        train_sample_files = random.sample(csv_filepaths, ciciot_train_sample_size)  # samples the file names from filepaths list
-        remaining_files = [file for file in csv_filepaths if file not in train_sample_files]  # takes the remaining files not from the training set
-        test_sample_files = random.sample(remaining_files, ciciot_test_sample_size)  # samples from the remaining set of files
+        train_sample_files = random.sample(csv_filepaths,
+                                           ciciot_train_sample_size)  # samples the file names from filepaths list
+        remaining_files = [file for file in csv_filepaths if
+                           file not in train_sample_files]  # takes the remaining files not from the training set
+        test_sample_files = random.sample(remaining_files,
+                                          ciciot_test_sample_size)  # samples from the remaining set of files
     else:
         # If there are not enough files, use all available files for training and testing
         train_sample_files = csv_filepaths[:ciciot_train_sample_size]
         test_sample_files = csv_filepaths[ciciot_train_sample_size:ciciot_train_sample_size + ciciot_test_sample_size]
 
-    # Sort the file paths
+    # Sort the file paths (optional)
     train_sample_files.sort()
     test_sample_files.sort()
 
@@ -93,20 +96,6 @@ if dataset_used == "CICIOT":
     print("Test Sets:\n", test_sample_files)
 
     # ---                   Feature Mapping for numerical and categorical features       --- #
-
-    # DEBUG
-    # num_cols = [
-    #     'flow_duration', 'Header_Length', 'Duration',
-    #     'Rate', 'Srate', 'ack_count', 'syn_count',
-    #     'fin_count', 'urg_count', 'rst_count', 'Tot sum',
-    #     'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-    #     'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-    # ]
-
-    # num_cols = ['Duration', 'Rate', 'Srate', 'ack_count', 'syn_count', 'fin_count', 'Tot size', 'IAT', 'Number',
-    #             'Weight']
-
-    # END OF DEBUG
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
                 'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
@@ -120,21 +109,6 @@ if dataset_used == "CICIOT":
     ]
 
     # ---                   irrelevant features and relevant features mappings                    --- #
-
-    # DEBUG
-    # irrelevant_features = ['ack_flag_number', 'ece_flag_number', 'cwr_flag_number', 'Magnitue', 'Radius',
-    #                        'Covariance', 'Variance', 'flow_duration', 'Header_Length', 'urg_count', 'rst_count',
-    #                        'Tot sum', 'Min', 'Max', 'AVG', 'Std']
-    #
-    # irrelevant_features = ['Srate', 'rst_flag_number', 'ack_flag_number', 'ack_count', 'syn_count', 'fin_count',
-    #                        'rst_count', 'LLC', 'Max', 'AVG', 'Std', 'Tot size', 'Number', 'Magnitue', 'Radius',
-    #                        'Covariance', 'Variance', 'Weight']
-    # ---
-    # relevant_features = ['Duration', 'IAT', 'urg_count', 'flow_duration', 'Min', 'Tot sum', 'Protocol Type',
-    #                      'Header_Length', 'IPv', 'TCP', 'HTTPS', 'Rate', 'syn_flag_number', 'UDP', 'ICMP',
-    #                      'fin_flag_number', 'psh_flag_number', 'HTTP', 'ece_flag_number', 'SMTP', 'IRC', 'DNS', 'SSH',
-    #                      'Telnet', 'DHCP', 'ARP', 'Drate', 'cwr_flag_number', 'label']
-    # END OF DEBUG
 
     irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
                            'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
@@ -173,59 +147,56 @@ if dataset_used == "CICIOT":
 
     # ---      Functions    --- #
 
-    def load_and_balance_data(file_path, label_class_dict, load_balanced=True):
-
-        # Load the data
-        print("Load Sample...")
+    def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
         data = pd.read_csv(file_path)
-
-        # Remap the labels to the right classification
-        print("Remap Sample Labels into Binary Categories...")
         data['label'] = data['label'].map(label_class_dict)
 
-        if load_balanced == True:
+        # Separate the classes
+        attack_samples = data[data['label'] == 'Attack']
+        benign_samples = data[data['label'] == 'Benign']
 
-            print("Balancing Sample Data...")
+        # Limit the benign samples to avoid overloading
+        remaining_benign_quota = benign_size_limit - current_benign_size
+        if len(benign_samples) > remaining_benign_quota:
+            benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
 
-            # Separate the classes
-            attack_samples = data[data['label'] == 'Attack']
-            benign_samples = data[data['label'] == 'Benign']
+        # Balance the samples
+        min_samples = min(len(attack_samples), len(benign_samples))
+        if min_samples > 0:
+            attack_samples = attack_samples.sample(min_samples, random_state=47)
+            benign_samples = benign_samples.sample(min_samples, random_state=47)
 
-            # Balance the classes
-            min_samples = min(len(attack_samples), len(benign_samples))
-            if min_samples > 0:
-                attack_samples = attack_samples.sample(min_samples, random_state=47)
-                benign_samples = benign_samples.sample(min_samples, random_state=47)
+        balanced_data = pd.concat([attack_samples, benign_samples])
+        return balanced_data, len(benign_samples)
 
-            balanced_data = pd.concat([attack_samples, benign_samples])
-
-            print("Done with Sample")
-            return balanced_data
-
-        print("Done with Sample")
-        return data
-
-        # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
+    # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
 
     # Train Dataframe
     ciciot_train_data = pd.DataFrame()
+    normal_traffic_total_size = 0
+    normal_traffic_size_limit = 100000
+
     for data_set in train_sample_files:
-        print(f"Training dataset sample {data_set} out of {len(train_sample_files)} \n")
+
+        # Load Data from sampled files until enough benign traffic is loaded
+        if normal_traffic_total_size >= normal_traffic_size_limit:
+            break
+
+        print(f"Training dataset sample {data_set} \n")
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
-        sampled_data = load_and_balance_data(data_path, dict_2classes if ciciot_label_class == "1+1" else dict_7classes
-                                             , load_balanced=False)
-        ciciot_train_data = pd.concat([ciciot_train_data, sampled_data])  # dataframe to manipulate
+        balanced_data, benign_count = load_and_balance_data(data_path,
+                                                            dict_2classes if ciciot_label_class == "1+1" else dict_7classes,
+                                                            normal_traffic_total_size, normal_traffic_size_limit)
+        normal_traffic_total_size += benign_count
+        ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
 
     # Test Dataframe
     ciciot_test_data = pd.DataFrame()
     for test_set in test_sample_files:
         print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, test_set)
-        sampled_data = load_and_balance_data(data_path, dict_2classes if ciciot_label_class == "1+1" else dict_7classes
-                                             , load_balanced=False)
-        ciciot_test_data = pd.concat([ciciot_test_data, sampled_data])  # dataframe to manipulate
-
-
+        df = pd.read_csv(data_path)
+        ciciot_test_data = pd.concat([ciciot_test_data, df])
 #########################################################
 #    Process Dataset For CICIOT 2023                    #
 #########################################################

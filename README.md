@@ -38,12 +38,12 @@ Undergraduate Researchers:
   * Data Load / Processing CICIOT
     * Loading
       * Sampling Files & Train/Test Split
-      * Extracting to Dataframe
+      * Extracting to Data from Sampled Files into Dataframe 
     * Processing
-      * Remapping & Feature Selection
+      * Feature Selection
       * Encoding
       * Normalizing
-      * X y Split
+      * X y Split & assigned to model
 
 
   * Data Load / Processing IOTBOTNET
@@ -57,7 +57,7 @@ Undergraduate Researchers:
       * Cleaning
       * Encoding
       * Normalizing
-      * X y Split
+      * X y Split & assigned to model
   
 
   * Model Setup
