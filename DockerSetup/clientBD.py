@@ -148,7 +148,10 @@ if dataset_used == "CICIOT":
     # ---      Functions    --- #
 
     def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
+        # load data to dataframe
         data = pd.read_csv(file_path)
+
+        # remap labels to new classification
         data['label'] = data['label'].map(label_class_dict)
 
         # Separate the classes
@@ -161,11 +164,12 @@ if dataset_used == "CICIOT":
             benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
 
         # Balance the samples
-        min_samples = min(len(attack_samples), len(benign_samples))
-        if min_samples > 0:
+        min_samples = min(len(attack_samples), len(benign_samples))  # choosing the smallest number from both samples
+        if min_samples > 0:  # if min sample exist sample out the samples
             attack_samples = attack_samples.sample(min_samples, random_state=47)
             benign_samples = benign_samples.sample(min_samples, random_state=47)
 
+        # Bring both samples together
         balanced_data = pd.concat([attack_samples, benign_samples])
         return balanced_data, len(benign_samples)
 
@@ -197,6 +201,8 @@ if dataset_used == "CICIOT":
         data_path = os.path.join(DATASET_DIRECTORY, test_set)
         df = pd.read_csv(data_path)
         ciciot_test_data = pd.concat([ciciot_test_data, df])
+
+
 #########################################################
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
