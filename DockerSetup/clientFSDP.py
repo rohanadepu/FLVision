@@ -717,6 +717,7 @@ print("Noise Multiplier:", noise_multiplier)
 # ---                   CICIOT Model                   --- #
 
 if dataset_used == "CICIOT":
+    print("model for ciciot dataset")
 
     # --- Model Definition --- #
     model_selection = 3
