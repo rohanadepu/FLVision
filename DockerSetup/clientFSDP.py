@@ -899,6 +899,7 @@ class FLClient(fl.client.NumPyClient):
         return model.get_weights()
 
     def fit(self, parameters, config):
+        print("Training...")
         model.set_weights(parameters)
 
         # Train Model
@@ -912,6 +913,7 @@ class FLClient(fl.client.NumPyClient):
         return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
+        print("Testing...")
         model.set_weights(parameters)
 
         # Test the model
