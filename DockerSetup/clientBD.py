@@ -731,68 +731,68 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-        if model_selection == 3:
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+    if model_selection == 3:
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
-        if model_selection == 4:
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+    if model_selection == 4:
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
-        if model_selection == 5:
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+    if model_selection == 5:
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
 # ---                   IOTBOTNET Model                  --- #
 

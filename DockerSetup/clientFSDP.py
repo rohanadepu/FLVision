@@ -780,51 +780,51 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-        if model_selection == 4:
-            print("Picked 4th model")
+    if model_selection == 4:
+        print("Picked 4th model")
 
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
-        if model_selection == 5:
-            print("Picked 5th model")
+    if model_selection == 5:
+        print("Picked 5th model")
 
-            model = tf.keras.Sequential([
-                tf.keras.layers.Input(shape=(input_dim,)),
-                Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),  # Dropout layer with 50% dropout rate
-                Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-                BatchNormalization(),
-                Dropout(0.5),
-                Dense(1, activation='sigmoid')
-            ])
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
 # ---                   IOTBOTNET Model                  --- #
 
