@@ -230,7 +230,7 @@ if dataset_used == "CICIOT":
 
         print("Encoding...")
 
-        # Assuming 'label' is the column name for the labels in the DataFrame `synth_data`
+        # get each label in dataset
         unique_labels = ciciot_train_data['label'].nunique()
 
         # Print the number of unique labels
@@ -258,9 +258,13 @@ if dataset_used == "CICIOT":
         # Print specific instances after label encoding
         print("Training Data After Encoding:")
         for label, code in class_codes.items():
-            # Print the first instance of each class
-            print(f"First instance of {label} (code {code}):")
-            print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+            # Check if there are any instances of the current label
+            if not ciciot_train_data[ciciot_train_data['label'] == code].empty:
+                # Print the first instance of each class
+                print(f"First instance of {label} (code {code}):")
+                print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+            else:
+                print(f"No instances found for {label} (code {code})")
         print(ciciot_train_data.head(), "\n")
 
         # ---                    Normalizing                      --- #
