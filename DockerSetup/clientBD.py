@@ -263,7 +263,7 @@ if dataset_used == "CICIOT":
         # Encodes the training label
         label_encoder = LabelEncoder()
         ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-        ciciot_test_data['label'] = label_encoder.fit_transform(ciciot_test_data['label'])
+        ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])
 
         # Store label mappings
         label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
