@@ -59,7 +59,7 @@ if dataset_used == "CICIOT":
 
     # ---                   Settings                     --- #
 
-    ciciot_train_sample_size = 2  # input: 3 samples for training
+    ciciot_train_sample_size = 20  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
