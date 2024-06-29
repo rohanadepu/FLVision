@@ -69,7 +69,7 @@ if dataset_used == "CICIOT":
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
-    print("Loading Network Traffic Data...")
+    print("Loading Network Traffic Data Files...")
 
     # List the files in the dataset
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
@@ -93,7 +93,7 @@ if dataset_used == "CICIOT":
     test_sample_files.sort()
 
     print("Training Sets:\n", train_sample_files, "\n")
-    print("Test Sets:\n", test_sample_files)
+    print("Test Sets:\n", test_sample_files, "\n")
 
     # ---                   Feature Mapping for numerical and categorical features       --- #
 
@@ -180,6 +180,7 @@ if dataset_used == "CICIOT":
     normal_traffic_total_size = 0
     normal_traffic_size_limit = 100000
 
+    print("Loading Training Data...")
     for data_set in train_sample_files:
 
         # Load Data from sampled files until enough benign traffic is loaded
@@ -202,6 +203,7 @@ if dataset_used == "CICIOT":
     # Test Dataframe
     ciciot_test_data = pd.DataFrame()
 
+    print("Loading Testing Data...")
     for test_set in test_sample_files:
 
         # load the test dataset without balancing
@@ -683,14 +685,14 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 1.1  # Privacy param - noise budget:
+noise_multiplier = 0.0  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
 
 l2_norm_clip = 1.0  # privacy param:
 
 batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
 num_microbatches = 1  # this is bugged keep at 1
 
-learning_rate = 0.001  # will be optimized
+learning_rate = 0.0001  # will be optimized
 betas = [0.9, 0.999]  # Best to keep as is
 l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
@@ -839,21 +841,26 @@ if dataset_used == "IOTBOTNET":
 
 # ---                   Differential Privacy                   --- #
 
-# Making Custom Optimizer Component with Differential Privacy
+# # Making Custom Optimizer Component with Differential Privacy
+# optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+# dp_optimizer = tfp.DPKerasAdamOptimizer(
+#     l2_norm_clip=l2_norm_clip,
+#     noise_multiplier=noise_multiplier,
+#     num_microbatches=num_microbatches,
+#     learning_rate=learning_rate
+# )
+#
+# # ---                   Model Compile                    --- #
+#
+# model.compile(optimizer=dp_optimizer,
+#               loss=tf.keras.losses.binary_crossentropy,
+#               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+#               )
+
 optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-dp_optimizer = tfp.DPKerasAdamOptimizer(
-    l2_norm_clip=l2_norm_clip,
-    noise_multiplier=noise_multiplier,
-    num_microbatches=num_microbatches,
-    learning_rate=learning_rate
-)
-
-# ---                   Model Compile                    --- #
-
-model.compile(optimizer=dp_optimizer,
+model.compile(optimizer= optimizer,
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-              )
+              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
 # ---                   Callback components                   --- #
 
