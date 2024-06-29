@@ -190,7 +190,8 @@ if dataset_used == "CICIOT":
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
         balanced_data, benign_count = load_and_balance_data(data_path,
                                                             dict_2classes if ciciot_label_class == "1+1" else dict_7classes,
-                                                            normal_traffic_total_size, normal_traffic_size_limit)
+                                                            normal_traffic_total_size,
+                                                            normal_traffic_size_limit)
         normal_traffic_total_size += benign_count
         ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
 
@@ -199,8 +200,10 @@ if dataset_used == "CICIOT":
     for test_set in test_sample_files:
         print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
         data_path = os.path.join(DATASET_DIRECTORY, test_set)
-        df = pd.read_csv(data_path)
-        ciciot_test_data = pd.concat([ciciot_test_data, df])
+        data = pd.read_csv(data_path)
+        # remap labels to new classification
+        data['label'] = data['label'].map(dict_2classes)
+        ciciot_test_data = pd.concat([ciciot_test_data, data])
 
 
 #########################################################
