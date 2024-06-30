@@ -664,7 +664,7 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    model_selection = 3
+    model_selection = 5
 
     if model_selection == 1:
         model = tf.keras.Sequential([
@@ -744,9 +744,12 @@ if dataset_used == "CICIOT":
     if model_selection == 5:
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(21, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
@@ -754,9 +757,6 @@ if dataset_used == "CICIOT":
             BatchNormalization(),
             Dropout(0.5),
             Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
             Dense(1, activation='sigmoid')
