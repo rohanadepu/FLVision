@@ -628,7 +628,7 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 0  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
+noise_multiplier = 0.5  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
 
 l2_norm_clip = 10.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
 
