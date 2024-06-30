@@ -664,7 +664,7 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    model_selection = 5
+    model_selection = 2
 
     if model_selection == 1:
         model = tf.keras.Sequential([
