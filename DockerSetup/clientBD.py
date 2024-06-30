@@ -628,7 +628,7 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 0.5  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
+noise_multiplier = 0.1  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
 
 l2_norm_clip = 10.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
 
@@ -639,9 +639,9 @@ learning_rate = 0.0001  # will be optimized
 betas = [0.9, 0.999]  # Best to keep as is
 l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-epochs = 5  # will be optimized
-# steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
-steps_per_epoch = len(X_train_data) // batch_size   # dependant # debug
+epochs = 10  # will be optimized
+# steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
+steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
