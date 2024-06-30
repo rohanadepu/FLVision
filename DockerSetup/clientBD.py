@@ -492,63 +492,6 @@ if dataset_used == "IOTBOTNET":
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
     ## Debug ##
-
-    # # Display the first few rows of the combined DataFrames
-    # print("DDoS UDP Data:")
-    # print(ddos_udp_data.head())
-    #
-    # print("DDoS TCP Data:")
-    # print(ddos_tcp_data.head())
-    #
-    # print("DDoS HTTP Data:")
-    # print(ddos_http_data.head())
-    #
-    # print("DoS UDP Data:")
-    # print(dos_udp_data.head())
-    #
-    # print("DoS TCP Data:")
-    # print(dos_tcp_data.head())
-    #
-    # print("DoS HTTP Data:")
-    # print(dos_http_data.head())
-    #
-    # print("Scan OS Data:")
-    # print(scan_os_data.head())
-    #
-    # print("Scan Service Data:")
-    # print(scan_service_data.head())
-    #
-    # print("Theft Data Exfiltration Data:")
-    # print(theft_data_exfiltration_data.head())
-    #
-    # print("Theft Keylogging Data:")
-    # print(theft_keylogging_data.head())
-    #
-    # # Display the first few rows of each combined DataFrame
-    # print("DDoS Combined Data (Train):")
-    # print(ddos_train.head())
-    #
-    # print("DDoS Combined Data (Test):")
-    # print(ddos_test.head())
-    #
-    # print("DoS Combined Data (Train):")
-    # print(dos_train.head())
-    #
-    # print("DoS Combined Data (Test):")
-    # print(dos_test.head())
-    #
-    # print("Scan Combined Data (Train):")
-    # print(scan_train.head())
-    #
-    # print("Scan Combined Data (Test):")
-    # print(scan_test.head())
-    #
-    # print("Theft Combined Data (Train):")
-    # print(theft_train.head())
-    #
-    # print("Theft Combined Data (Test):")
-    # print(theft_test.head())
-    #
     # print("All Attacks Combined Data (Train):")
     # print(all_attacks_train.head())
     #
@@ -685,9 +628,9 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 0.5  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
+noise_multiplier = 0  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
 
-l2_norm_clip = 5.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
+l2_norm_clip = 10.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
 
 batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
 num_microbatches = 1  # this is bugged keep at 1
@@ -698,7 +641,7 @@ l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
 epochs = 5  # will be optimized
 # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
-steps_per_epoch = (len(X_train_data) // batch_size)   # dependant # debug
+steps_per_epoch = len(X_train_data) // batch_size   # dependant # debug
 
 input_dim = X_train_data.shape[1]  # dependant
 
