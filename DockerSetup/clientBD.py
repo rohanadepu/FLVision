@@ -685,12 +685,12 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 1.0  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
+noise_multiplier = 0.9  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
 
-l2_norm_clip = 1.0  # privacy param: 0.1 - 10
+l2_norm_clip = 2.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
 
-batch_size = 32  # 32 - 128; try 64, 96, 128; maybe intervals of 16
-num_microbatches = 1  # this is bugged keep at 1
+batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
+num_microbatches = 8  # this is bugged keep at 1
 
 learning_rate = 0.0001  # will be optimized
 betas = [0.9, 0.999]  # Best to keep as is
