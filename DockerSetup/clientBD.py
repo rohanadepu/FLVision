@@ -698,6 +698,7 @@ l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
 epochs = 5  # will be optimized
 steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant
+# steps_per_epoch = (len(X_train_data) // batch_size)   # dependant # debug
 
 input_dim = X_train_data.shape[1]  # dependant
 
