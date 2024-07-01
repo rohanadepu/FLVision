@@ -5,6 +5,7 @@
 import os
 import random
 # import time
+import argparse
 
 import flwr as fl
 
@@ -51,9 +52,22 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #    Script Parameters                               #
 #########################################################
 
-dataset_used = "IOTBOTNET"
+# --- Argument Parsing --- #
+parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
+parser.add_argument('--dataset', type=str, default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
+parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
 
-print("DATASET BEING USED:", dataset_used, "\n")
+args = parser.parse_args()
+
+dataset_used = args.dataset
+model_selection = args.model
+DP_enabled = args.dp
+
+print("Selected DATASET:", dataset_used, "\n")
+print("Selected MODEL:", model_selection, "\n")
+if DP_enabled:
+    print("Differential Privacy Enabled", "\n")
 
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
@@ -61,7 +75,7 @@ print("DATASET BEING USED:", dataset_used, "\n")
 
 if dataset_used == "CICIOT":
 
-    # ---                   CICIOT Feature Mapping for numerical and categorical features       --- #
+    # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
                 'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
@@ -717,9 +731,8 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    model_selection = 5
 
-    if model_selection == 1:
+    if model_selection == "1A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -734,7 +747,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 2:
+    if model_selection == "2A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -752,7 +765,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 3:
+    if model_selection == "3A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -773,7 +786,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 4:
+    if model_selection == "4A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -794,7 +807,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 5:
+    if model_selection == "5A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -820,48 +833,48 @@ if dataset_used == "CICIOT":
 if dataset_used == "IOTBOTNET":
 
     # --- Model Definition --- #
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(1, activation='sigmoid')
-    ])
+    if model_selection == "1A":
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
-# ---                   Differential Privacy                   --- #
+# ---                   Differential Privacy Model Compile              --- #
 
 # Making Custom Optimizer Component with Differential Privacy
-# optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-# dp_optimizer = tfp.DPKerasAdamOptimizer(
-#     l2_norm_clip=l2_norm_clip,
-#     noise_multiplier=noise_multiplier,
-#     num_microbatches=num_microbatches,
-#     learning_rate=learning_rate
-# )
-#
-# # ---                   Model Compile                    --- #
-#
-# model.compile(optimizer=dp_optimizer,
-#               loss=tf.keras.losses.binary_crossentropy,
-#               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-#               )
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+dp_optimizer = tfp.DPKerasAdamOptimizer(
+    l2_norm_clip=l2_norm_clip,
+    noise_multiplier=noise_multiplier,
+    num_microbatches=num_microbatches,
+    learning_rate=learning_rate
+)
 
-# DEBUG
+model.compile(optimizer=dp_optimizer,
+              loss=tf.keras.losses.binary_crossentropy,
+              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+              )
+
+# ---              Normal Model Compile                        --- #
+
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 model.compile(optimizer= optimizer,
               loss=tf.keras.losses.binary_crossentropy,
               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
-# EOF DEBUG
+
 
 # ---                   Callback components                   --- #
 
