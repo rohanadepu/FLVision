@@ -64,6 +64,9 @@ dataset_used = args.dataset
 model_selection = args.model
 DP_enabled = args.dp
 
+print("\n ////////////////////////////// \n")
+print("Federated Learning Training Demo:", "\n")
+
 print("Selected DATASET:", dataset_used, "\n")
 print("Selected MODEL:", model_selection, "\n")
 if DP_enabled:
@@ -173,7 +176,7 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     # directory of the stored data samples
-    DATASET_DIRECTORY = '../../trainingDataset/'
+    DATASET_DIRECTORY = '../../poisonedDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -226,6 +229,8 @@ if dataset_used == "CICIOT":
         balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, normal_traffic_total_size,
                                                             normal_traffic_size_limit)
         normal_traffic_total_size += benign_count  # adding to quota count
+
+        print(f"Benign Traffic Train Samples: {benign_count} | {normal_traffic_total_size} |LIMIT| {normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
@@ -364,9 +369,15 @@ if dataset_used == "CICIOT":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    print("X_test shape:", X_test_data.shape)
+    print("y_test shape:", y_test_data.shape)
+
     # Get the sample size
-    ciciot_df_size = X_train_data.shape[0]
-    print("Sample size:", ciciot_df_size)
+    ciciot_train_df_size = X_train_data.shape[0]
+    ciciot_test_df_size = X_test_data.shape[0]
+
+    print("Training sample size:", ciciot_train_df_size)
+    print("Testing sample size:", ciciot_test_df_size)
 
     print("Datasets Ready...")
 
@@ -376,7 +387,7 @@ if dataset_used == "CICIOT":
 
 if dataset_used == "IOTBOTNET":
 
-    # ---                   IOTBOTNET relevant features mappings                    --- #
+    # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
         'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
         'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
@@ -441,16 +452,42 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return combined_df
 
+    # Function to balance the dataset via undersampling
+    def balance_data(dataframe, label_column='Label'):
+        # Get the counts of each label
+        label_counts = dataframe[label_column].value_counts()
+        print("Label counts before balancing:", label_counts)
+
+        # Determine the minimum count of samples across all labels
+        min_count = label_counts.min()
+
+        # Sample min_count number of samples from each label
+        balanced_dataframes = []
+        for label in label_counts.index:
+            label_df = dataframe[dataframe[label_column] == label]
+            balanced_label_df = label_df.sample(min_count, random_state=47)
+            balanced_dataframes.append(balanced_label_df)
+
+        # Concatenate the balanced dataframes
+        balanced_dataframe = pd.concat(balanced_dataframes)
+        balanced_dataframe = shuffle(balanced_dataframe, random_state=47)
+
+        # Print the new counts of each label
+        print("Label counts after balancing:", balanced_dataframe[label_column].value_counts())
+
+        return balanced_dataframe
+
+
     # ---                  Data loading Settings                  --- #
 
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/poisonedDataset/IOTBOTNET2020_POISONED66/IOTBOTNET2020/iotbotnet2020_archive'
+    DATASET_DIRECTORY = '/root/poisonedDataset/iotbotnet2020'
 
     # ---                   Load Each Attack Dataset                 --- #
 
-    print("Loading DDOS Data..")
+    print("Loading DDOS Data...")
     # Load DDoS UDP files
     ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
@@ -463,7 +500,7 @@ if dataset_used == "IOTBOTNET":
     ddos_http_directory = DATASET_DIRECTORY + '/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
-    print("Loading DOS Data..")
+    print("Loading DOS Data...")
     # Load DoS UDP files
     dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
     dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
@@ -471,26 +508,26 @@ if dataset_used == "IOTBOTNET":
     # Load DDoS TCP files
     dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
     dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
-    #
-    # # Load DDoS HTTP files
+
+    # Load DDoS HTTP files
     dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
     dos_http_dataframes = load_files_from_directory(dos_http_directory)
 
-    print("Loading SCAN Data..")
+    print("Loading SCAN Data...")
     # Load scan_os files
     scan_os_directory = DATASET_DIRECTORY + '/scan/os'
-    scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
-    #
-    # # Load scan_service files
+    scan_os_dataframes = load_files_from_directory(scan_os_directory)
+
+    # Load scan_service files
     scan_service_directory = DATASET_DIRECTORY + '/scan/service'
     scan_service_dataframes = load_files_from_directory(scan_service_directory)
 
-    print("Loading THEFT Data..")
-    # # Load theft_data_exfiltration files
+    print("Loading THEFT Data...")
+    # Load theft_data_exfiltration files
     theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
     theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
-    
-    # # Load theft_keylogging files
+
+    # Load theft_keylogging files
     theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
     theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
@@ -503,35 +540,56 @@ if dataset_used == "IOTBOTNET":
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
     ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
+
     dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
     dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
     dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+
     scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
     scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+
     theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
     theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
-    # # Combine subcategories into general classes
+    # Combine subcategories into general classes
     ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
         [ddos_udp_data, ddos_tcp_data, ddos_http_data],
         [dos_udp_data, dos_tcp_data, dos_http_data],
         [scan_os_data, scan_service_data],
         [theft_data_exfiltration_data, theft_keylogging_data]
     )
-    
-    # # Combine all attacks into one DataFrame
+
+    # Combine all attacks into one DataFrame
     all_attacks_combined = combine_all_attacks([
         ddos_combined, dos_combined, scan_combined, theft_combined
     ])
 
-    # Combine all attacks into one DataFrame
-    all_attacks_combined = combine_all_attacks([
-        ddos_udp_data, ddos_tcp_data, ddos_http_data
-    ])
+    ## DEBUG
+    # # Combine all attacks into one DataFrame
+    # all_attacks_combined = combine_all_attacks([
+    #     ddos_udp_data, ddos_tcp_data, ddos_http_data
+    # ])
+    #
+    # # all_attacks_combined = scan_os_data
+    ## EOF DEBUG
 
-    all_attacks_combined = scan_os_data
+    print("Attack Data Loaded & Combined...")
 
-    print(" Attack Data Combined & Loaded...")
+    #########################################################
+    #    Process Dataset For IOTBOTNET 2020                 #
+    #########################################################
+
+    # ---                   Cleaning                     --- #
+
+    print("Cleaning Dataset...")
+
+    # Replace inf values with NaN and then drop them
+    all_attacks_combined.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+
+    # Clean the dataset by dropping rows with missing values
+    all_attacks_combined = all_attacks_combined.dropna()
+
+    print("Nan and inf values Removed...")
 
     # ---                   Train Test Split                  --- #
 
@@ -546,23 +604,13 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-#########################################################
-#    Process Dataset For IOTBOTNET 2020                 #
-#########################################################
+    # --- Balance Training dataset --- #
 
-    # ---                   Cleaning                     --- #
+    print("Balance Training Dataset...")
 
-    print("Cleaning...")
+    all_attacks_train = balance_data(all_attacks_train, label_column='Label')
 
-    # Replace inf values with NaN and then drop them
-    all_attacks_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
-    all_attacks_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
-
-    # Clean the dataset by dropping rows with missing values
-    all_attacks_train = all_attacks_train.dropna()
-    all_attacks_test = all_attacks_test.dropna()
-
-    print("Nan and inf values Removed...")
+    print("Dataset Training Balanced...")
 
     # ---                   Feature Selection                --- #
 
@@ -665,9 +713,15 @@ if dataset_used == "IOTBOTNET":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    print("X_test shape:", X_test_data.shape)
+    print("y_test shape:", y_test_data.shape)
+
     # Get the sample size
-    iotbotnet_df_size = X_train_data.shape[0]
-    print("Sample size:", iotbotnet_df_size)
+    iotbotnet_train_df_size = X_train_data.shape[0]
+    iotbotnet_test_df_size = X_train_data.shape[0]
+
+    print("Training sample size:", iotbotnet_train_df_size)
+    print("Testing sample size:", iotbotnet_test_df_size)
 
     print("Datasets Ready...")
 
@@ -714,9 +768,9 @@ steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
-print("///////////////////////////////////////////////")
-print("HyperParameters:")
-print("Input Dim:", input_dim)
+print("\n /////////////////////////////////////////////// \n")
+print("Hyperparameters:")
+print("Input Dim (Feature Size):", input_dim)
 print("Epochs:", epochs)
 print("Batch Size:", batch_size)
 print("MicroBatches", num_microbatches)
@@ -810,6 +864,7 @@ if dataset_used == "CICIOT":
         ])
 
     if model_selection == "5A":
+        # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -830,12 +885,36 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
+    if model_selection == "5B":
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(64, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
 
-    # --- Model Definition --- #
+    # --- Model Definitions --- #
+
     if model_selection == "1A":
+        # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -848,6 +927,25 @@ if dataset_used == "IOTBOTNET":
             BatchNormalization(),
             Dropout(0.5),
             Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
+    if model_selection == "1B":
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
             Dense(1, activation='sigmoid')
