@@ -853,27 +853,28 @@ if dataset_used == "IOTBOTNET":
 
 # ---                   Differential Privacy Model Compile              --- #
 
-# Making Custom Optimizer Component with Differential Privacy
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-dp_optimizer = tfp.DPKerasAdamOptimizer(
-    l2_norm_clip=l2_norm_clip,
-    noise_multiplier=noise_multiplier,
-    num_microbatches=num_microbatches,
-    learning_rate=learning_rate
-)
+if DP_enabled:
+    # Making Custom Optimizer Component with Differential Privacy
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    dp_optimizer = tfp.DPKerasAdamOptimizer(
+        l2_norm_clip=l2_norm_clip,
+        noise_multiplier=noise_multiplier,
+        num_microbatches=num_microbatches,
+        learning_rate=learning_rate
+    )
 
-model.compile(optimizer=dp_optimizer,
-              loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-              )
+    model.compile(optimizer=dp_optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                  )
 
 # ---              Normal Model Compile                        --- #
 
-
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-model.compile(optimizer= optimizer,
-              loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+if not DP_enabled:
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer= optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
 
 # ---                   Callback components                   --- #
