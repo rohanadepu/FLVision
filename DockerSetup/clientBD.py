@@ -39,6 +39,7 @@ from sklearn.model_selection import train_test_split
 # from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
+
 # from sklearn.impute import SimpleImputer
 # from sklearn.pipeline import Pipeline
 # from sklearn.metrics import confusion_matrix
@@ -52,6 +53,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #########################################################
 
 dataset_used = "IOTBOTNET"
+
+model_selection = "5A"
+
+DP_enabled = False
 
 print("DATASET BEING USED:", dataset_used, "\n")
 
@@ -121,6 +126,7 @@ if dataset_used == "CICIOT":
                      'DictionaryBruteForce': 'Attack'
                      }
 
+
     # ---      Functions    --- #
 
     def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
@@ -148,6 +154,7 @@ if dataset_used == "CICIOT":
         # Bring both samples together
         balanced_data = pd.concat([attack_samples, benign_samples])
         return balanced_data, len(benign_samples)
+
 
     # ---                   Data Loading Settings                     --- #
 
@@ -219,7 +226,6 @@ if dataset_used == "CICIOT":
 
     print("Loading Testing Data...")
     for test_set in test_sample_files:
-
         # load the test dataset without balancing
         print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
 
@@ -243,11 +249,11 @@ if dataset_used == "CICIOT":
     print("CICIOT Combined Data (Test):")
     print(ciciot_test_data.head())
 
-#########################################################
-#    Process Dataset For CICIOT 2023                    #
-#########################################################
+    #########################################################
+    #    Process Dataset For CICIOT 2023                    #
+    #########################################################
 
-        # ---                   Feature Selection                --- #
+    # ---                   Feature Selection                --- #
 
     print("Selecting Features...")
 
@@ -284,7 +290,8 @@ if dataset_used == "CICIOT":
 
     # Encodes the labels
     label_encoder = LabelEncoder()  # Initialize the encoder
-    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])  # Fit and encode the training labels
+    ciciot_train_data['label'] = label_encoder.fit_transform(
+        ciciot_train_data['label'])  # Fit and encode the training labels
     ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])  # encode the test labels
 
     # Store label mappings
@@ -404,11 +411,13 @@ if dataset_used == "IOTBOTNET":
         print("Data Loaded...")
         return dataframes
 
+
     # Function to split a DataFrame into train and test sets
     def split_train_test(dataframe, test_size=0.2):
         train_df, test_df = train_test_split(dataframe, test_size=test_size)
         print("Dataset Test Train Split...")
         return train_df, test_df
+
 
     # Function to combine subcategories into general classes
     def combine_general_attacks(ddos_dataframes, dos_dataframes, scan_dataframes, theft_dataframes):
@@ -419,11 +428,13 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return ddos_combined, dos_combined, scan_combined, theft_combined
 
+
     # Function to combine all dataframes into one
     def combine_all_attacks(dataframes):
         combined_df = pd.concat(dataframes, ignore_index=True)
         print("attacks combined...")
         return combined_df
+
 
     # ---                  Data loading Settings                  --- #
 
@@ -530,9 +541,9 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-#########################################################
-#    Process Dataset For IOTBOTNET 2020                 #
-#########################################################
+    #########################################################
+    #    Process Dataset For IOTBOTNET 2020                 #
+    #########################################################
 
     # ---                   Cleaning                     --- #
 
@@ -660,7 +671,6 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 
 if dataset_used == "CIFAR":
-
     # Creates the train and test dataset from calling cifar10 in TF
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
@@ -694,7 +704,7 @@ l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
 epochs = 10  # will be optimized
 # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
-steps_per_epoch = len(X_train_data) // batch_size   # dependant
+steps_per_epoch = len(X_train_data) // batch_size  # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
@@ -717,9 +727,8 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    model_selection = 5
 
-    if model_selection == 1:
+    if model_selection == "1A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -734,7 +743,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 2:
+    if model_selection == "2A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -752,7 +761,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 3:
+    if model_selection == "3A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -773,7 +782,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 4:
+    if model_selection == "4A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -794,7 +803,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == 5:
+    if model_selection == "5A":
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -820,48 +829,51 @@ if dataset_used == "CICIOT":
 if dataset_used == "IOTBOTNET":
 
     # --- Model Definition --- #
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),  # Dropout layer with 50% dropout rate
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(1, activation='sigmoid')
-    ])
+    if model_selection == "1A":
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
-# ---                   Differential Privacy                   --- #
+# ---                   Differential Privacy Model Compile              --- #
 
-# Making Custom Optimizer Component with Differential Privacy
-# optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-# dp_optimizer = tfp.DPKerasAdamOptimizer(
-#     l2_norm_clip=l2_norm_clip,
-#     noise_multiplier=noise_multiplier,
-#     num_microbatches=num_microbatches,
-#     learning_rate=learning_rate
-# )
-#
-# # ---                   Model Compile                    --- #
-#
-# model.compile(optimizer=dp_optimizer,
-#               loss=tf.keras.losses.binary_crossentropy,
-#               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-#               )
+if DP_enabled:
 
-# DEBUG
+    # Make Custom Optimizer Component with Differential Privacy
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    dp_optimizer = tfp.DPKerasAdamOptimizer(
+        l2_norm_clip=l2_norm_clip,
+        noise_multiplier=noise_multiplier,
+        num_microbatches=num_microbatches,
+        learning_rate=learning_rate
+    )
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-model.compile(optimizer= optimizer,
-              loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
-# EOF DEBUG
+    model.compile(optimizer=dp_optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                  )
+
+# ---              Normal Model Compile                        --- #
+
+if not DP_enabled:
+
+    # Make Custom Optimizer Component without Differential Privacy
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer=optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
 # ---                   Callback components                   --- #
 
@@ -885,6 +897,7 @@ model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only
 # ---                   Model Analysis                   --- #
 
 model.summary()
+
 
 #########################################################
 #    Federated Learning Setup                           #
@@ -916,6 +929,7 @@ class FLClient(fl.client.NumPyClient):
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
+
 
 #########################################################
 #    Start the client                                   #
