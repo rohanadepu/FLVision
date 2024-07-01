@@ -910,34 +910,32 @@ class FLClient(fl.client.NumPyClient):
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
-        return model.get_weights(), len(X_train_data), {}
-        # Save metrics to a file
-        metrics = {
-            "loss": history.history['loss'],
-            "accuracy": history.history['accuracy'],
-            "recall": history.history['recall'],
-            "val_loss": history.history['val_loss'],
-            "val_accuracy": history.history['val_accuracy'],
-            "val_recall": history.history['val_recall']
-        }
-        with open('training_metrics.json', 'w') as f:
-            json.dump(metrics, f)
-        
-        return model.get_weights(), len(X_train_data), {}
+        # Save metrics to file
+        with open('training_metrics.txt', 'a') as f:
+            for epoch in range(epochs):
+                f.write(f"Epoch {epoch+1}/{epochs}\n")
+                for metric, values in history.history.items():
+                    f.write(f"{metric}: {values[epoch]}\n")
+                f.write("\n")
 
+        return model.get_weights(), len(X_train_data), {}
+    
     def evaluate(self, parameters, config):
         print("Testing...")
         model.set_weights(parameters)
 
+        
+
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
-        metrics = {
-            "loss": loss,
-            "accuracy": accuracy,
-            "recall": recall
-        }
-        with open('evaluation_metrics.json', 'w') as f:
-            json.dump(metrics, f)
+        with open('evaluation_metrics.txt', 'a') as f:
+            f.write(f"Loss: {loss}\n")
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Precision: {precision}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"AUC: {auc}\n")
+            f.write(f"LogCosh: {LogCosh}\n")
+            f.write("\n")
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
