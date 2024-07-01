@@ -369,9 +369,15 @@ if dataset_used == "CICIOT":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    print("X_test shape:", X_test_data.shape)
+    print("y_test shape:", y_test_data.shape)
+
     # Get the sample size
-    ciciot_df_size = X_train_data.shape[0]
-    print("Sample size:", ciciot_df_size)
+    ciciot_train_df_size = X_train_data.shape[0]
+    ciciot_test_df_size = X_test_data.shape[0]
+
+    print("Training sample size:", ciciot_train_df_size)
+    print("Testing sample size:", ciciot_test_df_size)
 
     print("Datasets Ready...")
 
@@ -707,9 +713,15 @@ if dataset_used == "IOTBOTNET":
     print("X_train shape:", X_train_data.shape)
     print("y_train shape:", y_train_data.shape)
 
+    print("X_test shape:", X_test_data.shape)
+    print("y_test shape:", y_test_data.shape)
+
     # Get the sample size
-    iotbotnet_df_size = X_train_data.shape[0]
-    print("Sample size:", iotbotnet_df_size)
+    iotbotnet_train_df_size = X_train_data.shape[0]
+    iotbotnet_test_df_size = X_train_data.shape[0]
+
+    print("Training sample size:", iotbotnet_train_df_size)
+    print("Testing sample size:", iotbotnet_test_df_size)
 
     print("Datasets Ready...")
 
@@ -756,9 +768,9 @@ steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
-print("///////////////////////////////////////////////")
-print("HyperParameters:")
-print("Input Dim:", input_dim)
+print("\n /////////////////////////////////////////////// \n")
+print("Hyperparameters:")
+print("Input Dim (Feature Size):", input_dim)
 print("Epochs:", epochs)
 print("Batch Size:", batch_size)
 print("MicroBatches", num_microbatches)
