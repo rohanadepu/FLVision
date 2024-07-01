@@ -47,7 +47,11 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-dataset_used = "CICIOT"
+#########################################################
+#    Script Parameters                               #
+#########################################################
+
+dataset_used = "IOTBOTNET"
 
 print("DATASET BEING USED:", dataset_used, "\n")
 
@@ -57,7 +61,95 @@ print("DATASET BEING USED:", dataset_used, "\n")
 
 if dataset_used == "CICIOT":
 
-    # ---                   Settings                     --- #
+    # ---                   CICIOT Feature Mapping for numerical and categorical features       --- #
+
+    num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
+                'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
+                'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight'
+                ]
+
+    cat_cols = [
+        'Protocol Type', 'Duration', 'fin flag number', 'syn flag number', 'rst flag number', 'psh flag number',
+        'ack flag number', 'ece flag number', 'cwr flag number', 'HTTP', 'HTTPS', 'DNS', 'Telnet', 'SMTP', 'SSH', 'IRC',
+        'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC'
+    ]
+
+    # ---                   CICIOT irrelevant & relevant features mappings                    --- #
+
+    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
+                           'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
+                           'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
+                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum'
+                           ]
+
+    # select the num cols that are relevant
+    relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
+
+    ## Debug ##
+    # relevant_num_cols = [col for col in num_cols if col in relevant_features]
+    ## EOF DEBUG ##
+
+    # ---                   Label Mapping for 1+1 and 7+1                      --- #
+
+    dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
+                     'DDoS-UDP_Flood': 'DDoS', 'DDoS-TCP_Flood': 'DDoS', 'DDoS-ICMP_Flood': 'DDoS',
+                     'DDoS-SynonymousIP_Flood': 'DDoS', 'DDoS-ACK_Fragmentation': 'DDoS',
+                     'DDoS-UDP_Fragmentation': 'DDoS',
+                     'DDoS-ICMP_Fragmentation': 'DDoS', 'DDoS-SlowLoris': 'DDoS', 'DDoS-HTTP_Flood': 'DDoS',
+                     'DoS-UDP_Flood': 'DoS', 'DoS-SYN_Flood': 'DoS', 'DoS-TCP_Flood': 'DoS', 'DoS-HTTP_Flood': 'DoS',
+                     'Mirai-greeth_flood': 'Mirai', 'Mirai-greip_flood': 'Mirai', 'Mirai-udpplain': 'Mirai',
+                     'Recon-PingSweep': 'Recon', 'Recon-OSScan': 'Recon', 'Recon-PortScan': 'Recon',
+                     'VulnerabilityScan': 'Recon', 'Recon-HostDiscovery': 'Recon', 'DNS_Spoofing': 'Spoofing',
+                     'MITM-ArpSpoofing': 'Spoofing', 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Web',
+                     'Backdoor_Malware': 'Web', 'XSS': 'Web', 'Uploading_Attack': 'Web', 'SqlInjection': 'Web',
+                     'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'
+                     }
+
+    dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
+                     'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
+                     'DDoS-SynonymousIP_Flood': 'Attack', 'DDoS-ACK_Fragmentation': 'Attack',
+                     'DDoS-UDP_Fragmentation': 'Attack', 'DDoS-ICMP_Fragmentation': 'Attack',
+                     'DDoS-SlowLoris': 'Attack',
+                     'DDoS-HTTP_Flood': 'Attack', 'DoS-UDP_Flood': 'Attack', 'DoS-SYN_Flood': 'Attack',
+                     'DoS-TCP_Flood': 'Attack', 'DoS-HTTP_Flood': 'Attack', 'Mirai-greeth_flood': 'Attack',
+                     'Mirai-greip_flood': 'Attack', 'Mirai-udpplain': 'Attack', 'Recon-PingSweep': 'Attack',
+                     'Recon-OSScan': 'Attack', 'Recon-PortScan': 'Attack', 'VulnerabilityScan': 'Attack',
+                     'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
+                     'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack',
+                     'XSS': 'Attack',
+                     'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
+                     'DictionaryBruteForce': 'Attack'
+                     }
+
+    # ---      Functions    --- #
+
+    def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
+        # load data to dataframe
+        data = pd.read_csv(file_path)
+
+        # remap labels to new classification
+        data['label'] = data['label'].map(label_class_dict)
+
+        # Separate the classes
+        attack_samples = data[data['label'] == 'Attack']
+        benign_samples = data[data['label'] == 'Benign']
+
+        # Limit the benign samples to avoid overloading
+        remaining_benign_quota = benign_size_limit - current_benign_size
+        if len(benign_samples) > remaining_benign_quota:
+            benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
+
+        # Balance the samples
+        min_samples = min(len(attack_samples), len(benign_samples))  # choosing the smallest number from both samples
+        if min_samples > 0:  # if min sample exist sample out the samples
+            attack_samples = attack_samples.sample(min_samples, random_state=47)
+            benign_samples = benign_samples.sample(min_samples, random_state=47)
+
+        # Bring both samples together
+        balanced_data = pd.concat([attack_samples, benign_samples])
+        return balanced_data, len(benign_samples)
+
+    # ---                   Data Loading Settings                     --- #
 
     ciciot_train_sample_size = 20  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
@@ -94,84 +186,6 @@ if dataset_used == "CICIOT":
 
     print("Training Sets:\n", train_sample_files, "\n")
     print("Test Sets:\n", test_sample_files, "\n")
-
-    # ---                   Feature Mapping for numerical and categorical features       --- #
-
-    num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
-                'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
-                'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight'
-                ]
-
-    cat_cols = [
-        'Protocol Type', 'Duration', 'fin flag number', 'syn flag number', 'rst flag number', 'psh flag number',
-        'ack flag number', 'ece flag number', 'cwr flag number', 'HTTP', 'HTTPS', 'DNS', 'Telnet', 'SMTP', 'SSH', 'IRC',
-        'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC'
-    ]
-
-    # ---                   irrelevant features and relevant features mappings                    --- #
-
-    irrelevant_features = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
-                           'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
-                           'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',
-                           'flow_duration', 'Header_Length', 'urg_count', 'Tot sum'
-                           ]  # being used
-
-    # ---                   Label Mapping for 1+1 and 7+1                      --- #
-
-    dict_7classes = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-SYN_Flood': 'DDoS',
-                     'DDoS-UDP_Flood': 'DDoS', 'DDoS-TCP_Flood': 'DDoS', 'DDoS-ICMP_Flood': 'DDoS',
-                     'DDoS-SynonymousIP_Flood': 'DDoS', 'DDoS-ACK_Fragmentation': 'DDoS', 'DDoS-UDP_Fragmentation': 'DDoS',
-                     'DDoS-ICMP_Fragmentation': 'DDoS', 'DDoS-SlowLoris': 'DDoS', 'DDoS-HTTP_Flood': 'DDoS',
-                     'DoS-UDP_Flood': 'DoS', 'DoS-SYN_Flood': 'DoS', 'DoS-TCP_Flood': 'DoS', 'DoS-HTTP_Flood': 'DoS',
-                     'Mirai-greeth_flood': 'Mirai', 'Mirai-greip_flood': 'Mirai', 'Mirai-udpplain': 'Mirai',
-                     'Recon-PingSweep': 'Recon', 'Recon-OSScan': 'Recon', 'Recon-PortScan': 'Recon',
-                     'VulnerabilityScan': 'Recon', 'Recon-HostDiscovery': 'Recon', 'DNS_Spoofing': 'Spoofing',
-                     'MITM-ArpSpoofing': 'Spoofing', 'BenignTraffic': 'Benign', 'BrowserHijacking': 'Web',
-                     'Backdoor_Malware': 'Web', 'XSS': 'Web', 'Uploading_Attack': 'Web', 'SqlInjection': 'Web',
-                     'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'
-                     }
-
-    dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
-                     'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
-                     'DDoS-SynonymousIP_Flood': 'Attack', 'DDoS-ACK_Fragmentation': 'Attack',
-                     'DDoS-UDP_Fragmentation': 'Attack', 'DDoS-ICMP_Fragmentation': 'Attack', 'DDoS-SlowLoris': 'Attack',
-                     'DDoS-HTTP_Flood': 'Attack', 'DoS-UDP_Flood': 'Attack', 'DoS-SYN_Flood': 'Attack',
-                     'DoS-TCP_Flood': 'Attack', 'DoS-HTTP_Flood': 'Attack', 'Mirai-greeth_flood': 'Attack',
-                     'Mirai-greip_flood': 'Attack', 'Mirai-udpplain': 'Attack', 'Recon-PingSweep': 'Attack',
-                     'Recon-OSScan': 'Attack', 'Recon-PortScan': 'Attack', 'VulnerabilityScan': 'Attack',
-                     'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
-                     'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack', 'XSS': 'Attack',
-                     'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
-                     'DictionaryBruteForce': 'Attack'
-                     }
-
-    # ---      Functions    --- #
-
-    def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
-        # load data to dataframe
-        data = pd.read_csv(file_path)
-
-        # remap labels to new classification
-        data['label'] = data['label'].map(label_class_dict)
-
-        # Separate the classes
-        attack_samples = data[data['label'] == 'Attack']
-        benign_samples = data[data['label'] == 'Benign']
-
-        # Limit the benign samples to avoid overloading
-        remaining_benign_quota = benign_size_limit - current_benign_size
-        if len(benign_samples) > remaining_benign_quota:
-            benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
-
-        # Balance the samples
-        min_samples = min(len(attack_samples), len(benign_samples))  # choosing the smallest number from both samples
-        if min_samples > 0:  # if min sample exist sample out the samples
-            attack_samples = attack_samples.sample(min_samples, random_state=47)
-            benign_samples = benign_samples.sample(min_samples, random_state=47)
-
-        # Bring both samples together
-        balanced_data = pd.concat([attack_samples, benign_samples])
-        return balanced_data, len(benign_samples)
 
     # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
 
@@ -221,7 +235,13 @@ if dataset_used == "CICIOT":
         # add to test dataset
         ciciot_test_data = pd.concat([ciciot_test_data, test_data])
 
+    print("Train & Test Attack Data Loaded (Attack Data already Combined)...")
 
+    print("CICIOT Combined Data (Train):")
+    print(ciciot_train_data.head())
+
+    print("CICIOT Combined Data (Test):")
+    print(ciciot_test_data.head())
 
 #########################################################
 #    Process Dataset For CICIOT 2023                    #
@@ -238,6 +258,8 @@ if dataset_used == "CICIOT":
     # Shuffle data
     ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
     ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
+
+    print("Features Selected...")
 
     # prints an instance of each class in training data
     print("Before Encoding and Scaling:")
@@ -260,13 +282,10 @@ if dataset_used == "CICIOT":
     class_counts = ciciot_train_data['label'].value_counts()
     print(class_counts)
 
-    # Display the first few entries to verify the changes
-    print(ciciot_train_data.head())
-
-    # Encodes the training label
-    label_encoder = LabelEncoder()
-    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-    ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])
+    # Encodes the labels
+    label_encoder = LabelEncoder()  # Initialize the encoder
+    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])  # Fit and encode the training labels
+    ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])  # encode the test labels
 
     # Store label mappings
     label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
@@ -275,7 +294,7 @@ if dataset_used == "CICIOT":
     # Retrieve the numeric codes for classes
     class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
-    # Print specific instances after label encoding
+    # Print specific instances
     print("Training Data After Encoding:")
     for label, code in class_codes.items():
         # Check if there are any instances of the current label
@@ -287,17 +306,14 @@ if dataset_used == "CICIOT":
             print(f"No instances found for {label} (code {code})")
     print(ciciot_train_data.head(), "\n")
 
+    print("Labels Encoded...")
+
     # ---                    Normalizing                      --- #
 
     print("Normalizing...")
 
-    # Setting up Scaler for Features
+    # Setting up Scaler for Features normalization
     scaler = MinMaxScaler(feature_range=(0, 1))
-
-    # select the num cols that are relevant
-    relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
-    # Debug
-    #relevant_num_cols = [col for col in num_cols if col in relevant_features]
 
     # train the scalar on train data features
     scaler.fit(ciciot_train_data[relevant_num_cols])
@@ -305,7 +321,7 @@ if dataset_used == "CICIOT":
     # Save the Scaler for use in other files
     # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-    # Scale the features in the train test dataframe
+    # Normalize the features in the train test dataframes
     ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
     ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
@@ -314,10 +330,10 @@ if dataset_used == "CICIOT":
     print(ciciot_train_data.head())
     print(ciciot_train_data.shape)
 
-    # # DEBUG prove if the data is loaded properly
-    # print("Test Data After Normalization:")
-    # print(ciciot_test_data.head())
-    # print(ciciot_test_data.shape)
+    # DEBUG prove if the data is loaded properly
+    print("Test Data After Normalization:")
+    print(ciciot_test_data.head())
+    print(ciciot_test_data.shape)
 
     # ---                   Assigning / X y Split                   --- #
 
@@ -343,6 +359,19 @@ if dataset_used == "CICIOT":
 #########################################################
 
 if dataset_used == "IOTBOTNET":
+
+    # ---                   IOTBOTNET relevant features mappings                    --- #
+    relevant_features_iotbotnet = [
+        'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
+        'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
+        'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg'
+    ]
+
+    relevant_attributes_iotbotnet = [
+        'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
+        'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
+        'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg', 'Label'
+    ]
 
     # ---                   Functions                   --- #
 
@@ -372,7 +401,7 @@ if dataset_used == "IOTBOTNET":
             dataframes.append(df)
             print("Sample(s) Selected:", file_path)
 
-        print("Files Loaded...")
+        print("Data Loaded...")
         return dataframes
 
     # Function to split a DataFrame into train and test sets
@@ -396,60 +425,65 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return combined_df
 
-
-    # ---                   Loading Specific Classes                    --- #
+    # ---                  Data loading Settings                  --- #
 
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
+    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
+    # ---                   Load Each Attack Dataset                 --- #
+
     print("Loading DDOS Data..")
     # Load DDoS UDP files
-    ddos_udp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_udp'
+    ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_tcp'
+    ddos_tcp_directory = DATASET_DIRECTORY + '/ddos/ddos_tcp'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_http'
+    ddos_http_directory = DATASET_DIRECTORY + '/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data..")
     # Load DoS UDP files
-    # dos_udp_directory = './iotbotnet2020_archive/dos/dos_udp'
+    # dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
     # dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
     # # Load DDoS TCP files
-    # dos_tcp_directory = './iotbotnet2020_archive/dos/dos_tcp'
+    # dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
     # dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
     #
     # # Load DDoS HTTP files
-    # dos_http_directory = './iotbotnet2020_archive/dos/dos_http'
+    # dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
     # dos_http_dataframes = load_files_from_directory(dos_http_directory)
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    # scan_os_directory = '/root/trainingDataset/iotbotnet2020/scan/os'
+    # scan_os_directory = DATASET_DIRECTORY + '/scan/os'
     # scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
-    # scan_service_directory = './iotbotnet2020_archive/scan/service'
+    # scan_service_directory = DATASET_DIRECTORY + '/scan/service'
     # scan_service_dataframes = load_files_from_directory(scan_service_directory)
 
     print("Loading THEFT Data..")
     # # Load theft_data_exfiltration files
-    # theft_data_exfiltration_directory = './iotbotnet2020_archive/theft/data_exfiltration'
+    # theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
     # theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
     #
     # # Load theft_keylogging files
-    # theft_keylogging_directory = './iotbotnet2020_archive/theft/keylogging'
+    # theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
     # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
-    # ---                   Concatenations to combine all classes                    --- #
-    print("Further Concatonation...")
+    print("Loading Finished...")
 
-    # Optionally, concatenate all dataframes if needed
+    # ---                   Combine all classes                    --- #
+    print("Combining Attack Data...")
+
+    # concatenate all dataframes
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
     ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
@@ -481,6 +515,8 @@ if dataset_used == "IOTBOTNET":
 
     # all_attacks_combined = scan_os_data
 
+    print(" Attack Data Combined & Loaded...")
+
     # ---                   Train Test Split                  --- #
 
     print("Train Test Split...")
@@ -488,106 +524,126 @@ if dataset_used == "IOTBOTNET":
     # Split each combined DataFrame into train and test sets
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
-    ## Debug ##
-    # print("All Attacks Combined Data (Train):")
-    # print(all_attacks_train.head())
-    #
-    # print("All Attacks Combined Data (Test):")
-    # print(all_attacks_test.head())
+    print("IOTBOTNET Combined Data (Train):")
+    print(all_attacks_train.head())
 
-    ## end of debug ##
+    print("IOTBOTNET Combined Data (Test):")
+    print(all_attacks_test.head())
 
 #########################################################
 #    Process Dataset For IOTBOTNET 2020                 #
 #########################################################
-
-    # ---                   Feature Selection                     --- #
-
-    print("Selecting Features and X y Split...")
-
-    relevant_features_iotbotnet = [
-        'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
-        'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
-        'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg'
-    ]
-
-    # Split the dataset into features and labels
-    X_train = all_attacks_train[relevant_features_iotbotnet]
-    y_train = all_attacks_train['Label']
-
-    X_test = all_attacks_test[relevant_features_iotbotnet]
-    y_test = all_attacks_test['Label']
-    print("Features Selected and Dataframes Split...")
 
     # ---                   Cleaning                     --- #
 
     print("Cleaning...")
 
     # Replace inf values with NaN and then drop them
-    X_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
-    X_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+    all_attacks_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+    all_attacks_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
 
     # Clean the dataset by dropping rows with missing values
-    X_train = X_train.dropna()
-    y_train = y_train.loc[X_train.index]  # Ensure labels match the cleaned data
+    all_attacks_train = all_attacks_train.dropna()
+    all_attacks_test = all_attacks_test.dropna()
 
-    X_test = X_test.dropna()
-    y_test = y_test.loc[X_test.index]  # Ensure labels match the cleaned data
     print("Nan and inf values Removed...")
+
+    # ---                   Feature Selection                --- #
+
+    print("Selecting Features...")
+
+    # Select the relevant features in the dataset and labels
+    all_attacks_train = all_attacks_train[relevant_attributes_iotbotnet]
+    all_attacks_test = all_attacks_test[relevant_attributes_iotbotnet]
+
+    # Shuffle data
+    all_attacks_train = shuffle(all_attacks_train, random_state=47)
+    all_attacks_test = shuffle(all_attacks_test, random_state=47)
+
+    print("Features Selected...")
+
+    # prints an instance of each class in training data
+    print("Before Encoding and Scaling:")
+    unique_labels = all_attacks_train['Label'].unique()
+    for label in unique_labels:
+        print(f"First instance of {label}:")
+        print(all_attacks_train[all_attacks_train['Label'] == label].iloc[0])
 
     # ---                   Encoding                      --- #
 
     print("Encoding...")
 
-    # Initialize the encoder
-    label_encoder = LabelEncoder()
+    # get each label in dataset
+    unique_labels = all_attacks_train['Label'].nunique()
 
-    # Fit and transform the training labels
-    y_train_encoded = label_encoder.fit_transform(y_train)
+    # Print the number of unique labels
+    print(f"There are {unique_labels} unique labels in the dataset.")
 
-    # Transform the test labels
-    y_test_encoded = label_encoder.transform(y_test)
+    # print the amount of instances for each label
+    class_counts = all_attacks_train['Label'].value_counts()
+    print(class_counts)
 
-    # Optionally, shuffle the training data
-    X_train, y_train_encoded = shuffle(X_train, y_train_encoded, random_state=47)
+    # Encodes the labels
+    label_encoder = LabelEncoder()  # Initialize the encoder
+    all_attacks_train['Label'] = label_encoder.fit_transform(all_attacks_train['Label'])  # Fit and encode the training labels
+    all_attacks_test['Label'] = label_encoder.transform(all_attacks_test['Label'])  # encode the test labels
 
-    # Create a DataFrame for y_train_encoded to align indices
-    y_train_encoded_df = pd.Series(y_train_encoded, index=X_train.index)
+    # Store label mappings
+    label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
+    print("Label mappings:", label_mapping)
+
+    # Retrieve the numeric codes for classes
+    class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
+
+    # Print specific instances
+    print("Training Data After Encoding:")
+    for label, code in class_codes.items():
+        # Check if there are any instances of the current label
+        if not all_attacks_train[all_attacks_train['Label'] == code].empty:
+            # Print the first instance of each class
+            print(f"First instance of {label} (code {code}):")
+            print(all_attacks_train[all_attacks_train['Label'] == code].iloc[0])
+        else:
+            print(f"No instances found for {label} (code {code})")
+    print(all_attacks_train.head(), "\n")
 
     print("Labels Encoded...")
 
     # ---                   Normalizing                     --- #
 
     print("Normalizing...")
-    # Initialize the scaler
+
+    # Setting up Scaler for Features normalization
     scaler = MinMaxScaler(feature_range=(0, 1))
 
-    # Fit and transform the training data
-    X_train_scaled = scaler.fit_transform(X_train)
+    # Fit and normalize the training data
+    scaler.fit(all_attacks_train[relevant_features_iotbotnet])
 
-    # Transform the test data
-    X_test_scaled = scaler.transform(X_test)
+    # Save the Scaler for use in other files
+    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-    # Convert scaled arrays back to DataFrames to maintain alignment
-    X_train_scaled = pd.DataFrame(X_train_scaled, columns=relevant_features_iotbotnet, index=X_train.index)
-    X_test_scaled = pd.DataFrame(X_test_scaled, columns=relevant_features_iotbotnet, index=X_test.index)
+    # Normalize the features in the train test dataframes
+    all_attacks_train[relevant_features_iotbotnet] = scaler.transform(all_attacks_train[relevant_features_iotbotnet])
+    all_attacks_test[relevant_features_iotbotnet] = scaler.transform(all_attacks_test[relevant_features_iotbotnet])
+
+    # prove if the data is loaded properly
+    print("Training Data After Normalization:")
+    print(all_attacks_train.head())
+    print(all_attacks_train.shape)
+
+    # DEBUG prove if the data is loaded properly
+    print("Test Data After Normalization:")
+    print(all_attacks_test.head())
+    print(all_attacks_test.shape)
 
     # ---                   Assigning                    --- #
 
-    # Print an instance of each class in the new train data
-    print("After Encoding and Normalization:")
-    unique_labels = y_train_encoded_df.unique()
-    for label in unique_labels:
-        print(f"First instance of {label}:")
-        print(X_train_scaled[y_train_encoded_df == label].iloc[0])
+    # Feature / Label Split (X y split)
+    X_train_data = all_attacks_train.drop(columns=['Label'])
+    y_train_data = all_attacks_train['Label']
 
-    # train
-    X_train_data = X_train_scaled
-    X_test_data = X_test_scaled
-
-    # test
-    y_train_data = y_train_encoded
-    y_test_data = y_test_encoded
+    X_test_data = all_attacks_test.drop(columns=['Label'])
+    y_test_data = all_attacks_test['Label']
 
     # Print the shapes of the resulting splits
     print("X_train shape:", X_train_data.shape)
@@ -608,7 +664,7 @@ if dataset_used == "CIFAR":
     # Creates the train and test dataset from calling cifar10 in TF
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
-    input_dim = X_train.shape[1]  # feature size
+    input_dim = x_train.shape[1]  # feature size
 
     #### DEMO MODEL ######
     model = tf.keras.applications.MobileNetV2((input_dim), classes=2, weights=None)
