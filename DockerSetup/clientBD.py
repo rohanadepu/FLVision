@@ -721,7 +721,7 @@ print("Epochs:", epochs)
 print("Batch Size:", batch_size)
 print("MicroBatches", num_microbatches)
 print(f"Steps per epoch (({len(X_train_data)} // {batch_size})):", steps_per_epoch)
-# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
+# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)  ## Debug
 print("Betas:", betas)
 print("Learning Rate:", learning_rate)
 print("L2_alpha:", l2_alpha)
@@ -866,6 +866,7 @@ if DP_enabled:
         learning_rate=learning_rate
     )
 
+    # compile model with custom dp optimizer
     model.compile(optimizer=dp_optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
