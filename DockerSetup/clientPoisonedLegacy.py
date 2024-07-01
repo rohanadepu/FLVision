@@ -924,6 +924,10 @@ class FLClient(fl.client.NumPyClient):
         print("Testing...")
         model.set_weights(parameters)
 
+        
+
+        # Test the model
+        loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
         with open('evaluation_metrics.txt', 'a') as f:
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
@@ -932,9 +936,6 @@ class FLClient(fl.client.NumPyClient):
             f.write(f"AUC: {auc}\n")
             f.write(f"LogCosh: {logcosh}\n")
             f.write("\n")
-
-        # Test the model
-        loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
