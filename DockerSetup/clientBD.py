@@ -165,12 +165,14 @@ if dataset_used == "CICIOT":
 
     # ---                   Data Loading Settings                     --- #
 
+    # Sample size for train and test datasets
     ciciot_train_sample_size = 20  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
+    # directory of the stored data samples
     DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
