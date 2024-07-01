@@ -856,6 +856,7 @@ if dataset_used == "IOTBOTNET":
 # ---                   Differential Privacy Model Compile              --- #
 
 if DP_enabled:
+    print("Including DP into optimizer...")
     # Making Custom Optimizer Component with Differential Privacy
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     dp_optimizer = tfp.DPKerasAdamOptimizer(
@@ -873,6 +874,7 @@ if DP_enabled:
 # ---              Normal Model Compile                        --- #
 
 if not DP_enabled:
+    print("Default optimizer...")
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer= optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
