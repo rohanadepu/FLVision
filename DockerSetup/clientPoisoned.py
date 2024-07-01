@@ -54,7 +54,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
-parser.add_argument('--dataset', type=str, default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
 
@@ -165,12 +165,14 @@ if dataset_used == "CICIOT":
 
     # ---                   Data Loading Settings                     --- #
 
+    # Sample size for train and test datasets
     ciciot_train_sample_size = 20  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
+    # directory of the stored data samples
     DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
@@ -716,10 +718,10 @@ print("///////////////////////////////////////////////")
 print("HyperParameters:")
 print("Input Dim:", input_dim)
 print("Epochs:", epochs)
-print("Batch Size:", input_dim)
+print("Batch Size:", batch_size)
 print("MicroBatches", num_microbatches)
 print(f"Steps per epoch (({len(X_train_data)} // {batch_size})):", steps_per_epoch)
-# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
+# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)  ## Debug
 print("Betas:", betas)
 print("Learning Rate:", learning_rate)
 print("L2_alpha:", l2_alpha)
@@ -853,27 +855,31 @@ if dataset_used == "IOTBOTNET":
 
 # ---                   Differential Privacy Model Compile              --- #
 
-# Making Custom Optimizer Component with Differential Privacy
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-dp_optimizer = tfp.DPKerasAdamOptimizer(
-    l2_norm_clip=l2_norm_clip,
-    noise_multiplier=noise_multiplier,
-    num_microbatches=num_microbatches,
-    learning_rate=learning_rate
-)
+if DP_enabled:
+    print("Including DP into optimizer...")
+    # Making Custom Optimizer Component with Differential Privacy
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    dp_optimizer = tfp.DPKerasAdamOptimizer(
+        l2_norm_clip=l2_norm_clip,
+        noise_multiplier=noise_multiplier,
+        num_microbatches=num_microbatches,
+        learning_rate=learning_rate
+    )
 
-model.compile(optimizer=dp_optimizer,
-              loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-              )
+    # compile model with custom dp optimizer
+    model.compile(optimizer=dp_optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                  )
 
 # ---              Normal Model Compile                        --- #
 
-
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-model.compile(optimizer= optimizer,
-              loss=tf.keras.losses.binary_crossentropy,
-              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+if not DP_enabled:
+    print("Default optimizer...")
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    model.compile(optimizer= optimizer,
+                  loss=tf.keras.losses.binary_crossentropy,
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
 
 # ---                   Callback components                   --- #
