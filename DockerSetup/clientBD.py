@@ -381,7 +381,7 @@ if dataset_used == "CICIOT":
 
 if dataset_used == "IOTBOTNET":
 
-    # ---                   IOTBOTNET relevant features mappings                    --- #
+    # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
         'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
         'ACK_Flag_Cnt', 'Flow_Duration', 'Flow_IAT_Max', 'Flow_Pkts/s', 'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len',
@@ -558,14 +558,14 @@ if dataset_used == "IOTBOTNET":
         ddos_combined, dos_combined, scan_combined, theft_combined
     ])
 
-    # DEBUG
+    ## DEBUG
     # # Combine all attacks into one DataFrame
     # all_attacks_combined = combine_all_attacks([
     #     ddos_udp_data, ddos_tcp_data, ddos_http_data
     # ])
     #
     # # all_attacks_combined = scan_os_data
-    # EOF DEBUG
+    ## EOF DEBUG
 
     print("Attack Data Loaded & Combined...")
 
