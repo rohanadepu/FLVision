@@ -483,7 +483,7 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/poisonedDataset/iotbotnet2020'
+    DATASET_DIRECTORY = '/root/poisonedDataset/IOTBOTNET2020_POISONED66/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   Load Each Attack Dataset                 --- #
 
