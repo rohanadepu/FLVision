@@ -403,47 +403,47 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DDOS Data..")
     # Load DDoS UDP files
-    ddos_udp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_udp'
+    ddos_udp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_tcp'
+    ddos_tcp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_tcp'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = '/root/trainingDataset/iotbotnet2020/ddos/ddos_http'
+    ddos_http_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data..")
     # Load DoS UDP files
-    # dos_udp_directory = './iotbotnet2020_archive/dos/dos_udp'
-    # dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
+    dos_udp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_udp'
+    dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
     # # Load DDoS TCP files
-    # dos_tcp_directory = './iotbotnet2020_archive/dos/dos_tcp'
-    # dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
-    #
-    # # Load DDoS HTTP files
-    # dos_http_directory = './iotbotnet2020_archive/dos/dos_http'
-    # dos_http_dataframes = load_files_from_directory(dos_http_directory)
+    dos_tcp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_tcp'
+    dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
+    
+    # Load DDoS HTTP files
+    dos_http_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_http'
+    dos_http_dataframes = load_files_from_directory(dos_http_directory)
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    # scan_os_directory = '/root/trainingDataset/iotbotnet2020/scan/os'
-    # scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
+    scan_os_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/scan/os'
+    scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
-    # scan_service_directory = './iotbotnet2020_archive/scan/service'
-    # scan_service_dataframes = load_files_from_directory(scan_service_directory)
+    scan_service_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/scan/service'
+    scan_service_dataframes = load_files_from_directory(scan_service_directory)
 
     print("Loading THEFT Data..")
     # # Load theft_data_exfiltration files
-    # theft_data_exfiltration_directory = './iotbotnet2020_archive/theft/data_exfiltration'
-    # theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
+    theft_data_exfiltration_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/theft/data_exfiltration'
+    theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
     #
     # # Load theft_keylogging files
-    # theft_keylogging_directory = './iotbotnet2020_archive/theft/keylogging'
-    # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
+    theft_keylogging_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/theft/keylogging'
+    theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     # ---                   Concatenations to combine all classes                    --- #
     print("Further Concatonation...")
@@ -452,43 +452,43 @@ if dataset_used == "IOTBOTNET":
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
     ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
-    # dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
-    # dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
-    # dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
-    # scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
-    # scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
-    # theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
-    # theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
+    dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
+    dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
+    dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+    scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+    scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+    theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
+    theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
     # # Combine subcategories into general classes
-    # ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
-    #     [ddos_udp_data, ddos_tcp_data, ddos_http_data],
-    #     [dos_udp_data, dos_tcp_data, dos_http_data],
-    #     [scan_os_data, scan_service_data],
-    #     [theft_data_exfiltration_data, theft_keylogging_data]
-    # )
-    #
+    ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
+        [ddos_udp_data, ddos_tcp_data, ddos_http_data],
+        [dos_udp_data, dos_tcp_data, dos_http_data],
+        [scan_os_data, scan_service_data],
+        [theft_data_exfiltration_data, theft_keylogging_data]
+    )
+    
     # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_combined, dos_combined, scan_combined, theft_combined
-    # ])
+    all_attacks_combined = combine_all_attacks([
+        ddos_combined, dos_combined, scan_combined, theft_combined
+    ])
 
     # Combine all attacks into one DataFrame
     all_attacks_combined = combine_all_attacks([
         ddos_udp_data, ddos_tcp_data, ddos_http_data
     ])
 
-    # all_attacks_combined = scan_os_data
+    all_attacks_combined = scan_os_data
 
     # ---                   Train Test Split                  --- #
 
     print("Train Test Split...")
 
     # Split each combined DataFrame into train and test sets
-    # ddos_train, ddos_test = split_train_test(ddos_combined)
-    # dos_train, dos_test = split_train_test(dos_combined)
-    # scan_train, scan_test = split_train_test(scan_combined)
-    # theft_train, theft_test = split_train_test(theft_combined)
+    ddos_train, ddos_test = split_train_test(ddos_combined)
+    dos_train, dos_test = split_train_test(dos_combined)
+    scan_train, scan_test = split_train_test(scan_combined)
+    theft_train, theft_test = split_train_test(theft_combined)
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
     ## Debug ##
@@ -928,7 +928,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
-        with open('evaluation_metrics.txt', 'a') as f:
+        with open('evaluation_metrics_poisoned2.txt', 'a') as f:
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
             f.write(f"Precision: {precision}\n")
