@@ -64,6 +64,9 @@ dataset_used = args.dataset
 model_selection = args.model
 DP_enabled = args.dp
 
+print("\n ////////////////////////////// \n")
+print("Federated Learning Training Demo:", "\n")
+
 print("Selected DATASET:", dataset_used, "\n")
 print("Selected MODEL:", model_selection, "\n")
 if DP_enabled:
@@ -226,6 +229,8 @@ if dataset_used == "CICIOT":
         balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, normal_traffic_total_size,
                                                             normal_traffic_size_limit)
         normal_traffic_total_size += benign_count  # adding to quota count
+
+        print(f"Benign Traffic Train Samples: {benign_count} | {normal_traffic_total_size} |LIMIT| {normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
@@ -562,15 +567,24 @@ if dataset_used == "IOTBOTNET":
     # # all_attacks_combined = scan_os_data
     # EOF DEBUG
 
-    print("Attack Data Combined & Loaded...")
+    print("Attack Data Loaded & Combined...")
 
-    # --- Balance the dataset --- #
+    #########################################################
+    #    Process Dataset For IOTBOTNET 2020                 #
+    #########################################################
 
-    print("Balance Dataset...")
+    # ---                   Cleaning                     --- #
 
-    all_attacks_combined = balance_data(all_attacks_combined, label_column='Label')
+    print("Cleaning Dataset...")
 
-    print("Dataset Balanced...")
+    # Replace inf values with NaN and then drop them
+    all_attacks_combined.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+
+    # Clean the dataset by dropping rows with missing values
+    all_attacks_combined = all_attacks_combined.dropna()
+
+    print("Nan and inf values Removed...")
+
     # ---                   Train Test Split                  --- #
 
     print("Train Test Split...")
@@ -584,23 +598,13 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-#########################################################
-#    Process Dataset For IOTBOTNET 2020                 #
-#########################################################
+    # --- Balance Training dataset --- #
 
-    # ---                   Cleaning                     --- #
+    print("Balance Training Dataset...")
 
-    print("Cleaning...")
+    all_attacks_train = balance_data(all_attacks_train, label_column='Label')
 
-    # Replace inf values with NaN and then drop them
-    all_attacks_train.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
-    all_attacks_test.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
-
-    # Clean the dataset by dropping rows with missing values
-    all_attacks_train = all_attacks_train.dropna()
-    all_attacks_test = all_attacks_test.dropna()
-
-    print("Nan and inf values Removed...")
+    print("Dataset Training Balanced...")
 
     # ---                   Feature Selection                --- #
 
