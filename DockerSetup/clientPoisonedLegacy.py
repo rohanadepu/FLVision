@@ -911,6 +911,19 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         return model.get_weights(), len(X_train_data), {}
+        # Save metrics to a file
+        metrics = {
+            "loss": history.history['loss'],
+            "accuracy": history.history['accuracy'],
+            "recall": history.history['recall'],
+            "val_loss": history.history['val_loss'],
+            "val_accuracy": history.history['val_accuracy'],
+            "val_recall": history.history['val_recall']
+        }
+        with open('training_metrics.json', 'w') as f:
+            json.dump(metrics, f)
+        
+        return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         print("Testing...")
@@ -918,9 +931,17 @@ class FLClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
+        metrics = {
+            "loss": loss,
+            "accuracy": accuracy,
+            "recall": recall
+        }
+        with open('evaluation_metrics.json', 'w') as f:
+            json.dump(metrics, f)
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
+
 
 #########################################################
 #    Start the client                                   #
