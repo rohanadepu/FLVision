@@ -222,120 +222,121 @@ if dataset_used == "CICIOT":
         ciciot_test_data = pd.concat([ciciot_test_data, test_data])
 
 
+
 #########################################################
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
         # ---                   Feature Selection                --- #
 
-        print("Selecting Features...")
+    print("Selecting Features...")
 
-        # Drop the irrelevant features (Feature selection)
-        ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
-        ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
+    # Drop the irrelevant features (Feature selection)
+    ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
+    ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features)
 
-        # Shuffle data
-        ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
-        ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
+    # Shuffle data
+    ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
+    ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
 
-        # prints an instance of each class in training data
-        print("Before Encoding and Scaling:")
-        unique_labels = ciciot_train_data['label'].unique()
-        for label in unique_labels:
-            print(f"First instance of {label}:")
-            print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
+    # prints an instance of each class in training data
+    print("Before Encoding and Scaling:")
+    unique_labels = ciciot_train_data['label'].unique()
+    for label in unique_labels:
+        print(f"First instance of {label}:")
+        print(ciciot_train_data[ciciot_train_data['label'] == label].iloc[0])
 
-        # ---                   Encoding                     --- #
+    # ---                   Encoding                     --- #
 
-        print("Encoding...")
+    print("Encoding...")
 
-        # get each label in dataset
-        unique_labels = ciciot_train_data['label'].nunique()
+    # get each label in dataset
+    unique_labels = ciciot_train_data['label'].nunique()
 
-        # Print the number of unique labels
-        print(f"There are {unique_labels} unique labels in the dataset.")
+    # Print the number of unique labels
+    print(f"There are {unique_labels} unique labels in the dataset.")
 
-        # print the amount of instances for each label
-        class_counts = ciciot_train_data['label'].value_counts()
-        print(class_counts)
+    # print the amount of instances for each label
+    class_counts = ciciot_train_data['label'].value_counts()
+    print(class_counts)
 
-        # Display the first few entries to verify the changes
-        print(ciciot_train_data.head())
+    # Display the first few entries to verify the changes
+    print(ciciot_train_data.head())
 
-        # Encodes the training label
-        label_encoder = LabelEncoder()
-        ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
-        ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])
+    # Encodes the training label
+    label_encoder = LabelEncoder()
+    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])
+    ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])
 
-        # Store label mappings
-        label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
-        print("Label mappings:", label_mapping)
+    # Store label mappings
+    label_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
+    print("Label mappings:", label_mapping)
 
-        # Retrieve the numeric codes for classes
-        class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
+    # Retrieve the numeric codes for classes
+    class_codes = {label: label_encoder.transform([label])[0] for label in label_encoder.classes_}
 
-        # Print specific instances after label encoding
-        print("Training Data After Encoding:")
-        for label, code in class_codes.items():
-            # Check if there are any instances of the current label
-            if not ciciot_train_data[ciciot_train_data['label'] == code].empty:
-                # Print the first instance of each class
-                print(f"First instance of {label} (code {code}):")
-                print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
-            else:
-                print(f"No instances found for {label} (code {code})")
-        print(ciciot_train_data.head(), "\n")
+    # Print specific instances after label encoding
+    print("Training Data After Encoding:")
+    for label, code in class_codes.items():
+        # Check if there are any instances of the current label
+        if not ciciot_train_data[ciciot_train_data['label'] == code].empty:
+            # Print the first instance of each class
+            print(f"First instance of {label} (code {code}):")
+            print(ciciot_train_data[ciciot_train_data['label'] == code].iloc[0])
+        else:
+            print(f"No instances found for {label} (code {code})")
+    print(ciciot_train_data.head(), "\n")
 
-        # ---                    Normalizing                      --- #
+    # ---                    Normalizing                      --- #
 
-        print("Normalizing...")
+    print("Normalizing...")
 
-        # Setting up Scaler for Features
-        scaler = MinMaxScaler(feature_range=(0, 1))
+    # Setting up Scaler for Features
+    scaler = MinMaxScaler(feature_range=(0, 1))
 
-        # select the num cols that are relevant
-        relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
-        # Debug
-        #relevant_num_cols = [col for col in num_cols if col in relevant_features]
+    # select the num cols that are relevant
+    relevant_num_cols = [col for col in num_cols if col not in irrelevant_features]
+    # Debug
+    #relevant_num_cols = [col for col in num_cols if col in relevant_features]
 
-        # train the scalar on train data features
-        scaler.fit(ciciot_train_data[relevant_num_cols])
+    # train the scalar on train data features
+    scaler.fit(ciciot_train_data[relevant_num_cols])
 
-        # Save the Scaler for use in other files
-        # joblib.dump(scaler, f'./MinMaxScaler.pkl')
+    # Save the Scaler for use in other files
+    # joblib.dump(scaler, f'./MinMaxScaler.pkl')
 
-        # Scale the features in the train test dataframe
-        ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
-        ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
+    # Scale the features in the train test dataframe
+    ciciot_train_data[relevant_num_cols] = scaler.transform(ciciot_train_data[relevant_num_cols])
+    ciciot_test_data[relevant_num_cols] = scaler.transform(ciciot_test_data[relevant_num_cols])
 
-        # prove if the data is loaded properly
-        print("Training Data After Normalization:")
-        print(ciciot_train_data.head())
-        print(ciciot_train_data.shape)
+    # prove if the data is loaded properly
+    print("Training Data After Normalization:")
+    print(ciciot_train_data.head())
+    print(ciciot_train_data.shape)
 
-        # # DEBUG prove if the data is loaded properly
-        # print("Test Data After Normalization:")
-        # print(ciciot_test_data.head())
-        # print(ciciot_test_data.shape)
+    # # DEBUG prove if the data is loaded properly
+    # print("Test Data After Normalization:")
+    # print(ciciot_test_data.head())
+    # print(ciciot_test_data.shape)
 
-        # ---                   Assigning / X y Split                   --- #
+    # ---                   Assigning / X y Split                   --- #
 
-        # Feature / Label Split (X y split)
-        X_train_data = ciciot_train_data.drop(columns=['label'])
-        y_train_data = ciciot_train_data['label']
+    # Feature / Label Split (X y split)
+    X_train_data = ciciot_train_data.drop(columns=['label'])
+    y_train_data = ciciot_train_data['label']
 
-        X_test_data = ciciot_test_data.drop(columns=['label'])
-        y_test_data = ciciot_test_data['label']
+    X_test_data = ciciot_test_data.drop(columns=['label'])
+    y_test_data = ciciot_test_data['label']
 
-        # Print the shapes of the resulting splits
-        print("X_train shape:", X_train_data.shape)
-        print("y_train shape:", y_train_data.shape)
+    # Print the shapes of the resulting splits
+    print("X_train shape:", X_train_data.shape)
+    print("y_train shape:", y_train_data.shape)
 
-        # Get the sample size
-        ciciot_df_size = X_train_data.shape[0]
-        print("Sample size:", ciciot_df_size)
+    # Get the sample size
+    ciciot_df_size = X_train_data.shape[0]
+    print("Sample size:", ciciot_df_size)
 
-        print("Datasets Ready...")
+    print("Datasets Ready...")
 
 #########################################################
 #    Load Dataset For IOTBOTNET 2023                    #
@@ -485,10 +486,6 @@ if dataset_used == "IOTBOTNET":
     print("Train Test Split...")
 
     # Split each combined DataFrame into train and test sets
-    # ddos_train, ddos_test = split_train_test(ddos_combined)
-    # dos_train, dos_test = split_train_test(dos_combined)
-    # scan_train, scan_test = split_train_test(scan_combined)
-    # theft_train, theft_test = split_train_test(theft_combined)
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
 
     ## Debug ##
@@ -803,6 +800,7 @@ if dataset_used == "IOTBOTNET":
 #               )
 
 # DEBUG
+
 optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 model.compile(optimizer= optimizer,
               loss=tf.keras.losses.binary_crossentropy,
@@ -845,8 +843,8 @@ class FLClient(fl.client.NumPyClient):
         model.set_weights(parameters)
 
         # Train Model
-        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                            callbacks=[model_checkpoint])
+        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
+                            steps_per_epoch=steps_per_epoch, callbacks=[model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
