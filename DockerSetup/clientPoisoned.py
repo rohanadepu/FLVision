@@ -446,7 +446,7 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+    DATASET_DIRECTORY = '/root/poisonedDataset/IOTBOTNET2020_POISONED66/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   Load Each Attack Dataset                 --- #
 
@@ -465,34 +465,34 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DOS Data..")
     # Load DoS UDP files
-    # dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
-    # dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
+    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
+    dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
-    # # Load DDoS TCP files
-    # dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
-    # dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
+    # Load DDoS TCP files
+    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
+    dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
     #
     # # Load DDoS HTTP files
-    # dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
-    # dos_http_dataframes = load_files_from_directory(dos_http_directory)
+    dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
+    dos_http_dataframes = load_files_from_directory(dos_http_directory)
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    # scan_os_directory = DATASET_DIRECTORY + '/scan/os'
-    # scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
+    scan_os_directory = DATASET_DIRECTORY + '/scan/os'
+    scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
-    # scan_service_directory = DATASET_DIRECTORY + '/scan/service'
-    # scan_service_dataframes = load_files_from_directory(scan_service_directory)
+    scan_service_directory = DATASET_DIRECTORY + '/scan/service'
+    scan_service_dataframes = load_files_from_directory(scan_service_directory)
 
     print("Loading THEFT Data..")
     # # Load theft_data_exfiltration files
-    # theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
-    # theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
-    #
+    theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
+    theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
+    
     # # Load theft_keylogging files
-    # theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
-    # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
+    theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
+    theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     print("Loading Finished...")
 
@@ -503,33 +503,33 @@ if dataset_used == "IOTBOTNET":
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
     ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
-    # dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
-    # dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
-    # dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
-    # scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
-    # scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
-    # theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
-    # theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
+    dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
+    dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
+    dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+    scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+    scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+    theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
+    theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
     # # Combine subcategories into general classes
-    # ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
-    #     [ddos_udp_data, ddos_tcp_data, ddos_http_data],
-    #     [dos_udp_data, dos_tcp_data, dos_http_data],
-    #     [scan_os_data, scan_service_data],
-    #     [theft_data_exfiltration_data, theft_keylogging_data]
-    # )
-    #
+    ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
+        [ddos_udp_data, ddos_tcp_data, ddos_http_data],
+        [dos_udp_data, dos_tcp_data, dos_http_data],
+        [scan_os_data, scan_service_data],
+        [theft_data_exfiltration_data, theft_keylogging_data]
+    )
+    
     # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_combined, dos_combined, scan_combined, theft_combined
-    # ])
+    all_attacks_combined = combine_all_attacks([
+        ddos_combined, dos_combined, scan_combined, theft_combined
+    ])
 
     # Combine all attacks into one DataFrame
     all_attacks_combined = combine_all_attacks([
         ddos_udp_data, ddos_tcp_data, ddos_http_data
     ])
 
-    # all_attacks_combined = scan_os_data
+    all_attacks_combined = scan_os_data
 
     print(" Attack Data Combined & Loaded...")
 
@@ -925,6 +925,14 @@ class FLClient(fl.client.NumPyClient):
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
+        # Save metrics to file
+        with open('training_metrics_poisoned1.txt', 'a') as f:
+            for epoch in range(epochs):
+                f.write(f"Epoch {epoch+1}/{epochs}\n")
+                for metric, values in history.history.items():
+                    f.write(f"{metric}: {values[epoch]}\n")
+                f.write("\n")
+
         return model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
@@ -932,6 +940,14 @@ class FLClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
+        with open('evaluation_metrics_poisoned1.txt', 'a') as f:
+            f.write(f"Loss: {loss}\n")
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Precision: {precision}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"AUC: {auc}\n")
+            f.write(f"LogCosh: {LogCosh}\n")
+            f.write("\n")
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
