@@ -5,6 +5,7 @@
 import os
 import random
 # import time
+import argparse
 
 import flwr as fl
 
@@ -39,7 +40,6 @@ from sklearn.model_selection import train_test_split
 # from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
-
 # from sklearn.impute import SimpleImputer
 # from sklearn.pipeline import Pipeline
 # from sklearn.metrics import confusion_matrix
@@ -52,13 +52,22 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #    Script Parameters                               #
 #########################################################
 
-dataset_used = "IOTBOTNET"
+# --- Argument Parsing --- #
+parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
+parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
+parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
 
-model_selection = "5A"
+args = parser.parse_args()
 
-DP_enabled = False
+dataset_used = args.dataset
+model_selection = args.model
+DP_enabled = args.dp
 
-print("DATASET BEING USED:", dataset_used, "\n")
+print("Selected DATASET:", dataset_used, "\n")
+print("Selected MODEL:", model_selection, "\n")
+if DP_enabled:
+    print("Differential Privacy Enabled", "\n")
 
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
@@ -66,7 +75,7 @@ print("DATASET BEING USED:", dataset_used, "\n")
 
 if dataset_used == "CICIOT":
 
-    # ---                   CICIOT Feature Mapping for numerical and categorical features       --- #
+    # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
                 'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
@@ -126,7 +135,6 @@ if dataset_used == "CICIOT":
                      'DictionaryBruteForce': 'Attack'
                      }
 
-
     # ---      Functions    --- #
 
     def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
@@ -155,15 +163,16 @@ if dataset_used == "CICIOT":
         balanced_data = pd.concat([attack_samples, benign_samples])
         return balanced_data, len(benign_samples)
 
-
     # ---                   Data Loading Settings                     --- #
 
+    # Sample size for train and test datasets
     ciciot_train_sample_size = 20  # input: 3 samples for training
     ciciot_test_sample_size = 1  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
+    # directory of the stored data samples
     DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
@@ -226,6 +235,7 @@ if dataset_used == "CICIOT":
 
     print("Loading Testing Data...")
     for test_set in test_sample_files:
+
         # load the test dataset without balancing
         print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
 
@@ -249,11 +259,11 @@ if dataset_used == "CICIOT":
     print("CICIOT Combined Data (Test):")
     print(ciciot_test_data.head())
 
-    #########################################################
-    #    Process Dataset For CICIOT 2023                    #
-    #########################################################
+#########################################################
+#    Process Dataset For CICIOT 2023                    #
+#########################################################
 
-    # ---                   Feature Selection                --- #
+        # ---                   Feature Selection                --- #
 
     print("Selecting Features...")
 
@@ -290,8 +300,7 @@ if dataset_used == "CICIOT":
 
     # Encodes the labels
     label_encoder = LabelEncoder()  # Initialize the encoder
-    ciciot_train_data['label'] = label_encoder.fit_transform(
-        ciciot_train_data['label'])  # Fit and encode the training labels
+    ciciot_train_data['label'] = label_encoder.fit_transform(ciciot_train_data['label'])  # Fit and encode the training labels
     ciciot_test_data['label'] = label_encoder.transform(ciciot_test_data['label'])  # encode the test labels
 
     # Store label mappings
@@ -411,13 +420,11 @@ if dataset_used == "IOTBOTNET":
         print("Data Loaded...")
         return dataframes
 
-
     # Function to split a DataFrame into train and test sets
     def split_train_test(dataframe, test_size=0.2):
         train_df, test_df = train_test_split(dataframe, test_size=test_size)
         print("Dataset Test Train Split...")
         return train_df, test_df
-
 
     # Function to combine subcategories into general classes
     def combine_general_attacks(ddos_dataframes, dos_dataframes, scan_dataframes, theft_dataframes):
@@ -428,13 +435,11 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return ddos_combined, dos_combined, scan_combined, theft_combined
 
-
     # Function to combine all dataframes into one
     def combine_all_attacks(dataframes):
         combined_df = pd.concat(dataframes, ignore_index=True)
         print("attacks combined...")
         return combined_df
-
 
     # ---                  Data loading Settings                  --- #
 
@@ -541,9 +546,9 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-    #########################################################
-    #    Process Dataset For IOTBOTNET 2020                 #
-    #########################################################
+#########################################################
+#    Process Dataset For IOTBOTNET 2020                 #
+#########################################################
 
     # ---                   Cleaning                     --- #
 
@@ -671,6 +676,7 @@ if dataset_used == "IOTBOTNET":
 #########################################################
 
 if dataset_used == "CIFAR":
+
     # Creates the train and test dataset from calling cifar10 in TF
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
@@ -704,7 +710,7 @@ l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
 epochs = 10  # will be optimized
 # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
-steps_per_epoch = len(X_train_data) // batch_size  # dependant
+steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
@@ -712,10 +718,10 @@ print("///////////////////////////////////////////////")
 print("HyperParameters:")
 print("Input Dim:", input_dim)
 print("Epochs:", epochs)
-print("Batch Size:", input_dim)
+print("Batch Size:", batch_size)
 print("MicroBatches", num_microbatches)
 print(f"Steps per epoch (({len(X_train_data)} // {batch_size})):", steps_per_epoch)
-# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)
+# print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)  ## Debug
 print("Betas:", betas)
 print("Learning Rate:", learning_rate)
 print("L2_alpha:", l2_alpha)
@@ -850,8 +856,8 @@ if dataset_used == "IOTBOTNET":
 # ---                   Differential Privacy Model Compile              --- #
 
 if DP_enabled:
-
-    # Make Custom Optimizer Component with Differential Privacy
+    print("Including DP into optimizer...")
+    # Making Custom Optimizer Component with Differential Privacy
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     dp_optimizer = tfp.DPKerasAdamOptimizer(
         l2_norm_clip=l2_norm_clip,
@@ -860,6 +866,7 @@ if DP_enabled:
         learning_rate=learning_rate
     )
 
+    # compile model with custom dp optimizer
     model.compile(optimizer=dp_optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
@@ -868,12 +875,12 @@ if DP_enabled:
 # ---              Normal Model Compile                        --- #
 
 if not DP_enabled:
-
-    # Make Custom Optimizer Component without Differential Privacy
+    print("Default optimizer...")
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    model.compile(optimizer=optimizer,
+    model.compile(optimizer= optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+
 
 # ---                   Callback components                   --- #
 
@@ -897,7 +904,6 @@ model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only
 # ---                   Model Analysis                   --- #
 
 model.summary()
-
 
 #########################################################
 #    Federated Learning Setup                           #
@@ -929,7 +935,6 @@ class FLClient(fl.client.NumPyClient):
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
-
 
 #########################################################
 #    Start the client                                   #

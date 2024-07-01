@@ -714,6 +714,24 @@ if dataset_used == "CICIOT":
         return model
 
 
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(input_dim,)),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.5),  # Dropout layer with 50% dropout rate
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+
+
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
@@ -796,8 +814,8 @@ es_patience = 5
 l2lr_patience = 3
 l2lr_factor = 0.1
 
-early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
-lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=l2lr_factor, patience=l2lr_patience)
+# early_stopping = EarlyStopping(monitor='val_loss', patience=es_patience, restore_best_weights=True)
+# lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=True, monitor='val_loss', mode='min')
 
 # ---                   Model Analysis                   --- #
@@ -813,8 +831,35 @@ class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
 
+    # def fit(self, parameters, config):
+    #     model.set_weights(parameters)
+    #
+    #     # K-Fold Cross-Validation
+    #     kf = KFold(n_splits=5)
+    #     for train_index, val_index in kf.split(X_train_data_np):
+    #         X_train, X_val = X_train_data_np[train_index], X_train_data_np[val_index]
+    #         y_train, y_val = y_train_data_np[train_index], y_train_data_np[val_index]
+    #
+    #         # Rebuild and compile the model for each fold
+    #         model = build_model(input_dim)
+    #         model.compile(optimizer=dp_optimizer,
+    #                       loss=tf.keras.losses.binary_crossentropy,
+    #                       metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+    #
+    #         history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
+    #                             epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
+    #                             callbacks=[model_checkpoint])
+    #
+    #     # Debugging: Print the shape of the loss
+    #     loss_tensor = history.history['loss']
+    #     print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+    #
+    #     return model.get_weights(), len(X_train_data), {}
+
     def fit(self, parameters, config):
         model.set_weights(parameters)
+        print(f"Training with batch_size={batch_size} and num_microbatches={num_microbatches}")
+        history = model.fit(X_train_data, y_train_data, epochs=1, batch_size=batch_size, steps_per_epoch=3)
 
         # K-Fold Cross-Validation
         kf = KFold(n_splits=5)
@@ -830,11 +875,7 @@ class FLClient(fl.client.NumPyClient):
 
             history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
                                 epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-                                callbacks=[early_stopping, lr_scheduler, model_checkpoint])
-
-        # history = model.fit(X_train, y_train, validation_data=(X_val, y_val),
-        #                     epochs=epochs, batch_size=batch_size, steps_per_epoch=steps_per_epoch,
-        #                     callbacks=[early_stopping, lr_scheduler, model_checkpoint])
+                                callbacks=[model_checkpoint])
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
