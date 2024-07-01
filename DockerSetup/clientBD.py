@@ -441,6 +441,32 @@ if dataset_used == "IOTBOTNET":
         print("attacks combined...")
         return combined_df
 
+    # Function to balance the dataset via undersampling
+    def balance_data(dataframe, label_column='Label'):
+        # Get the counts of each label
+        label_counts = dataframe[label_column].value_counts()
+        print("Label counts before balancing:", label_counts)
+
+        # Determine the minimum count of samples across all labels
+        min_count = label_counts.min()
+
+        # Sample min_count number of samples from each label
+        balanced_dataframes = []
+        for label in label_counts.index:
+            label_df = dataframe[dataframe[label_column] == label]
+            balanced_label_df = label_df.sample(min_count, random_state=47)
+            balanced_dataframes.append(balanced_label_df)
+
+        # Concatenate the balanced dataframes
+        balanced_dataframe = pd.concat(balanced_dataframes)
+        balanced_dataframe = shuffle(balanced_dataframe, random_state=47)
+
+        # Print the new counts of each label
+        print("Label counts after balancing:", balanced_dataframe[label_column].value_counts())
+
+        return balanced_dataframe
+
+
     # ---                  Data loading Settings                  --- #
 
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
@@ -450,7 +476,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Load Each Attack Dataset                 --- #
 
-    print("Loading DDOS Data..")
+    print("Loading DDOS Data...")
     # Load DDoS UDP files
     ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
@@ -463,36 +489,36 @@ if dataset_used == "IOTBOTNET":
     ddos_http_directory = DATASET_DIRECTORY + '/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
-    print("Loading DOS Data..")
+    print("Loading DOS Data...")
     # Load DoS UDP files
-    # dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
-    # dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
+    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
+    dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
-    # # Load DDoS TCP files
-    # dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
-    # dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
-    #
-    # # Load DDoS HTTP files
-    # dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
-    # dos_http_dataframes = load_files_from_directory(dos_http_directory)
+    # Load DDoS TCP files
+    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
+    dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
 
-    print("Loading SCAN Data..")
+    # Load DDoS HTTP files
+    dos_http_directory = DATASET_DIRECTORY + '/dos/dos_http'
+    dos_http_dataframes = load_files_from_directory(dos_http_directory)
+
+    print("Loading SCAN Data...")
     # Load scan_os files
-    # scan_os_directory = DATASET_DIRECTORY + '/scan/os'
-    # scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
-    #
-    # # Load scan_service files
-    # scan_service_directory = DATASET_DIRECTORY + '/scan/service'
-    # scan_service_dataframes = load_files_from_directory(scan_service_directory)
+    scan_os_directory = DATASET_DIRECTORY + '/scan/os'
+    scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
 
-    print("Loading THEFT Data..")
-    # # Load theft_data_exfiltration files
-    # theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
-    # theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
-    #
-    # # Load theft_keylogging files
-    # theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
-    # theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
+    # Load scan_service files
+    scan_service_directory = DATASET_DIRECTORY + '/scan/service'
+    scan_service_dataframes = load_files_from_directory(scan_service_directory)
+
+    print("Loading THEFT Data...")
+    # Load theft_data_exfiltration files
+    theft_data_exfiltration_directory = DATASET_DIRECTORY + '/theft/data_exfiltration'
+    theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
+
+    # Load theft_keylogging files
+    theft_keylogging_directory = DATASET_DIRECTORY + '/theft/keylogging'
+    theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     print("Loading Finished...")
 
@@ -503,36 +529,48 @@ if dataset_used == "IOTBOTNET":
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
     ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
     ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
-    # dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
-    # dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
-    # dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
-    # scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
-    # scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
-    # theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
-    # theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
 
-    # # Combine subcategories into general classes
-    # ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
-    #     [ddos_udp_data, ddos_tcp_data, ddos_http_data],
-    #     [dos_udp_data, dos_tcp_data, dos_http_data],
-    #     [scan_os_data, scan_service_data],
-    #     [theft_data_exfiltration_data, theft_keylogging_data]
-    # )
-    #
-    # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_combined, dos_combined, scan_combined, theft_combined
-    # ])
+    dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
+    dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
+    dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+
+    scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+    scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+
+    theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
+    theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
+
+    # Combine subcategories into general classes
+    ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
+        [ddos_udp_data, ddos_tcp_data, ddos_http_data],
+        [dos_udp_data, dos_tcp_data, dos_http_data],
+        [scan_os_data, scan_service_data],
+        [theft_data_exfiltration_data, theft_keylogging_data]
+    )
 
     # Combine all attacks into one DataFrame
     all_attacks_combined = combine_all_attacks([
-        ddos_udp_data, ddos_tcp_data, ddos_http_data
+        ddos_combined, dos_combined, scan_combined, theft_combined
     ])
 
-    # all_attacks_combined = scan_os_data
+    # DEBUG
+    # # Combine all attacks into one DataFrame
+    # all_attacks_combined = combine_all_attacks([
+    #     ddos_udp_data, ddos_tcp_data, ddos_http_data
+    # ])
+    #
+    # # all_attacks_combined = scan_os_data
+    # EOF DEBUG
 
-    print(" Attack Data Combined & Loaded...")
+    print("Attack Data Combined & Loaded...")
 
+    # --- Balance the dataset --- #
+
+    print("Balance Dataset...")
+
+    all_attacks_combined = balance_data(all_attacks_combined, label_column='Label')
+
+    print("Dataset Balanced...")
     # ---                   Train Test Split                  --- #
 
     print("Train Test Split...")
@@ -810,6 +848,7 @@ if dataset_used == "CICIOT":
         ])
 
     if model_selection == "5A":
+        # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -830,12 +869,36 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
+    if model_selection == "5B":
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(64, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
 
-    # --- Model Definition --- #
+    # --- Model Definitions --- #
+
     if model_selection == "1A":
+        # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
@@ -848,6 +911,25 @@ if dataset_used == "IOTBOTNET":
             BatchNormalization(),
             Dropout(0.5),
             Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
+    if model_selection == "1B":
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
             Dense(1, activation='sigmoid')
