@@ -54,7 +54,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
-parser.add_argument('--dataset', type=str, default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
 
