@@ -934,7 +934,7 @@ class FLClient(fl.client.NumPyClient):
             f.write(f"Precision: {precision}\n")
             f.write(f"Recall: {recall}\n")
             f.write(f"AUC: {auc}\n")
-            f.write(f"LogCosh: {logcosh}\n")
+            f.write(f"LogCosh: {LogCosh}\n")
             f.write("\n")
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
