@@ -1013,23 +1013,52 @@ class FLClient(fl.client.NumPyClient):
         return model.get_weights()
 
     def fit(self, parameters, config):
+        # set up time
+
         model.set_weights(parameters)
 
         # Train Model
         history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
                             steps_per_epoch=steps_per_epoch, callbacks=[model_checkpoint])
 
+        # Calculate time
+
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
-        return model.get_weights(), len(X_train_data), {}
+        # Save metrics to file
+        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}.txt', 'a') as f:
+            for epoch in range(epochs):
+                f.write(f"Epoch {epoch+1}/{epochs}\n")
+                for metric, values in history.history.items():
+                    f.write(f"{metric}: {values[epoch]}\n")
+                    # calculate overall time
+                f.write("\n")
+
+        return model.get_weights(), len(X_train_data), {}  # empty dict. for extra metrics
 
     def evaluate(self, parameters, config):
+        # set up time
+
         model.set_weights(parameters)
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
+
+        # Calculate time
+
+        # Save metrics to file
+        with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}.txt', 'a') as f:
+            f.write(f"Loss: {loss}\n")
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Precision: {precision}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"AUC: {auc}\n")
+            f.write(f"LogCosh: {LogCosh}\n")
+            # calculate overall time
+            f.write("\n")
+
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
