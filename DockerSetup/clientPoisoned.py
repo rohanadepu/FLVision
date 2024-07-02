@@ -483,7 +483,7 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive'
+    DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   Load Each Attack Dataset                 --- #
 
@@ -1024,7 +1024,7 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open('training_metrics_poisoned2.txt', 'a') as f:
+        with open('training_metrics_poisoned_baseline.txt', 'a') as f:
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
                 for metric, values in history.history.items():
@@ -1038,7 +1038,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
-        with open('evaluation_metrics_poisoned2.txt', 'a') as f:
+        with open('evaluation_metrics_poisoned_baseline.txt', 'a') as f:
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
             f.write(f"Precision: {precision}\n")
