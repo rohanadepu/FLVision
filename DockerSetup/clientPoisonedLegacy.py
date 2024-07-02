@@ -403,46 +403,46 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DDOS Data..")
     # Load DDoS UDP files
-    ddos_udp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_udp'
+    ddos_udp_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_tcp'
+    ddos_tcp_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/ddos/ddos_tcp'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/ddos/ddos_http'
+    ddos_http_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data..")
     # Load DoS UDP files
-    dos_udp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_udp'
+    dos_udp_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/dos/dos_udp'
     dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
     # # Load DDoS TCP files
-    dos_tcp_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_tcp'
+    dos_tcp_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/dos/dos_tcp'
     dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
     
     # Load DDoS HTTP files
-    dos_http_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/dos/dos_http'
+    dos_http_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/dos/dos_http'
     dos_http_dataframes = load_files_from_directory(dos_http_directory)
 
     print("Loading SCAN Data..")
     # Load scan_os files
-    scan_os_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/scan/os'
+    scan_os_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/scan/os'
     scan_os_dataframes = load_files_from_directory(scan_os_directory, sample_size=sample_size)
     #
     # # Load scan_service files
-    scan_service_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/scan/service'
+    scan_service_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/scan/service'
     scan_service_dataframes = load_files_from_directory(scan_service_directory)
 
     print("Loading THEFT Data..")
     # # Load theft_data_exfiltration files
-    theft_data_exfiltration_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/theft/data_exfiltration'
+    theft_data_exfiltration_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/theft/data_exfiltration'
     theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
     #
     # # Load theft_keylogging files
-    theft_keylogging_directory = '/root/poisonedDataset/IOTBOTNET2020_POISONED/theft/keylogging'
+    theft_keylogging_directory = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive/theft/keylogging'
     theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
 
     # ---                   Concatenations to combine all classes                    --- #
