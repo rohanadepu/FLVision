@@ -176,7 +176,7 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     # directory of the stored data samples
-    DATASET_DIRECTORY = '../../poisonedDataset/'
+    DATASET_DIRECTORY = '../../attacks/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -483,7 +483,7 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+    DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   Load Each Attack Dataset                 --- #
 
