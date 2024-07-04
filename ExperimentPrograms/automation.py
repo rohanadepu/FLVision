@@ -13,8 +13,10 @@ datasets = {
 
 # Clean datasets paths for node 2
 clean_datasets = {
-    "IOTBOTNET": "/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive",
-    "CICIOT": "/root/attacks/CICIOT2023/CICIOT2023/ciciot2023_archive",
+    "IOTBOTNET_33": "/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive",
+    "IOTBOTNET_66": "/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive",
+    "CICIOT_33": "/root/attacks/CICIOT2023/CICIOT2023/ciciot2023_archive",
+    "CICIOT_66": "/root/attacks/CICIOT2023/CICIOT2023/ciciot2023_archive",
 }
 
 def run_command(command):
@@ -41,23 +43,22 @@ def run_training_node1(dataset_name):
     print(f"Node 1 completed training with dataset {dataset_name}")
 
 def run_training_node2(dataset_name):
-    clean_dataset_name = "IOTBOTNET" if "IOTBOTNET" in dataset_name else "CICIOT"
-    dataset_path = clean_datasets[clean_dataset_name]
-    evaluation_log = f"evaluation_metrics_{clean_dataset_name}_CLEAN.log"
-    training_log = f"training_metrics_{clean_dataset_name}_CLEAN.log"
+    dataset_path = clean_datasets[dataset_name]
+    evaluation_log = f"evaluation_metrics_{dataset_name}_CLEAN.log"
+    training_log = f"training_metrics_{dataset_name}_CLEAN.log"
     flag_file = "/tmp/node_2_completed.flag"
     dataset_type = "IOTBOTNET" if "IOTBOTNET" in dataset_name else "CICIOT"
 
     command = f"python3 clientPoisoned.py --dataset {dataset_type} --node 2 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
 
-    print(f"Running training on node 2 with dataset {clean_dataset_name} (clean)")
+    print(f"Running training on node 2 with dataset {dataset_name} (clean)")
     run_command(command)
 
     # Wait for the flag file to indicate completion
     while not os.path.isfile(flag_file):
         time.sleep(10)
 
-    print(f"Node 2 completed training with dataset {clean_dataset_name}")
+    print(f"Node 2 completed training with dataset {dataset_name}")
 
 def run_server():
     while True:
