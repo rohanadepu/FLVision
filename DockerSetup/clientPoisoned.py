@@ -53,16 +53,27 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #########################################################
 
 # --- Argument Parsing --- #
-parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
+parser = argparse.ArgumentParser(description='Select dataset, model selection, enable DP, node selection, dataset path, clean dataset path, and log names respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
+parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2)")
+parser.add_argument("--dataset_path", type=str, required=True, help="Path to the dataset")
+parser.add_argument("--clean_dataset_path", type=str, help="Path to the clean dataset (only for node 2)")
+parser.add_argument("--evaluation_log", type=str, required=True, help="Name of the evaluation log file")
+parser.add_argument("--training_log", type=str, required=True, help="Name of the training log file")
+   
 
 args = parser.parse_args()
 
 dataset_used = args.dataset
 model_selection = args.model
 DP_enabled = args.dp
+dataset_path = args.dataset_path
+node_number = args.node
+evaluation_log = os.path.join("/path/to/logs", args.evaluation_log)  # Modify this path as needed
+training_log = os.path.join("/path/to/logs", args.training_log)  # Modify this path as needed
+clean_dataset_path = args.clean_dataset_path
 
 print("\n ////////////////////////////// \n")
 print("Federated Learning Training Demo:", "\n")
@@ -1024,7 +1035,7 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open('training_metrics_poisoned_166.txt', 'a') as f:
+        with open(training_log, 'a') as f:
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
                 for metric, values in history.history.items():
@@ -1038,7 +1049,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
-        with open('evaluation_metrics_poisoned_166.txt', 'a') as f:
+        with open(evaluation_log, 'a') as f:
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
             f.write(f"Precision: {precision}\n")
