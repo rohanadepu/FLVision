@@ -48,6 +48,9 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+print("\n ////////////////////////////// \n")
+print("Federated Learning Poisoned Model:", "\n")
+
 #########################################################
 #    Script Parameters                               #
 #########################################################
@@ -86,8 +89,6 @@ print(f"Evaluation log will be saved to: {evaluation_log}")
 if node_number == 2 and clean_dataset_path:
     print(f"Node {node_number}: Using clean dataset at {clean_dataset_path}")
 
-print("\n ////////////////////////////// \n")
-print("Federated Learning Training Demo:", "\n")
 
 print("Selected DATASET:", dataset_used, "\n")
 print("Selected MODEL:", model_selection, "\n")
@@ -1033,9 +1034,7 @@ model.summary()
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
-    flag_file = f"/tmp/node_{node_number}_completed.flag"
-    with open(flag_file, 'w') as f:
-        f.write(f"Node {node_number} completed training with dataset {dataset_path}")
+
     def fit(self, parameters, config):
         model.set_weights(parameters)
 
@@ -1054,6 +1053,10 @@ class FLClient(fl.client.NumPyClient):
                 for metric, values in history.history.items():
                     f.write(f"{metric}: {values[epoch]}\n")
                 f.write("\n")
+
+        flag_file = f"/tmp/node_{node_number}_completed.flag"
+        with open(flag_file, 'w') as f:
+            f.write(f"Node {node_number} completed training with dataset {dataset_path}")
 
         return model.get_weights(), len(X_train_data), {}  # empty dict. for extra metrics
 
