@@ -79,7 +79,7 @@ def parse_datasets(dataset_input):
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script")
     parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2) or '3' for the server node")
-    parser.add_argument('--datasets', type=str, required=True, help='Datasets to use, e.g., "i33c33c66"')
+    parser.add_argument('--datasets', type=str, help='Datasets to use, e.g., "i33c33c66"')
     args = parser.parse_args()
 
     node_number = args.node
