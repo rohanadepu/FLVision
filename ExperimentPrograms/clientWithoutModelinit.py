@@ -53,38 +53,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #########################################################
 
 # --- Argument Parsing --- #
-parser = argparse.ArgumentParser(description='Select dataset, model selection, enable DP, node selection, dataset path, clean dataset path, and log names respectively')
+parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
-parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
-parser.add_argument("--node", type=str, help="Node number (1 or 2)")
-parser.add_argument("--dataset_path", type=str, help="Path to the dataset")
-parser.add_argument("--clean_dataset_path", type=str, help="Path to the clean dataset (only for node 2)")
-parser.add_argument("--evaluation_log", type=str, help="Name of the evaluation log file")
-parser.add_argument("--training_log", type=str, help="Name of the training log file")
-   
 
 args = parser.parse_args()
 
 dataset_used = args.dataset
 model_selection = args.model
 DP_enabled = args.dp
-dataset_path = args.dataset_path
-node_number = args.node
-evaluation_log = args.evaluation_log
-training_log = args.training_log
-clean_dataset_path = args.clean_dataset_path
-
-# Update the DATASET_DIRECTORY variable
-global DATASET_DIRECTORY
-DATASET_DIRECTORY = dataset_path
-
-print(f"Node {node_number}: Training with dataset at {dataset_path}")
-print(f"Training log will be saved to: {training_log}")
-print(f"Evaluation log will be saved to: {evaluation_log}")
-
-if node_number == 2 and clean_dataset_path:
-    print(f"Node {node_number}: Using clean dataset at {clean_dataset_path}")
 
 print("\n ////////////////////////////// \n")
 print("Federated Learning Training Demo:", "\n")
@@ -198,7 +175,7 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     # directory of the stored data samples
-    DATASET_DIRECTORY = dataset_path
+    DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -505,30 +482,30 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = dataset_path
+    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
 
     # ---                   Load Each Attack Dataset                 --- #
 
     print("Loading DDOS Data...")
     # Load DDoS UDP files
-    ddos_udp_directory = DATASET_DIRECTORY + '/ddos/DDOS UDP'
+    ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = DATASET_DIRECTORY + '/ddos/DDOS TCP'
+    ddos_tcp_directory = DATASET_DIRECTORY + '/ddos/ddos_tcp'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = DATASET_DIRECTORY + '/ddos/DDOS HTTP'
+    ddos_http_directory = DATASET_DIRECTORY + '/ddos/ddos_http'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data...")
     # Load DoS UDP files
-    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos udp'
+    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
     dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos tcp'
+    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
     dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
@@ -748,24 +725,6 @@ if dataset_used == "IOTBOTNET":
     print("Datasets Ready...")
 
 #########################################################
-#    Model Initialization & Setup Default DEMO Cifar10  #
-#########################################################
-
-if dataset_used == "CIFAR":
-
-    # Creates the train and test dataset from calling cifar10 in TF
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-
-    input_dim = x_train.shape[1]  # feature size
-
-    #### DEMO MODEL ######
-    model = tf.keras.applications.MobileNetV2((input_dim), classes=2, weights=None)
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.sparse_categorical_crossentropy,
-                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()]
-                  )
-
-#########################################################
 #    Model Initialization & Setup                    #
 #########################################################
 
@@ -804,175 +763,6 @@ print("L2_alpha:", l2_alpha)
 print("L2_norm clip:", l2_norm_clip)
 print("Noise Multiplier:", noise_multiplier)
 
-# ---                   CICIOT Model                   --- #
-
-if dataset_used == "CICIOT":
-
-    # --- Model Definition --- #
-
-    if model_selection == "1A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "2A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "3A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "4A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "5A":
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "5B":
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-# ---                   IOTBOTNET Model                  --- #
-
-if dataset_used == "IOTBOTNET":
-
-    # --- Model Definitions --- #
-
-    if model_selection == "1A":
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "1B":
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
 # ---                   Differential Privacy Model Compile              --- #
 
 if DP_enabled:
@@ -1001,26 +791,6 @@ if not DP_enabled:
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
-
-# ---                   Callback components                   --- #
-
-# set hyperparameters for callback
-es_patience = 5
-restor_best_w = True
-
-l2lr_patience = 3
-l2lr_factor = 0.1
-
-metric_to_monitor = 'auc'
-
-save_best_only = True
-checkpoint_mode = "min"
-
-# early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
-# lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
-model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
-                                   monitor=metric_to_monitor, mode=checkpoint_mode)
-
 # ---                   Model Analysis                   --- #
 
 model.summary()
@@ -1033,43 +803,54 @@ model.summary()
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
-    flag_file = f"/tmp/node_{node_number}_completed.flag"
-    with open(flag_file, 'w') as f:
-        f.write(f"Node {node_number} completed training with dataset {dataset_path}")
+
     def fit(self, parameters, config):
+        # set up time
+
         model.set_weights(parameters)
 
         # Train Model
         history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
                             steps_per_epoch=steps_per_epoch, callbacks=[model_checkpoint])
 
+        # Calculate time
+
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open(training_log, 'a') as f:
+        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}.txt', 'a') as f:
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
                 for metric, values in history.history.items():
                     f.write(f"{metric}: {values[epoch]}\n")
+                    # calculate overall time
                 f.write("\n")
 
-        return model.get_weights(), len(X_train_data), {}
+        return model.get_weights(), len(X_train_data), {}  # empty dict. for extra metrics
 
     def evaluate(self, parameters, config):
+        # set up time
+
         model.set_weights(parameters)
 
         # Test the model
         loss, accuracy, precision, recall, auc, LogCosh = model.evaluate(X_test_data, y_test_data)
-        with open(evaluation_log, 'a') as f:
+
+        # Calculate time
+
+        # Save metrics to file
+        with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}.txt', 'a') as f:
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
             f.write(f"Precision: {precision}\n")
             f.write(f"Recall: {recall}\n")
             f.write(f"AUC: {auc}\n")
             f.write(f"LogCosh: {LogCosh}\n")
+            # calculate overall time
             f.write("\n")
+
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
