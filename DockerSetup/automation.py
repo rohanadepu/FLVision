@@ -28,7 +28,7 @@ def run_training_node1(dataset_name):
     training_log = f"training_metrics_{dataset_name}.log"
     flag_file = "/tmp/node_1_completed.flag"
 
-    command = f"python3 clientPoisoned.py --node 1 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
+    command = f"python3 clientPoisoned.py --dataset {dataset_name} --node 1 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
 
     print(f"Running training on node 1 with dataset {dataset_name}")
     run_command(command)
