@@ -34,11 +34,11 @@ fi
 run_training_node1() {
     local dataset_name=$1
     local dataset_path=${datasets[$dataset_name]}
-    local evaluation_log="evaluation_metrics_${dataset_name}.txt"
-    local training_log="training_metrics_${dataset_name}.txt"
+    local evaluation_log="evaluation_metrics_${dataset_name}.log"
+    local training_log="training_metrics_${dataset_name}.log"
     local flag_file="/tmp/node_1_completed.flag"
 
-    local command="python3 clientPoisoned.py \
+    local command="python3 /path/to/clientPoisoned.py \
         --node 1 \
         --dataset_path $dataset_path \
         --evaluation_log $evaluation_log \
@@ -85,7 +85,7 @@ run_training_node2() {
 
 run_server() {
     echo "Starting the server node"
-    python3 server.py
+    python3 /path/to/server.py
     echo "Server node completed"
 }
 
