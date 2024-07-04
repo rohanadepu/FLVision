@@ -89,10 +89,10 @@ def main():
     if node_number == 1:
         for dataset_name in datasets_to_use:
             run_training_node1(dataset_name)
-    elif node_number >= 2:
+    elif node_number == 2:
         for dataset_name in datasets_to_use:
             run_training_node2(dataset_name)
-    elif node_number == 0:
+    elif node_number == 3:
         run_server()
     else:
         print(f"Unknown node number: {node_number}")
