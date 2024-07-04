@@ -69,7 +69,7 @@ def run_server():
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script")
-    parser.add_argument("--node", type=str, required=True, help="Node number (1 or 2) or 'server' for the server node")
+    parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2) or '3' for the server node")
     args = parser.parse_args()
 
     node_number = args.node
@@ -80,7 +80,7 @@ def main():
     elif node_number == 2:
         for dataset_name in ["IOTBOTNET", "IOTBOTNET", "CICIOT", "CICIOT"]:
             run_training_node2(dataset_name)
-    elif node_number == "server":
+    elif node_number == 3:
         run_server()
     else:
         print(f"Unknown node number: {node_number}")
