@@ -27,8 +27,9 @@ def run_training_node1(dataset_name):
     evaluation_log = f"evaluation_metrics_{dataset_name}.log"
     training_log = f"training_metrics_{dataset_name}.log"
     flag_file = "/tmp/node_1_completed.flag"
+    dataset_type = "IOTBOTNET" if "IOTBOTNET" in dataset_name else "CICIOT"
 
-    command = f"python3 clientPoisoned.py --dataset IOTBOTNET --node 1 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
+    command = f"python3 clientPoisoned.py --dataset {dataset_type} --node 1 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
 
     print(f"Running training on node 1 with dataset {dataset_name}")
     run_command(command)
@@ -40,17 +41,14 @@ def run_training_node1(dataset_name):
     print(f"Node 1 completed training with dataset {dataset_name}")
 
 def run_training_node2(dataset_name):
-    if "IOTBOTNET" in dataset_name:
-        clean_dataset_name = "IOTBOTNET"
-    else:
-        clean_dataset_name = "CICIOT"
-
+    clean_dataset_name = "IOTBOTNET" if "IOTBOTNET" in dataset_name else "CICIOT"
     dataset_path = clean_datasets[clean_dataset_name]
     evaluation_log = f"evaluation_metrics_{clean_dataset_name}_CLEAN.log"
     training_log = f"training_metrics_{clean_dataset_name}_CLEAN.log"
     flag_file = "/tmp/node_2_completed.flag"
+    dataset_type = "IOTBOTNET" if "IOTBOTNET" in dataset_name else "CICIOT"
 
-    command = f"python3 clientPoisoned.py --dataset IOTBOTNET --node 2 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
+    command = f"python3 clientPoisoned.py --dataset {dataset_type} --node 2 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
 
     print(f"Running training on node 2 with dataset {clean_dataset_name} (clean)")
     run_command(command)
@@ -62,25 +60,38 @@ def run_training_node2(dataset_name):
     print(f"Node 2 completed training with dataset {clean_dataset_name}")
 
 def run_server():
-    print("Starting the server node")
-    command = "python3 server.py"
-    run_command(command)
-    print("Server node completed")
+    while True:
+        print("Starting the server node")
+        command = "python3 server.py"
+        run_command(command)
+        print("Server node completed. Restarting...")
+
+def parse_datasets(dataset_input):
+    dataset_map = {
+        'i33': 'IOTBOTNET_33',
+        'i66': 'IOTBOTNET_66',
+        'c33': 'CICIOT_33',
+        'c66': 'CICIOT_66',
+    }
+    return [dataset_map[ds] for ds in dataset_input]
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script")
     parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2) or '3' for the server node")
+    parser.add_argument('--datasets', type=str, required=True, help='Datasets to use, e.g., "i33c33c66"')
     args = parser.parse_args()
 
     node_number = args.node
+    dataset_input = args.datasets
+    datasets_to_use = parse_datasets(dataset_input.split())
 
     if node_number == 1:
-        for dataset_name in ["IOTBOTNET_33", "IOTBOTNET_66", "CICIOT_33", "CICIOT_66"]:
+        for dataset_name in datasets_to_use:
             run_training_node1(dataset_name)
-    elif node_number == 2:
-        for dataset_name in ["IOTBOTNET", "IOTBOTNET", "CICIOT", "CICIOT"]:
+    elif node_number >= 2:
+        for dataset_name in datasets_to_use:
             run_training_node2(dataset_name)
-    elif node_number == 3:
+    elif node_number == 0:
         run_server()
     else:
         print(f"Unknown node number: {node_number}")
