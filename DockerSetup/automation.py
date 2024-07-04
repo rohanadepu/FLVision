@@ -69,7 +69,7 @@ def run_server():
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script")
-    parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2) or 'server' for the server node")
+    parser.add_argument("--node", type=str, required=True, help="Node number (1 or 2) or 'server' for the server node")
     args = parser.parse_args()
 
     node_number = args.node

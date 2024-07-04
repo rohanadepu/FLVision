@@ -57,11 +57,11 @@ parser = argparse.ArgumentParser(description='Select dataset, model selection, e
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
-parser.add_argument("--node", type=int, required=True, help="Node number (1 or 2)")
-parser.add_argument("--dataset_path", type=str, required=True, help="Path to the dataset")
+parser.add_argument("--node", type=str, help="Node number (1 or 2)")
+parser.add_argument("--dataset_path", type=str, help="Path to the dataset")
 parser.add_argument("--clean_dataset_path", type=str, help="Path to the clean dataset (only for node 2)")
-parser.add_argument("--evaluation_log", type=str, required=True, help="Name of the evaluation log file")
-parser.add_argument("--training_log", type=str, required=True, help="Name of the training log file")
+parser.add_argument("--evaluation_log", type=str, help="Name of the evaluation log file")
+parser.add_argument("--training_log", type=str, help="Name of the training log file")
    
 
 args = parser.parse_args()
