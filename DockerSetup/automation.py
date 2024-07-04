@@ -50,7 +50,7 @@ def run_training_node2(dataset_name):
     training_log = f"training_metrics_{clean_dataset_name}_CLEAN.log"
     flag_file = "/tmp/node_2_completed.flag"
 
-    command = f"python3 clientPoisoned.py --node 2 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
+    command = f"python3 clientPoisoned.py --dataset IOTBOTNET --node 2 --dataset_path {dataset_path} --evaluation_log {evaluation_log} --training_log {training_log}"
 
     print(f"Running training on node 2 with dataset {clean_dataset_name} (clean)")
     run_command(command)
