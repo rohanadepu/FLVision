@@ -71,9 +71,20 @@ model_selection = args.model
 DP_enabled = args.dp
 dataset_path = args.dataset_path
 node_number = args.node
-evaluation_log = os.path.join("/path/to/logs", args.evaluation_log)  # Modify this path as needed
-training_log = os.path.join("/path/to/logs", args.training_log)  # Modify this path as needed
+evaluation_log = args.evaluation_log
+training_log = args.training_log
 clean_dataset_path = args.clean_dataset_path
+
+# Update the DATASET_DIRECTORY variable
+global DATASET_DIRECTORY
+DATASET_DIRECTORY = dataset_path
+
+print(f"Node {node_number}: Training with dataset at {dataset_path}")
+print(f"Training log will be saved to: {training_log}")
+print(f"Evaluation log will be saved to: {evaluation_log}")
+
+if node_number == 2 and clean_dataset_path:
+    print(f"Node {node_number}: Using clean dataset at {clean_dataset_path}")
 
 print("\n ////////////////////////////// \n")
 print("Federated Learning Training Demo:", "\n")
@@ -1022,7 +1033,9 @@ model.summary()
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
         return model.get_weights()
-
+    flag_file = f"/tmp/node_{node_number}_completed.flag"
+    with open(flag_file, 'w') as f:
+        f.write(f"Node {node_number} completed training with dataset {dataset_path}")
     def fit(self, parameters, config):
         model.set_weights(parameters)
 
