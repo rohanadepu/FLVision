@@ -5,6 +5,9 @@ import os
 import subprocess
 import sys
 
+#########################################################
+#    Automate Functions                               #
+#########################################################
 
 # Function to create folder structure
 def create_folder_structure(base_dir):
@@ -68,21 +71,27 @@ def clone_git_repo(repo_url, clone_dir):
     except subprocess.CalledProcessError as e:
         print(f"Error cloning repository: {e}")
 
+#########################################################
+#    Execution                                          #
+#########################################################
 
 if __name__ == "__main__":
 
     # --- Settings --- #
+
     base_directory = "/root"  # Replace with your base directory path
     requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements.txt"  # Replace with the path to your requirements.txt
     git_repo_url = "https://github.com/rohanadepu/FLVision.git"  # Replace with your Git repository URL
     clone_dir = "/root/FLVision"
 
-    # First Create the folder structure for the datasets
+    # --- Steps --- #
+
+    # First, Create the folder structure for the datasets
     create_folder_structure(base_directory)
 
-    # clone the project into the node
+    # Second, clone the project into the node
     clone_git_repo(git_repo_url, clone_dir)
 
-    # install the dependencies from the project
+    # third, install the dependencies from the project
     install_dependencies(requirements_file_path)
 
