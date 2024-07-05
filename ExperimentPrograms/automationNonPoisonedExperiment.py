@@ -9,6 +9,8 @@ datasets = {
     "IOTBOTNET_66": "/root/attacks/IOTBOTNET2020_POISONED66/IOTBOTNET2020/iotbotnet2020_archive",
     "CICIOT_33": "/root/attacks/CICIOT2023_POISONED33/CICIOT2023/ciciot2023_archive",
     "CICIOT_66": "/root/attacks/CICIOT2023_POISONED66/CICIOT2023/ciciot2023_archive",
+    "IOTBOTNET_baseline": "/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive",
+    "CICIOT_baseline": "/root/attacks/CICIOT2023/CICIOT2023/ciciot2023_archive",
 }
 
 # Clean datasets paths for node 2
@@ -73,6 +75,8 @@ def parse_datasets(dataset_input):
         'i66': 'IOTBOTNET_66',
         'c33': 'CICIOT_33',
         'c66': 'CICIOT_66',
+        'i': 'IOTBOTNET_baseline',
+        'c': 'CICIOT_baseline'
     }
     return [dataset_map[ds] for ds in dataset_input]
 
