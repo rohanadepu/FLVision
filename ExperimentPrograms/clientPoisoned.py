@@ -1055,7 +1055,7 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_{self.roundCount}.txt', 'a') as f:
+        with open(training_log, 'a') as f:
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
