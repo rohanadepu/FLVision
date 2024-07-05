@@ -15,11 +15,11 @@ Undergraduate Researchers:
 
 ## Steps to Run
 
+
 * Clone the repo
 
-* Open terminal in the DockerSetup directory
-
 * Run with Docker: 
+  * Open terminal in the DockerSetup directory
   * docker-compose up
   
 * If there was an error, run:
