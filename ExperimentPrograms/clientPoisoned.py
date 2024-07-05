@@ -101,6 +101,18 @@ if DP_enabled:
 
 if dataset_used == "CICIOT":
 
+    # ---                   Data Loading Settings                     --- #
+
+    # Sample size for train and test datasets
+    ciciot_train_sample_size = 20  # input: 3 samples for training
+    ciciot_test_sample_size = 1  # input: 1 sample for testing
+
+    # label classes 33+1 7+1 1+1
+    ciciot_label_class = "1+1"
+
+    # directory of the stored data samples
+    DATASET_DIRECTORY = dataset_path
+
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
@@ -189,17 +201,6 @@ if dataset_used == "CICIOT":
         balanced_data = pd.concat([attack_samples, benign_samples])
         return balanced_data, len(benign_samples)
 
-    # ---                   Data Loading Settings                     --- #
-
-    # Sample size for train and test datasets
-    ciciot_train_sample_size = 20  # input: 3 samples for training
-    ciciot_test_sample_size = 1  # input: 1 sample for testing
-
-    # label classes 33+1 7+1 1+1
-    ciciot_label_class = "1+1"
-
-    # directory of the stored data samples
-    DATASET_DIRECTORY = dataset_path
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -291,7 +292,7 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-        # ---                   Feature Selection                --- #
+    # ---                   Feature Selection                --- #
 
     print("Selecting Features...")
 
@@ -410,6 +411,13 @@ if dataset_used == "CICIOT":
 
 if dataset_used == "IOTBOTNET":
 
+    # ---                  Data loading Settings                  --- #
+
+    # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
+    sample_size = 1
+
+    DATASET_DIRECTORY = dataset_path
+
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
         'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
@@ -500,14 +508,6 @@ if dataset_used == "IOTBOTNET":
 
         return balanced_dataframe
 
-
-    # ---                  Data loading Settings                  --- #
-
-    # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
-    sample_size = 1
-
-    DATASET_DIRECTORY = dataset_path
-
     # ---                   Load Each Attack Dataset                 --- #
 
     print("Loading DDOS Data...")
@@ -586,15 +586,6 @@ if dataset_used == "IOTBOTNET":
     all_attacks_combined = combine_all_attacks([
         ddos_combined, dos_combined, scan_combined, theft_combined
     ])
-
-    ## DEBUG
-    # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_udp_data, ddos_tcp_data, ddos_http_data
-    # ])
-    #
-    # # all_attacks_combined = scan_os_data
-    ## EOF DEBUG
 
     print("Attack Data Loaded & Combined...")
 
@@ -1033,9 +1024,11 @@ model.summary()
 
 class FLClient(fl.client.NumPyClient):
     def get_parameters(self, config):
+        # get the weights from the server
         return model.get_weights()
 
     def fit(self, parameters, config):
+        # set the weights from the received parameters
         model.set_weights(parameters)
 
         # Train Model
@@ -1048,19 +1041,21 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         with open(training_log, 'a') as f:
+
+            # Notify node completion
+            f.write(f"Node {node_number} completed training with dataset {dataset_path}")
+
+            # Record Metrics for each epoch
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
                 for metric, values in history.history.items():
                     f.write(f"{metric}: {values[epoch]}\n")
                 f.write("\n")
 
-        flag_file = f"/tmp/node_{node_number}_completed.flag"
-        with open(flag_file, 'w') as f:
-            f.write(f"Node {node_number} completed training with dataset {dataset_path}")
-
         return model.get_weights(), len(X_train_data), {}  # empty dict. for extra metrics
 
     def evaluate(self, parameters, config):
+        # set the same weights during training cycle
         model.set_weights(parameters)
 
         # Test the model
@@ -1073,6 +1068,7 @@ class FLClient(fl.client.NumPyClient):
             f.write(f"AUC: {auc}\n")
             f.write(f"LogCosh: {LogCosh}\n")
             f.write("\n")
+
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": LogCosh
                                         }
