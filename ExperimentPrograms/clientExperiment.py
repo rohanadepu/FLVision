@@ -78,6 +78,18 @@ if DP_enabled:
 
 if dataset_used == "CICIOT":
 
+    # ---                   Data Loading Settings                     --- #
+
+    # Sample size for train and test datasets
+    ciciot_train_sample_size = 20  # input: 3 samples for training
+    ciciot_test_sample_size = 1  # input: 1 sample for testing
+
+    # label classes 33+1 7+1 1+1
+    ciciot_label_class = "1+1"
+
+    # directory of the stored data samples
+    DATASET_DIRECTORY = '../../trainingDataset/'
+
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
     num_cols = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
@@ -165,18 +177,6 @@ if dataset_used == "CICIOT":
         # Bring both samples together
         balanced_data = pd.concat([attack_samples, benign_samples])
         return balanced_data, len(benign_samples)
-
-    # ---                   Data Loading Settings                     --- #
-
-    # Sample size for train and test datasets
-    ciciot_train_sample_size = 20  # input: 3 samples for training
-    ciciot_test_sample_size = 1  # input: 1 sample for testing
-
-    # label classes 33+1 7+1 1+1
-    ciciot_label_class = "1+1"
-
-    # directory of the stored data samples
-    DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -387,6 +387,13 @@ if dataset_used == "CICIOT":
 
 if dataset_used == "IOTBOTNET":
 
+    # ---                  Data loading Settings                  --- #
+
+    # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
+    sample_size = 1
+
+    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
         'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max', 'Flow_IAT_Mean',
@@ -478,13 +485,6 @@ if dataset_used == "IOTBOTNET":
         return balanced_dataframe
 
 
-    # ---                  Data loading Settings                  --- #
-
-    # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
-    sample_size = 1
-
-    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
-
     # ---                   Load Each Attack Dataset                 --- #
 
     print("Loading DDOS Data...")
@@ -563,15 +563,6 @@ if dataset_used == "IOTBOTNET":
     all_attacks_combined = combine_all_attacks([
         ddos_combined, dos_combined, scan_combined, theft_combined
     ])
-
-    ## DEBUG
-    # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_udp_data, ddos_tcp_data, ddos_http_data
-    # ])
-    #
-    # # all_attacks_combined = scan_os_data
-    ## EOF DEBUG
 
     print("Attack Data Loaded & Combined...")
 
