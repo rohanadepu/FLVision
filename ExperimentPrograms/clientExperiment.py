@@ -8,8 +8,11 @@ import time
 import argparse
 
 import flwr as fl
+from flwr.client.mod import fixedclipping_mod
+from flwr.client.mod.localdp_mod import LocalDpMod
 
 import tensorflow as tf
+import tensorflow_model_optimization as tfmot
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
@@ -48,6 +51,9 @@ from sklearn.utils import shuffle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+print("\n ////////////////////////////// \n")
+print("Federated Learning Training Demo:", "\n")
+
 #########################################################
 #    Script Parameters                               #
 #########################################################
@@ -56,21 +62,29 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
-parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy')
+parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod')
+parser.add_argument('--pruning', action='store_true', help='Enable model pruning')
+parser.add_argument('--adversarial', action='store_true', help='Enable model pruning')
 
+# init variables to handle arguments
 args = parser.parse_args()
 
 dataset_used = args.dataset
 model_selection = args.model
 DP_enabled = args.dp
+pruningEnabled = args.pruning
+adversarialTrainingEnabled = args.adversarial
 
-print("\n ////////////////////////////// \n")
-print("Federated Learning Training Demo:", "\n")
-
+# display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
 print("Selected MODEL:", model_selection, "\n")
-if DP_enabled:
-    print("Differential Privacy Enabled", "\n")
+if DP_enabled == 1:
+    print("Differential Privacy Engine Enabled", "\n")
+if DP_enabled == 2:
+    print("Differential Privacy Mod Enabled", "\n")
+if pruningEnabled:
+    print("Pruning Enabled", "\n")
+
 
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
@@ -759,6 +773,29 @@ steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
+
+# Define the pruning parameters
+pruning_params = {
+    'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
+        initial_sparsity=0.0,
+        final_sparsity=0.5,
+        begin_step=0,
+        end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
+    )
+}
+
+# set hyperparameters for callback
+es_patience = 5
+restor_best_w = True
+
+l2lr_patience = 3
+l2lr_factor = 0.1
+
+metric_to_monitor = 'auc'
+
+save_best_only = True
+checkpoint_mode = "min"
+
 print("\n /////////////////////////////////////////////// \n")
 print("Hyperparameters:")
 print("Input Dim (Feature Size):", input_dim)
@@ -778,83 +815,7 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-
-    if model_selection == "5A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "2A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "3A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "4A":
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(28, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    if model_selection == "1A":
+    if not pruningEnabled and model_selection == "1A":
         # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -876,7 +837,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == "1B":
+    elif not pruningEnabled and model_selection == "1B":
         # without regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -898,13 +859,59 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
+    elif pruningEnabled and model_selection == "1A":
+        model = tf.keras.Sequential([
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+        ])
+
+    elif pruningEnabled and model_selection == "1B":
+        model = tf.keras.Sequential([
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(32, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
+        ])
+
 # ---                   IOTBOTNET Model                  --- #
 
 if dataset_used == "IOTBOTNET":
 
     # --- Model Definitions --- #
 
-    if model_selection == "1A":
+    if not pruningEnabled and model_selection == "1A":
         # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -923,7 +930,7 @@ if dataset_used == "IOTBOTNET":
             Dense(1, activation='sigmoid')
         ])
 
-    if model_selection == "1B":
+    elif not pruningEnabled and model_selection == "1B":
         # without regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -942,9 +949,42 @@ if dataset_used == "IOTBOTNET":
             Dense(1, activation='sigmoid')
         ])
 
-# ---                   Differential Privacy Model Compile              --- #
+    elif pruningEnabled and model_selection == "1A":
+        model = tf.keras.Sequential([
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
+        ])
 
-if DP_enabled:
+    elif pruningEnabled and model_selection == "1B":
+        model = tf.keras.Sequential([
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu'), **pruning_params),
+            BatchNormalization(),
+            Dropout(0.5),
+            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
+        ])
+        # ---                   Differential Privacy Engine Model Compile              --- #
+
+if DP_enabled == 1:
     print("Including DP into optimizer...")
     # Making Custom Optimizer Component with Differential Privacy
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -963,7 +1003,7 @@ if DP_enabled:
 
 # ---              Normal Model Compile                        --- #
 
-if not DP_enabled:
+else:
     print("Default optimizer...")
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer= optimizer,
@@ -972,23 +1012,25 @@ if not DP_enabled:
 
 
 # ---                   Callback components                   --- #
+# init main call back functions list
+callbackFunctions = []
 
-# set hyperparameters for callback
-es_patience = 5
-restor_best_w = True
-
-l2lr_patience = 3
-l2lr_factor = 0.1
-
-metric_to_monitor = 'auc'
-
-save_best_only = True
-checkpoint_mode = "min"
+if pruningEnabled:
+    # Add pruning callbacks
+    pruning_callbacks = [
+        tfmot.sparsity.keras.UpdatePruningStep(),
+        tfmot.sparsity.keras.PruningSummaries(log_dir='/tmp/pruning_logs')
+    ]
+    # add it to main callback function list
+    callbackFunctions += pruning_callbacks
 
 # early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
 # lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
 model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
                                    monitor=metric_to_monitor, mode=checkpoint_mode)
+
+# add to callback functions being added during fitting
+callbackFunctions += model_checkpoint
 
 # ---                   Model Analysis                   --- #
 
@@ -1001,8 +1043,10 @@ model.summary()
 
 class FLClient(fl.client.NumPyClient):
 
-    roundCount = 0
-    evaluateCount = 0
+    def __init__(self, model_used):
+        self.model = model_used
+        self.roundCount = 0
+        self.evaluateCount = 0
 
     def get_parameters(self, config):
         return model.get_weights()
@@ -1017,11 +1061,15 @@ class FLClient(fl.client.NumPyClient):
         # Record start time
         start_time = time.time()
 
-        model.set_weights(parameters)
+        self.model.set_weights(parameters)
 
         # Train Model
-        history = model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
-                            steps_per_epoch=steps_per_epoch, callbacks=[model_checkpoint])
+        history = self.model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
+                            steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
+
+        if pruningEnabled:
+            # Strip the pruning wrappers and save the pruned model
+            self.model = tfmot.sparsity.keras.strip_pruning(self.model)
 
         # Record end time and calculate elapsed time
         end_time = time.time()
@@ -1032,6 +1080,7 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
+        # fix
         with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_{self.roundCount}.txt', 'a') as f:
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
@@ -1052,16 +1101,18 @@ class FLClient(fl.client.NumPyClient):
         # Record start time
         start_time = time.time()
 
-        model.set_weights(parameters)
+        # set the weights given from server
+        self.model.set_weights(parameters)
 
         # Test the model
-        loss, accuracy, precision, recall, auc, logcosh = model.evaluate(X_test_data, y_test_data)
+        loss, accuracy, precision, recall, auc, logcosh = self.model.evaluate(X_test_data, y_test_data)
 
         # Record end time and calculate elapsed time
         end_time = time.time()
         elapsed_time = end_time - start_time
 
         # Save metrics to file
+        # fix
         with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_{self.evaluateCount}', 'a') as f:
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
@@ -1080,5 +1131,19 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
+if DP_enabled == 2:
 
-fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient().to_client())
+    # Create an instance of the LocalDpMod with the required params
+    local_dp_obj = LocalDpMod(
+        l2_norm_clip, 1.0, 1e-5, 1e-5  # Replace with actual values for sensitivity, epsilon, and delta
+    )
+
+    # Add local_dp_obj to the client-side mods
+    app = fl.client.ClientApp(
+        client_fn= FLClient,
+        mods=[fixedclipping_mod, local_dp_obj],
+    )
+    app.start("192.168.117.3:8080")
+
+else:
+    fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(model).to_client())
