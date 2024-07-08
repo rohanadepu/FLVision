@@ -211,7 +211,7 @@ PyQt5==5.15.10
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.13.0
 pyserial==3.5
-python-apt==2.4.0+ubuntu3
+python-apt==2.4.0
 python-box==7.2.0
 python-dateutil==2.8.2
 python-dotenv==1.0.1
