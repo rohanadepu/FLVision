@@ -68,10 +68,10 @@ parser.add_argument('--model', type=str, default="1A", help='Model selection: (R
 parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod')
 parser.add_argument('--pruning', action='store_true', help='Enable model pruning')
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training')
-parser.add_argument('--earlyStop', action='store_true', help='Enable model adversarial training')
-parser.add_argument('--lrSched', action='store_true', help='Enable model adversarial training')
-parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model adversarial training')
-parser.add_argument('--secAggP', action='store_true', help='Enable model adversarial training')
+parser.add_argument('--earlyStop', action='store_true', help='Enable model early stop training')
+parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training')
+parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model model checkpoint training')
+parser.add_argument('--secAggP', action='store_true', help='Enable model sec agg plusse training')
 
 
 # init variables to handle arguments
@@ -1089,6 +1089,10 @@ model.summary()
 
 # Function to generate adversarial examples using FGSM
 def create_adversarial_example(model, x, y, epsilon=0.01):
+    # Ensure x is a tensor
+    x = tf.convert_to_tensor(x, dtype=tf.float32)
+    y = tf.convert_to_tensor(y, dtype=tf.float32)
+
     with tf.GradientTape() as tape:
         tape.watch(x)
         prediction = model(x)
