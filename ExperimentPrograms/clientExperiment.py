@@ -79,17 +79,26 @@ earlyStopEnabled = False
 lrSchedRedEnabled = False
 modelCheckpointEnabled = True
 
-
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
 print("Selected MODEL:", model_selection, "\n")
+
 if DP_enabled == 1:
     print("Differential Privacy Engine Enabled", "\n")
-if DP_enabled == 2:
+elif DP_enabled == 2:
     print("Differential Privacy Mod Enabled", "\n")
+else:
+    print("Differential Privacy Disabled", "\n")
+
 if pruningEnabled:
     print("Pruning Enabled", "\n")
+else:
+    print("Pruning Disabled", "\n")
 
+if adversarialTrainingEnabled:
+    print("Adversarial Training Enabled", "\n")
+else:
+    print("Adversarial Training Disabled", "\n")
 
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
