@@ -88,7 +88,11 @@ def main():
 
     node_number = args.node
     dataset_input = args.datasets
-    datasets_to_use = parse_datasets(dataset_input.split())
+
+    if dataset_input is not None:
+        datasets_to_use = parse_datasets(dataset_input.split())
+    else:
+        datasets_to_use = []
 
     if node_number == 1:
         for dataset_name in datasets_to_use:
