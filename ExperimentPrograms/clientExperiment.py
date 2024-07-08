@@ -15,6 +15,7 @@ from flwr.client.mod import fixedclipping_mod
 from flwr.client.mod.localdp_mod import LocalDpMod
 
 import tensorflow as tf
+import tf_keras as keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
