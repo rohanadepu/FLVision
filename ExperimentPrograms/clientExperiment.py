@@ -15,15 +15,13 @@ from flwr.client.mod import fixedclipping_mod
 from flwr.client.mod.localdp_mod import LocalDpMod
 
 import tensorflow as tf
-from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-import tensorflow_model_optimization as tfmot
-from tensorflow_model_optimization.python.core.keras.compat import keras
+
 from sklearn.model_selection import KFold
 import tensorflow_privacy as tfp
 
@@ -83,6 +81,8 @@ adversarialTrainingEnabled = args.adversarial
 earlyStopEnabled = False
 lrSchedRedEnabled = False
 modelCheckpointEnabled = True
+
+secAggPlusEnabled = False
 
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
@@ -792,16 +792,18 @@ steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
 input_dim = X_train_data.shape[1]  # dependant
 
+if pruningEnabled:
+    import tensorflow_model_optimization as tfmot
 
-# Define the pruning parameters
-pruning_params = {
-    'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
-        initial_sparsity=0.0,
-        final_sparsity=0.5,
-        begin_step=0,
-        end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
-    )
-}
+    # Define the pruning parameters
+    pruning_params = {
+        'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
+            initial_sparsity=0.0,
+            final_sparsity=0.5,
+            begin_step=0,
+            end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
+        )
+    }
 
 # set hyperparameters for callback
 es_patience = 5
@@ -1075,6 +1077,21 @@ if modelCheckpointEnabled:
 model.summary()
 
 #########################################################
+#    Adversarial Training Functions                     #
+#########################################################
+
+# Function to generate adversarial examples using FGSM
+def create_adversarial_example(model, x, y, epsilon=0.01):
+    with tf.GradientTape() as tape:
+        tape.watch(x)
+        prediction = model(x)
+        loss = tf.keras.losses.binary_crossentropy(y, prediction)
+    gradient = tape.gradient(loss, x)
+    perturbation = epsilon * tf.sign(gradient)
+    adversarial_example = x + perturbation
+    return adversarial_example
+
+#########################################################
 #    Federated Learning Setup                           #
 #########################################################
 
@@ -1101,9 +1118,23 @@ class FLClient(fl.client.NumPyClient):
 
         self.model.set_weights(parameters)
 
-        # Train Model
-        history = self.model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
-                            steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
+        if adversarialTrainingEnabled:
+            # Adversarial Training
+            adv_X_train_data = np.array(
+                [create_adversarial_example(model, x, y) for x, y in zip(X_train_data, y_train_data)])
+
+            # Combine original and adversarial data
+            combined_X_train_data = np.concatenate((X_train_data, adv_X_train_data))
+            combined_y_train_data = np.concatenate((y_train_data, y_train_data))
+
+            # train with
+            history = model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
+                                steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
+
+        else:
+            # Train Model
+            history = self.model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
+                                steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
 
         if pruningEnabled:
             # Strip the pruning wrappers and save the pruned model
@@ -1173,7 +1204,7 @@ if DP_enabled == 2:
 
     # Create an instance of the LocalDpMod with the required params
     local_dp_obj = LocalDpMod(
-        l2_norm_clip, 1.0, 1e-5, 1e-5  # Replace with actual values for sensitivity, epsilon, and delta
+        l2_norm_clip, 1.0, 1.0, 1e-6  # Replace with actual values for sensitivity, epsilon, and delta
     )
 
     # Add local_dp_obj to the client-side mods
@@ -1182,6 +1213,22 @@ if DP_enabled == 2:
         mods=[fixedclipping_mod, local_dp_obj],
     )
     app.start("192.168.117.3:8080")
+
+elif secAggPlusEnabled:
+
+    from flwr.common import SecAggClientConfig
+
+    # Configure the client for SecAgg+
+    secagg_client_config = SecAggClientConfig(
+        secagg_type="SecAgg+",  # Enable SecAgg+
+    )
+
+    # Start the client and connect to the server
+    fl.client.start_client(
+        server_address="localhost:8080",
+        client=SimpleClient(),
+        secagg_config=secagg_client_config
+    )
 
 else:
     fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(model).to_client())
