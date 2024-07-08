@@ -68,21 +68,28 @@ parser.add_argument('--model', type=str, default="1A", help='Model selection: (R
 parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod')
 parser.add_argument('--pruning', action='store_true', help='Enable model pruning')
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training')
+parser.add_argument('--earlyStop', action='store_true', help='Enable model adversarial training')
+parser.add_argument('--lrSched', action='store_true', help='Enable model adversarial training')
+parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model adversarial training')
+parser.add_argument('--secAggP', action='store_true', help='Enable model adversarial training')
+
 
 # init variables to handle arguments
 args = parser.parse_args()
 
 dataset_used = args.dataset
 model_selection = args.model
+
 DP_enabled = args.dp
+
 pruningEnabled = args.pruning
 adversarialTrainingEnabled = args.adversarial
 
-earlyStopEnabled = False
-lrSchedRedEnabled = False
-modelCheckpointEnabled = True
+earlyStopEnabled = args.earlyStop
+lrSchedRedEnabled = args.lrSched
+modelCheckpointEnabled = args.modelCheckpoint
 
-secAggPlusEnabled = False
+secAggPlusEnabled = args.secAggP
 
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
