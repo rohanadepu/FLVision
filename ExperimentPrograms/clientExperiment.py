@@ -12,13 +12,13 @@ from flwr.client.mod import fixedclipping_mod
 from flwr.client.mod.localdp_mod import LocalDpMod
 
 import tensorflow as tf
-import tensorflow_model_optimization as tfmot
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+import tensorflow_model_optimization as tfmot
 from sklearn.model_selection import KFold
 import tensorflow_privacy as tfp
 
@@ -1114,7 +1114,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_{self.roundCount}.txt', 'a') as f:
+        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_prune_{pruningEnabled}_round_{self.roundCount}.txt', 'a') as f:
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
@@ -1146,7 +1146,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_{self.evaluateCount}', 'a') as f:
+        with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_prune_{pruningEnabled}_round_{self.evaluateCount}', 'a') as f:
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
