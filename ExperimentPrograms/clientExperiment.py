@@ -64,7 +64,7 @@ parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFA
 parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
 parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod')
 parser.add_argument('--pruning', action='store_true', help='Enable model pruning')
-parser.add_argument('--adversarial', action='store_true', help='Enable model pruning')
+parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training')
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -74,6 +74,11 @@ model_selection = args.model
 DP_enabled = args.dp
 pruningEnabled = args.pruning
 adversarialTrainingEnabled = args.adversarial
+
+earlyStopEnabled = False
+lrSchedRedEnabled = False
+modelCheckpointEnabled = True
+
 
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
@@ -810,7 +815,9 @@ print("L2_alpha:", l2_alpha)
 print("L2_norm clip:", l2_norm_clip)
 print("Noise Multiplier:", noise_multiplier)
 
-# ---                   CICIOT Model                   --- #
+# ---             !!! INITIALIZE MODEL !!!                --- #
+
+# ---                   CICIOT Models                   --- #
 
 if dataset_used == "CICIOT":
 
@@ -905,7 +912,7 @@ if dataset_used == "CICIOT":
             tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
         ])
 
-# ---                   IOTBOTNET Model                  --- #
+# ---                   IOTBOTNET Models                  --- #
 
 if dataset_used == "IOTBOTNET":
 
@@ -982,7 +989,8 @@ if dataset_used == "IOTBOTNET":
             Dropout(0.5),
             tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
         ])
-        # ---                   Differential Privacy Engine Model Compile              --- #
+
+# ---         Differential Privacy Engine Model Compile              --- #
 
 if DP_enabled == 1:
     print("Including DP into optimizer...")
@@ -1012,25 +1020,37 @@ else:
 
 
 # ---                   Callback components                   --- #
+
 # init main call back functions list
 callbackFunctions = []
 
 if pruningEnabled:
-    # Add pruning callbacks
+    # Add pruning callbacks if enabled
     pruning_callbacks = [
         tfmot.sparsity.keras.UpdatePruningStep(),
         tfmot.sparsity.keras.PruningSummaries(log_dir='/tmp/pruning_logs')
     ]
+
     # add it to main callback function list
     callbackFunctions += pruning_callbacks
 
-# early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
-# lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
-model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
+# init main callback functions
+if earlyStopEnabled:
+    early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
+
+    callbackFunctions += early_stopping
+
+if lrSchedRedEnabled:
+    lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
+
+    callbackFunctions += lr_scheduler
+
+if modelCheckpointEnabled:
+    model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
                                    monitor=metric_to_monitor, mode=checkpoint_mode)
 
-# add to callback functions being added during fitting
-callbackFunctions += model_checkpoint
+    # add to callback functions list being added during fitting
+    callbackFunctions += model_checkpoint
 
 # ---                   Model Analysis                   --- #
 
