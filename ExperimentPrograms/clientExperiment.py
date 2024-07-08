@@ -1033,6 +1033,8 @@ else:
 # init main call back functions list
 callbackFunctions = []
 
+# init callback functions based on inputs
+
 if pruningEnabled:
     # Add pruning callbacks if enabled
     pruning_callbacks = [
@@ -1043,16 +1045,18 @@ if pruningEnabled:
     # add it to main callback function list
     callbackFunctions += pruning_callbacks
 
-# init main callback functions
+
 if earlyStopEnabled:
     early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
 
     callbackFunctions += early_stopping
 
+
 if lrSchedRedEnabled:
     lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
 
     callbackFunctions += lr_scheduler
+
 
 if modelCheckpointEnabled:
     model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
