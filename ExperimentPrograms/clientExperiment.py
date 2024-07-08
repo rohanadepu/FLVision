@@ -7,6 +7,9 @@ import random
 import time
 import argparse
 
+if 'TF_USE_LEGACY_KERAS' in os.environ:
+    del os.environ['TF_USE_LEGACY_KERAS']
+
 import flwr as fl
 from flwr.client.mod import fixedclipping_mod
 from flwr.client.mod.localdp_mod import LocalDpMod
