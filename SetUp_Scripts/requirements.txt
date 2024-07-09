@@ -1,5 +1,6 @@
 #if an error occurs mentioning unintalling a distutils package -> find where that package is located within your terminal and directly remove it from there then rerun the file. 
 # Note: if that package has other things dependant on it another solution will need to be found. 
+# Note: tensor flow version may need to be chnaged manually to 2.15.0 to run 
 
 absl-py==1.4.0
 aioice==0.9.0
@@ -96,7 +97,7 @@ sympy==1.12.1
 tbb==2021.12.0
 tensorboard==2.16.2
 tensorboard-data-server==0.7.2
-tensorflow==2.15.0
+tensorflow==2.16.1
 tensorflow-estimator==2.15.0
 tensorflow-intel
 tensorflow-io-gcs-filesystem==0.31.0
