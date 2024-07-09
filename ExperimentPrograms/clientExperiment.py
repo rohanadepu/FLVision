@@ -1161,7 +1161,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'training_metrics_{dataset_used}_optimized.txt', 'a') as f:
+        with open(f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
@@ -1193,7 +1193,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'evaluation_metrics_{dataset_used}_optimized.txt', 'a') as f:
+        with open(f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
