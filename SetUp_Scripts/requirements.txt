@@ -1,3 +1,7 @@
+#if an error occurs mentioning unintalling a distutils package -> find where that package is located within your terminal and directly remove it from there then rerun the file.
+# Note: if that package has other things dependant on it another solution will need to be found.
+# Note2: tensorflow version might need to be manually chnaged to 2.15.0 (pip install --upgrade tensorflow==2.15.0)
+
 absl-py==1.4.0
 aiohttp==3.9.5
 aioice==0.9.0
