@@ -78,7 +78,7 @@ parser.add_argument('--mChkpnt', action='store_true', help='Enable model model c
 parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
 parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "GN33", "GN66", None], default= None, help="Label Flip: LF33, LF66")
 
-parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}" , help="Name of the training log file")
+parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}", help="Name of the training log file")
 parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics_{time.time()}", help="Name of the evaluation log file")
 
 # init variables to handle arguments
@@ -1145,6 +1145,36 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
     adversarial_example = x + perturbation
     return adversarial_example
 
+
+#########################################################
+#    Metric Saving Functions                           #
+#########################################################
+
+def recordTraining(name, history, elapsed_time, roundCount):
+    # f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
+    with open(name, 'a') as f:
+        f.write(f"Round: {roundCount}\n")
+        f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
+        for epoch in range(epochs):
+            f.write(f"Epoch {epoch + 1}/{epochs}\n")
+            for metric, values in history.history.items():
+                f.write(f"{metric}: {values[epoch]}\n")
+            f.write("\n")
+
+
+def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
+    with open(name, 'a') as f:
+        # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
+        f.write(f"Round: {evaluateCount}\n")
+        f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
+        f.write(f"Loss: {loss}\n")
+        f.write(f"Accuracy: {accuracy}\n")
+        f.write(f"Precision: {precision}\n")
+        f.write(f"Recall: {recall}\n")
+        f.write(f"AUC: {auc}\n")
+        f.write(f"LogCosh: {logcosh}\n")
+        f.write("\n")
+
 #########################################################
 #    Federated Learning Setup                           #
 #########################################################
@@ -1203,14 +1233,8 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open(f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
-            f.write(f"Round: {self.roundCount}\n")
-            f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
-            for epoch in range(epochs):
-                f.write(f"Epoch {epoch+1}/{epochs}\n")
-                for metric, values in history.history.items():
-                    f.write(f"{metric}: {values[epoch]}\n")
-                f.write("\n")
+        logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        recordTraining(logName, history, elapsed_time, self.roundCount)
 
         return model.get_weights(), len(X_train_data), {}
 
@@ -1235,16 +1259,8 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        with open(f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
-            f.write(f"Round: {self.evaluateCount}\n")
-            f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
-            f.write(f"Loss: {loss}\n")
-            f.write(f"Accuracy: {accuracy}\n")
-            f.write(f"Precision: {precision}\n")
-            f.write(f"Recall: {recall}\n")
-            f.write(f"AUC: {auc}\n")
-            f.write(f"LogCosh: {logcosh}\n")
-            f.write("\n")
+        logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        recordEvaluation(logName, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
 
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": logcosh}
