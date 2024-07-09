@@ -76,7 +76,7 @@ parser.add_argument('--mChkpnt', action='store_true', help='Enable model model c
 
 # i got bored and started planning to add the poisoned pipeline into this file cause its less work
 parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
-parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "GN33", "GN66", None], default= None, help="Label Flip: LF33, LF66")
+parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None, help="Label Flip: LF33, LF66")
 
 parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}", help="Name of the training log file")
 parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics_{time.time()}", help="Name of the evaluation log file")
@@ -142,17 +142,16 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '../../trainingDataset/'
+        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '../../trainingDataset/'
+        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED66'
 
-    elif poisonedDataType == "GN33":
-        DATASET_DIRECTORY = '../../trainingDataset/'
-
-
-    elif poisonedDataType == "GN66":
-        DATASET_DIRECTORY = '../../trainingDataset/'
+    # elif poisonedDataType == "FN33":
+    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
+    #
+    # elif poisonedDataType == "FN66":
+    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
 
     else:
         # directory of the stored data samples
@@ -461,16 +460,16 @@ if dataset_used == "IOTBOTNET":
     sample_size = 1
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED66'
 
-    elif poisonedDataType == "GN33":
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
-
-    elif poisonedDataType == "GN66":
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+    # elif poisonedDataType == "FN33":
+    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
+    #
+    # elif poisonedDataType == "FN66":
+    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
 
     else:
         DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
@@ -1153,7 +1152,7 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
 def recordTraining(name, history, elapsed_time, roundCount):
     # f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
-        f.write(f"Round: {roundCount}\n")
+        f.write(f"Node|{node}| Round: {roundCount}\n")
         f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
         for epoch in range(epochs):
             f.write(f"Epoch {epoch + 1}/{epochs}\n")
@@ -1165,7 +1164,7 @@ def recordTraining(name, history, elapsed_time, roundCount):
 def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
     with open(name, 'a') as f:
         # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
-        f.write(f"Round: {evaluateCount}\n")
+        f.write(f"Node|{node}| Round: {evaluateCount}\n")
         f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
         f.write(f"Loss: {loss}\n")
         f.write(f"Accuracy: {accuracy}\n")
