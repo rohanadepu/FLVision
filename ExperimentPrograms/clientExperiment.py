@@ -78,8 +78,8 @@ parser.add_argument('--mChkpnt', action='store_true', help='Enable model model c
 parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
 parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None, help="Label Flip: LF33, LF66")
 
-parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}", help="Name of the training log file")
-parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics_{time.time()}", help="Name of the evaluation log file")
+parser.add_argument("--evalLog", type=str, default=f"training_metrics", help="Name of the training log file")
+parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics", help="Name of the evaluation log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -142,20 +142,20 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED33'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED66'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED66'
 
     # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
+    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
     #
     # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
+    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
 
     else:
         # directory of the stored data samples
-        DATASET_DIRECTORY = '../../trainingDataset/'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023'
 
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
@@ -460,19 +460,19 @@ if dataset_used == "IOTBOTNET":
     sample_size = 1
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED33'
+        DATASET_DIRECTORY = '/root/dataset/IOTBOTNET2020_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED66'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
+    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
     #
     # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
+    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
@@ -1162,8 +1162,8 @@ def recordTraining(name, history, elapsed_time, roundCount):
 
 
 def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
+    # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
-        # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
         f.write(f"Node|{node}| Round: {evaluateCount}\n")
         f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
         f.write(f"Loss: {loss}\n")

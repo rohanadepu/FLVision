@@ -12,8 +12,8 @@ import sys
 # Function to create folder structure
 def create_folder_structure(base_dir):
     try:
-        root_dirs = ["trainingDataset", "attacks"]
-        sub_dirs = ["iotbotnet2020", "ciciot2023"]
+        root_dirs = "datasets"
+        sub_dirs = ["IOTBOTNET2020", "CICIOT2023"]
 
         for root_dir in root_dirs:
             # Create root directories
