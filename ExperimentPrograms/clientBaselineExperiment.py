@@ -559,15 +559,6 @@ if dataset_used == "IOTBOTNET":
         ddos_combined, dos_combined, scan_combined, theft_combined
     ])
 
-    ## DEBUG
-    # # Combine all attacks into one DataFrame
-    # all_attacks_combined = combine_all_attacks([
-    #     ddos_udp_data, ddos_tcp_data, ddos_http_data
-    # ])
-    #
-    # # all_attacks_combined = scan_os_data
-    ## EOF DEBUG
-
     print("Attack Data Loaded & Combined...")
 
     #########################################################
@@ -867,8 +858,9 @@ model.summary()
 
 class FLClient(fl.client.NumPyClient):
 
-    roundCount = 0
-    evaluateCount = 0
+    def __init__(self):
+        self.roundCount = 0
+        self.evaluateCount = 0
 
     def get_parameters(self, config):
         return model.get_weights()
@@ -898,7 +890,8 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open(f'training_metrics_{dataset_used}_{self.roundCount}.txt', 'a') as f:
+        with open(f'training_metrics_{dataset_used}.txt', 'a') as f:
+            f.write(f"Round: {self.roundCount}\n")
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
@@ -928,7 +921,8 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        with open(f'evaluation_metrics_{dataset_used}_{self.evaluateCount}', 'a') as f:
+        with open(f'evaluation_metrics_{dataset_used}.txt', 'a') as f:
+            f.write(f"Round: {self.evaluateCount}\n")
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
