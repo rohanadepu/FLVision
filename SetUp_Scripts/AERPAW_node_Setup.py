@@ -12,40 +12,19 @@ import sys
 # Function to create folder structure
 def create_folder_structure(base_dir):
     try:
-        root_dirs = ["trainingDataset", "poisonedDataset"]
-        sub_dirs = ["iotbotnet2020"]
-        sub_sub_dirs = ["ddos", "dos", "scan", "theft"]
-        ddos_dirs = ["ddos_http", "ddos_udp", "ddos_tcp"]
-        dos_dirs = ["dos_http", "dos_udp", "dos_tcp"]
-        scan_dirs = ["os", "service"]
-        theft_dirs = ["data_exfiltration", "keylogging"]
+        root_dirs = ["trainingDataset", "attacks"]
+        sub_dirs = ["iotbotnet2020", "ciciot2023"]
 
         for root_dir in root_dirs:
             # Create root directories
             root_path = os.path.join(base_dir, root_dir)
             os.makedirs(root_path, exist_ok=True)
 
-            for sub_dir in sub_dirs:
-                # Create subdirectories
-                sub_path = os.path.join(root_path, sub_dir)
-                os.makedirs(sub_path, exist_ok=True)
-
-                for sub_sub_dir in sub_sub_dirs:
-                    sub_sub_path = os.path.join(sub_path, sub_sub_dir)
-                    os.makedirs(sub_sub_path, exist_ok=True)
-
-                    if sub_sub_dir == "ddos":
-                        for ddos_dir in ddos_dirs:
-                            os.makedirs(os.path.join(sub_sub_path, ddos_dir), exist_ok=True)
-                    elif sub_sub_dir == "dos":
-                        for dos_dir in dos_dirs:
-                            os.makedirs(os.path.join(sub_sub_path, dos_dir), exist_ok=True)
-                    elif sub_sub_dir == "scan":
-                        for scan_dir in scan_dirs:
-                            os.makedirs(os.path.join(sub_sub_path, scan_dir), exist_ok=True)
-                    elif sub_sub_dir == "theft":
-                        for theft_dir in theft_dirs:
-                            os.makedirs(os.path.join(sub_sub_path, theft_dir), exist_ok=True)
+            if root_dir == root_dirs[0]:
+                for sub_dir in sub_dirs:
+                    # Create subdirectories
+                    sub_path = os.path.join(root_path, sub_dir)
+                    os.makedirs(sub_path, exist_ok=True)
 
         print(f"Folder structure created in {base_dir}")
     except Exception as e:
