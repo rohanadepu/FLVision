@@ -1,0 +1,7 @@
+nc: 12  # Number of classes
+
+names: ['pedestrian', 'people', 'bicycle', 'car', 'van', 'truck', 'tricycle', 'awning-tricycle', 'bus', 'motor', 'others']
+
+train: ./data/VisDrone/train  
+val: ./data/VisDrone/test     
+
