@@ -784,7 +784,7 @@ model_name = dataset_used  # name for file
 
 noise_multiplier = 0.1  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise TFP ENGINE ONLY
 
-l2_norm_clip = 7.5  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping TFP ENGINE ONly
+l2_norm_clip = 1.0  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping TFP ENGINE ONly
 
 batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
 num_microbatches = 1  # this is bugged keep at 1
