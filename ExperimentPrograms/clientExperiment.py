@@ -64,14 +64,14 @@ print("Federated Learning Training Demo:", "\n")
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
-parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B')
-parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod')
-parser.add_argument('--pruning', action='store_true', help='Enable model pruning')
-parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training')
-parser.add_argument('--earlyStop', action='store_true', help='Enable model early stop training')
-parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training')
-parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model model checkpoint training')
-parser.add_argument('--secAggP', action='store_true', help='Enable model sec agg plusse training')
+parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B') # tested
+parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
+parser.add_argument('--pruning', action='store_true', help='Enable model pruning')  # broken
+parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training') # bugged
+parser.add_argument('--earlyStop', action='store_true', help='Enable model early stop training') # callback unessary
+parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
+parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model model checkpoint training') # store false irelevent
+parser.add_argument('--secAggP', action='store_true', help='Enable model sec agg plusse training') # broken or fake
 
 
 # init variables to handle arguments
@@ -782,9 +782,9 @@ if dataset_used == "CIFAR":
 
 model_name = dataset_used  # name for file
 
-noise_multiplier = 0.1  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise
+noise_multiplier = 0.1  # Privacy param - noise budget: 0, none; 1, some noise; >1, more noise TFP ENGINE ONLY
 
-l2_norm_clip = 7.5  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping
+l2_norm_clip = 7.5  # privacy param: 0.1 - 10: larger value, larger gradients, smaller value, more clipping TFP ENGINE ONly
 
 batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
 num_microbatches = 1  # this is bugged keep at 1
@@ -1161,7 +1161,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'training_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_prune_{pruningEnabled}_round_{self.roundCount}.txt', 'a') as f:
+        with open(f'training_metrics_{dataset_used}_optimized.txt', 'a') as f:
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
@@ -1193,7 +1193,7 @@ class FLClient(fl.client.NumPyClient):
 
         # Save metrics to file
         # fix
-        with open(f'evaluation_metrics_{dataset_used}_{model_selection}_DP_{DP_enabled}_prune_{pruningEnabled}_round_{self.evaluateCount}', 'a') as f:
+        with open(f'evaluation_metrics_{dataset_used}_optimized.txt', 'a') as f:
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
@@ -1215,7 +1215,7 @@ if DP_enabled == 2:
 
     # Create an instance of the LocalDpMod with the required params
     local_dp_obj = LocalDpMod(
-        l2_norm_clip, 1.0, 1.0, 1e-6  # Replace with actual values for sensitivity, epsilon, and delta
+        l2_norm_clip, 1.0, 1.0, 1e-6  # TUNE values for sensitivity, epsilon, and delta for DP 2
     )
 
     # Add local_dp_obj to the client-side mods
