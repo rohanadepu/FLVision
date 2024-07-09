@@ -64,20 +64,22 @@ print("Federated Learning Training Demo:", "\n")
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
-parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
-parser.add_argument('--pruning', action='store_true', help='Enable model pruning')  # broken
+parser.add_argument('--dp', type=int, default=0, choices=[0, 1, 2], help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
+parser.add_argument('--prune', action='store_true', help='Enable model pruning')  # broken
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training') # bugged
 
-parser.add_argument('--earlyStop', action='store_true', help='Enable model early stop training') # callback unessary
+parser.add_argument('--eS', action='store_true', help='Enable model early stop training') # callback unessary
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
-parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model model checkpoint training') # store false irelevent
+parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training') # store false irelevent
 
 # i got bored and started planning to add the poisoned pipeline into this file cause its less work
-# parser.add_argument("--node", type=int, default=1, help="Node number (1 or 2)")
-# parser.add_argument("--poisoned_dataset", type=str, default= None, help="Path to the clean dataset (only for node 2)")
-# parser.add_argument("--evaluation_log", type=str, default= , help="Name of the evaluation log file")
-# parser.add_argument("--training_log", type=str, default=, help="Name of the training log file")
+parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
+parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "GN33", "GN66", None], default= None, help="Label Flip: LF33, LF66")
+
+parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}" , help="Name of the training log file")
+parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics_{time.time()}", help="Name of the evaluation log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -87,13 +89,17 @@ regularizationEnabled = args.reg
 
 DP_enabled = args.dp
 
-pruningEnabled = args.pruning
+pruningEnabled = args.prune
 adversarialTrainingEnabled = args.adversarial
 
-earlyStopEnabled = args.earlyStop
+earlyStopEnabled = args.eS
 lrSchedRedEnabled = args.lrSched
-modelCheckpointEnabled = args.modelCheckpoint
+modelCheckpointEnabled = args.mChkpnt
 
+node = args.node
+poisonedDataType = args.pData
+evaluationLog = args.evalLog  # input into evaluation method if you want to input name
+trainingLog = args.trainLog  # input into train method if you want to input name
 
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
@@ -135,8 +141,22 @@ if dataset_used == "CICIOT":
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
-    # directory of the stored data samples
-    DATASET_DIRECTORY = '../../trainingDataset/'
+    if poisonedDataType == "LF33":
+        DATASET_DIRECTORY = '../../trainingDataset/'
+
+    elif poisonedDataType == "LF66":
+        DATASET_DIRECTORY = '../../trainingDataset/'
+
+    elif poisonedDataType == "GN33":
+        DATASET_DIRECTORY = '../../trainingDataset/'
+
+
+    elif poisonedDataType == "GN66":
+        DATASET_DIRECTORY = '../../trainingDataset/'
+
+    else:
+        # directory of the stored data samples
+        DATASET_DIRECTORY = '../../trainingDataset/'
 
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
@@ -440,7 +460,20 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+    if poisonedDataType == "LF33":
+        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
+    elif poisonedDataType == "LF66":
+        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
+    elif poisonedDataType == "GN33":
+        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
+    elif poisonedDataType == "GN66":
+        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+
+    else:
+        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
