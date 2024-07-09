@@ -852,6 +852,33 @@ model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only
 model.summary()
 
 #########################################################
+#    Metric Saving Functions                           #
+#########################################################
+
+def recordTraining(name, history, elapsed_time, roundCount):
+    with open(name, 'a') as f:
+        f.write(f"Round: {roundCount}\n")
+        f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
+        for epoch in range(epochs):
+            f.write(f"Epoch {epoch + 1}/{epochs}\n")
+            for metric, values in history.history.items():
+                f.write(f"{metric}: {values[epoch]}\n")
+            f.write("\n")
+
+
+def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
+    with open(name, 'a') as f:
+        f.write(f"Round: {evaluateCount}\n")
+        f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
+        f.write(f"Loss: {loss}\n")
+        f.write(f"Accuracy: {accuracy}\n")
+        f.write(f"Precision: {precision}\n")
+        f.write(f"Recall: {recall}\n")
+        f.write(f"AUC: {auc}\n")
+        f.write(f"LogCosh: {logcosh}\n")
+        f.write("\n")
+
+#########################################################
 #    Federated Learning Setup                           #
 #########################################################
 
@@ -890,14 +917,8 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        with open(f'training_metrics_{dataset_used}.txt', 'a') as f:
-            f.write(f"Round: {self.roundCount}\n")
-            f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
-            for epoch in range(epochs):
-                f.write(f"Epoch {epoch+1}/{epochs}\n")
-                for metric, values in history.history.items():
-                    f.write(f"{metric}: {values[epoch]}\n")
-                f.write("\n")
+        logName = f'training_metrics_{dataset_used}.txt'
+        recordTraining(logName, history, elapsed_time, self.roundCount)
 
         return model.get_weights(), len(X_train_data), {}
 
@@ -921,16 +942,8 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        with open(f'evaluation_metrics_{dataset_used}.txt', 'a') as f:
-            f.write(f"Round: {self.evaluateCount}\n")
-            f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
-            f.write(f"Loss: {loss}\n")
-            f.write(f"Accuracy: {accuracy}\n")
-            f.write(f"Precision: {precision}\n")
-            f.write(f"Recall: {recall}\n")
-            f.write(f"AUC: {auc}\n")
-            f.write(f"LogCosh: {logcosh}\n")
-            f.write("\n")
+        logName = f'evaluation_metrics_{dataset_used}.txt'
+        recordEvaluation(logName, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
 
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": logcosh}
