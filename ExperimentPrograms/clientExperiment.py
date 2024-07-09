@@ -64,21 +64,26 @@ print("Federated Learning Training Demo:", "\n")
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
-parser.add_argument('--model', type=str, default="1A", help='Model selection: (Range: 1-5, A-B) EX. 5A or 1B') # tested
+parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
 parser.add_argument('--dp', type=int, default=0, help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
 parser.add_argument('--pruning', action='store_true', help='Enable model pruning')  # broken
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training') # bugged
+
 parser.add_argument('--earlyStop', action='store_true', help='Enable model early stop training') # callback unessary
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
 parser.add_argument('--modelCheckpoint', action='store_true', help='Enable model model checkpoint training') # store false irelevent
-parser.add_argument('--secAggP', action='store_true', help='Enable model sec agg plusse training') # broken or fake
 
+# i got bored and started planning to add the poisoned pipeline into this file cause its less work
+# parser.add_argument("--node", type=int, default=1, help="Node number (1 or 2)")
+# parser.add_argument("--poisoned_dataset", type=str, default= None, help="Path to the clean dataset (only for node 2)")
+# parser.add_argument("--evaluation_log", type=str, default= , help="Name of the evaluation log file")
+# parser.add_argument("--training_log", type=str, default=, help="Name of the training log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
 
 dataset_used = args.dataset
-model_selection = args.model
+regularizationEnabled = args.reg
 
 DP_enabled = args.dp
 
@@ -89,11 +94,14 @@ earlyStopEnabled = args.earlyStop
 lrSchedRedEnabled = args.lrSched
 modelCheckpointEnabled = args.modelCheckpoint
 
-secAggPlusEnabled = args.secAggP
 
 # display selected arguments
 print("Selected DATASET:", dataset_used, "\n")
-print("Selected MODEL:", model_selection, "\n")
+
+if regularizationEnabled:
+    print("Regularization Enabled", "\n")
+else:
+    print("Regularization Disabled", "\n")
 
 if DP_enabled == 1:
     print("Differential Privacy Engine Enabled", "\n")
@@ -819,7 +827,9 @@ restor_best_w = True
 l2lr_patience = 3
 l2lr_factor = 0.1
 
-metric_to_monitor = 'auc'
+metric_to_monitor_es = 'loss'
+metric_to_monitor_l2lr = 'loss'
+metric_to_monitor_mc = 'auc'
 
 save_best_only = True
 checkpoint_mode = "min"
@@ -845,7 +855,7 @@ print("Noise Multiplier:", noise_multiplier)
 if dataset_used == "CICIOT":
 
     # --- Model Definition --- #
-    if not pruningEnabled and model_selection == "1A":
+    if not pruningEnabled and regularizationEnabled:
         # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -867,7 +877,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    elif not pruningEnabled and model_selection == "1B":
+    elif not pruningEnabled and not regularizationEnabled:
         # without regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -889,7 +899,7 @@ if dataset_used == "CICIOT":
             Dense(1, activation='sigmoid')
         ])
 
-    elif pruningEnabled and model_selection == "1A":
+    elif pruningEnabled and regularizationEnabled:
         model = tf.keras.Sequential([
             tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
             BatchNormalization(),
@@ -912,7 +922,7 @@ if dataset_used == "CICIOT":
             tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
         ])
 
-    elif pruningEnabled and model_selection == "1B":
+    elif pruningEnabled and not regularizationEnabled:
         model = tf.keras.Sequential([
             tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu'), **pruning_params),
             BatchNormalization(),
@@ -941,7 +951,7 @@ if dataset_used == "IOTBOTNET":
 
     # --- Model Definitions --- #
 
-    if not pruningEnabled and model_selection == "1A":
+    if not pruningEnabled and regularizationEnabled:
         # with regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -960,7 +970,7 @@ if dataset_used == "IOTBOTNET":
             Dense(1, activation='sigmoid')
         ])
 
-    elif not pruningEnabled and model_selection == "1B":
+    elif not pruningEnabled and not regularizationEnabled:
         # without regularization
         model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
@@ -979,7 +989,7 @@ if dataset_used == "IOTBOTNET":
             Dense(1, activation='sigmoid')
         ])
 
-    elif pruningEnabled and model_selection == "1A":
+    elif pruningEnabled and regularizationEnabled:
         model = tf.keras.Sequential([
             tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
             BatchNormalization(),
@@ -996,7 +1006,7 @@ if dataset_used == "IOTBOTNET":
             tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
         ])
 
-    elif pruningEnabled and model_selection == "1B":
+    elif pruningEnabled and not regularizationEnabled:
         model = tf.keras.Sequential([
             tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu'), **pruning_params),
             BatchNormalization(),
@@ -1016,7 +1026,7 @@ if dataset_used == "IOTBOTNET":
 # ---         Differential Privacy Engine Model Compile              --- #
 
 if DP_enabled == 1:
-    print("Including DP into optimizer...")
+    print("\nIncluding DP into optimizer...\n")
     # Making Custom Optimizer Component with Differential Privacy
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     dp_optimizer = tfp.DPKerasAdamOptimizer(
@@ -1035,7 +1045,7 @@ if DP_enabled == 1:
 # ---              Normal Model Compile                        --- #
 
 else:
-    print("Default optimizer...")
+    print("\nDefault optimizer...\n")
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer= optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
@@ -1061,20 +1071,20 @@ if pruningEnabled:
 
 
 if earlyStopEnabled:
-    early_stopping = EarlyStopping(monitor=metric_to_monitor, patience=es_patience, restore_best_weights=restor_best_w)
+    early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience, restore_best_weights=restor_best_w)
 
     callbackFunctions += early_stopping
 
 
 if lrSchedRedEnabled:
-    lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor, factor=l2lr_factor, patience=l2lr_patience)
+    lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor_l2lr, factor=l2lr_factor, patience=l2lr_patience)
 
     callbackFunctions += lr_scheduler
 
 
 if modelCheckpointEnabled:
     model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
-                                   monitor=metric_to_monitor, mode=checkpoint_mode)
+                                       monitor=metric_to_monitor_mc, mode=checkpoint_mode)
 
     # add to callback functions list being added during fitting
     callbackFunctions += model_checkpoint
@@ -1160,8 +1170,8 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        # fix
         with open(f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
+            f.write(f"Round: {self.roundCount}\n")
             f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
             for epoch in range(epochs):
                 f.write(f"Epoch {epoch+1}/{epochs}\n")
@@ -1192,8 +1202,8 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        # fix
         with open(f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt', 'a') as f:
+            f.write(f"Round: {self.evaluateCount}\n")
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
             f.write(f"Loss: {loss}\n")
             f.write(f"Accuracy: {accuracy}\n")
@@ -1224,22 +1234,6 @@ if DP_enabled == 2:
         mods=[fixedclipping_mod, local_dp_obj],
     )
     app.start("192.168.117.3:8080")
-
-elif secAggPlusEnabled:
-
-    from flwr.common import SecAggClientConfig
-
-    # Configure the client for SecAgg+
-    secagg_client_config = SecAggClientConfig(
-        secagg_type="SecAgg+",  # Enable SecAgg+
-    )
-
-    # Start the client and connect to the server
-    fl.client.start_client(
-        server_address="localhost:8080",
-        client=SimpleClient(),
-        secagg_config=secagg_client_config
-    )
 
 else:
     fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(model).to_client())
