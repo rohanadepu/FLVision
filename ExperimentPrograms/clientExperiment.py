@@ -85,10 +85,9 @@ parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics", help=
 args = parser.parse_args()
 
 dataset_used = args.dataset
+
 regularizationEnabled = args.reg
-
 DP_enabled = args.dp
-
 pruningEnabled = args.prune
 adversarialTrainingEnabled = args.adversarial
 
@@ -102,8 +101,14 @@ evaluationLog = args.evalLog  # input into evaluation method if you want to inpu
 trainingLog = args.trainLog  # input into train method if you want to input name
 
 # display selected arguments
-print("Selected DATASET:", dataset_used, "\n")
 
+# main experiment config
+print("Selected Node:", node, "\n")
+print("Selected DATASET:", dataset_used, "\n")
+print("Poisoned Data:", poisonedDataType, "\n")
+
+
+# defense settings display
 if regularizationEnabled:
     print("Regularization Enabled", "\n")
 else:
@@ -126,6 +131,21 @@ if adversarialTrainingEnabled:
 else:
     print("Adversarial Training Disabled", "\n")
 
+# callback functions display
+if earlyStopEnabled:
+    print("early stop training Enabled", "\n")
+else:
+    print("early stop training Disabled", "\n")
+
+if lrSchedRedEnabled:
+    print("lr scheduler  Enabled", "\n")
+else:
+    print("lr scheduler Disabled", "\n")
+
+if modelCheckpointEnabled:
+    print("Model Check Point Enabled", "\n")
+else:
+    print("Model Check Point Disabled", "\n")
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
 #########################################################
@@ -243,6 +263,8 @@ if dataset_used == "CICIOT":
 
         # Bring both samples together
         balanced_data = pd.concat([attack_samples, benign_samples])
+
+
         return balanced_data, len(benign_samples)
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
