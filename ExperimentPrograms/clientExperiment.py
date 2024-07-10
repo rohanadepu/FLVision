@@ -1135,13 +1135,21 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
     x = tf.convert_to_tensor(x, dtype=tf.float32)
     y = tf.convert_to_tensor(y, dtype=tf.float32)
 
+    # Create a gradient tape context to record operations for automatic differentiation
     with tf.GradientTape() as tape:
-        tape.watch(x)
-        prediction = model(x)
-        loss = tf.keras.losses.binary_crossentropy(y, prediction)
+        tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
+        prediction = model(x)  # Passes x through the model to get predictions
+        loss = tf.keras.losses.binary_crossentropy(y, prediction)  # Computes the binary crossentropy loss between true labels y and predictions
+
+    # Computes the gradient of the loss with respect to the input x
     gradient = tape.gradient(loss, x)
+
+    # Creates the perturbation using the sign of the gradient and scales it by epsilon
     perturbation = epsilon * tf.sign(gradient)
+
+    # Adds the perturbation to the original input to create the adversarial example
     adversarial_example = x + perturbation
+
     return adversarial_example
 
 
@@ -1204,13 +1212,18 @@ class FLClient(fl.client.NumPyClient):
         if adversarialTrainingEnabled:
             # Adversarial Training
             adv_X_train_data = np.array(
-                [create_adversarial_example(model, x, y) for x, y in zip(X_train_data, y_train_data)])
+                [create_adversarial_example(self.model, x, y) for x, y in
+                 zip(X_train_data.to_numpy(), y_train_data.to_numpy())]
+            )
+
+            # Convert adversarial examples to DataFrame
+            adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=X_train_data.columns)
 
             # Combine original and adversarial data
-            combined_X_train_data = np.concatenate((X_train_data, adv_X_train_data))
-            combined_y_train_data = np.concatenate((y_train_data, y_train_data))
+            combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
+            combined_y_train_data = pd.concat([y_train_data, y_train_data])
 
-            # train with
+            # train with the combined data
             history = model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
                                 steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
 
@@ -1281,7 +1294,7 @@ if DP_enabled == 2:
         client_fn= FLClient,
         mods=[fixedclipping_mod, local_dp_obj],
     )
-    app.start("192.168.117.3:8080")
+    app.start("192.168.129.2:8080")
 
 else:
-    fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(model).to_client())
+    fl.client.start_client(server_address="192.168.129.2:8080", client=FLClient(model).to_client())
