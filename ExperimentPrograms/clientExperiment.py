@@ -78,8 +78,8 @@ parser.add_argument('--mChkpnt', action='store_true', help='Enable model model c
 parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
 parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None, help="Label Flip: LF33, LF66")
 
-parser.add_argument("--evalLog", type=str, default=f"training_metrics_{time.time()}", help="Name of the training log file")
-parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics_{time.time()}", help="Name of the evaluation log file")
+parser.add_argument("--evalLog", type=str, default=f"training_metrics", help="Name of the training log file")
+parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics", help="Name of the evaluation log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -142,20 +142,20 @@ if dataset_used == "CICIOT":
     ciciot_label_class = "1+1"
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED33'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '../../attacks/CICIOT2023_POISONED66'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED66'
 
     # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
+    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
     #
     # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '../../poisonedDataset/CICIOT2023_POISONED33'
+    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONED33'
 
     else:
         # directory of the stored data samples
-        DATASET_DIRECTORY = '../../trainingDataset/'
+        DATASET_DIRECTORY = '../../datasets/CICIOT2023'
 
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
@@ -460,19 +460,19 @@ if dataset_used == "IOTBOTNET":
     sample_size = 1
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED33'
+        DATASET_DIRECTORY = '/root/dataset/IOTBOTNET2020_POISONED33'
 
     elif poisonedDataType == "LF66":
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020_POISONED66'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
+    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
     #
     # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '/root/attacks/iotbotnet2020'
+    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/trainingDataset/iotbotnet2020'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
@@ -1135,13 +1135,21 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
     x = tf.convert_to_tensor(x, dtype=tf.float32)
     y = tf.convert_to_tensor(y, dtype=tf.float32)
 
+    # Create a gradient tape context to record operations for automatic differentiation
     with tf.GradientTape() as tape:
-        tape.watch(x)
-        prediction = model(x)
-        loss = tf.keras.losses.binary_crossentropy(y, prediction)
+        tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
+        prediction = model(x)  # Passes x through the model to get predictions
+        loss = tf.keras.losses.binary_crossentropy(y, prediction)  # Computes the binary crossentropy loss between true labels y and predictions
+
+    # Computes the gradient of the loss with respect to the input x
     gradient = tape.gradient(loss, x)
+
+    # Creates the perturbation using the sign of the gradient and scales it by epsilon
     perturbation = epsilon * tf.sign(gradient)
+
+    # Adds the perturbation to the original input to create the adversarial example
     adversarial_example = x + perturbation
+
     return adversarial_example
 
 
@@ -1162,8 +1170,8 @@ def recordTraining(name, history, elapsed_time, roundCount):
 
 
 def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
+    # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
-        # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
         f.write(f"Node|{node}| Round: {evaluateCount}\n")
         f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
         f.write(f"Loss: {loss}\n")
@@ -1204,13 +1212,18 @@ class FLClient(fl.client.NumPyClient):
         if adversarialTrainingEnabled:
             # Adversarial Training
             adv_X_train_data = np.array(
-                [create_adversarial_example(model, x, y) for x, y in zip(X_train_data, y_train_data)])
+                [create_adversarial_example(self.model, x, y) for x, y in
+                 zip(X_train_data.to_numpy(), y_train_data.to_numpy())]
+            )
+
+            # Convert adversarial examples to DataFrame
+            adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=X_train_data.columns)
 
             # Combine original and adversarial data
-            combined_X_train_data = np.concatenate((X_train_data, adv_X_train_data))
-            combined_y_train_data = np.concatenate((y_train_data, y_train_data))
+            combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
+            combined_y_train_data = pd.concat([y_train_data, y_train_data])
 
-            # train with
+            # train with the combined data
             history = model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
                                 steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
 
@@ -1283,7 +1296,7 @@ if DP_enabled == 2:
         client_fn= FLClient,
         mods=[fixedclipping_mod, local_dp_obj],
     )
-    app.start("192.168.117.3:8080")
+    app.start("192.168.129.2:8080")
 
 else:
-    fl.client.start_client(server_address="192.168.117.3:8080", client=FLClient(model).to_client())
+    fl.client.start_client(server_address="192.168.129.2:8080", client=FLClient(model).to_client())

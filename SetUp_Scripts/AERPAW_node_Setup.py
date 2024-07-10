@@ -12,19 +12,17 @@ import sys
 # Function to create folder structure
 def create_folder_structure(base_dir):
     try:
-        root_dirs = ["trainingDataset", "attacks"]
-        sub_dirs = ["iotbotnet2020", "ciciot2023"]
+        root_dir = "datasets"
+        sub_dirs = ["IOTBOTNET2020", "CICIOT2023"]
 
-        for root_dir in root_dirs:
-            # Create root directories
-            root_path = os.path.join(base_dir, root_dir)
-            os.makedirs(root_path, exist_ok=True)
+        # Create root directories
+        root_path = os.path.join(base_dir, root_dir)
+        os.makedirs(root_path, exist_ok=True)
 
-            if root_dir == root_dirs[0]:
-                for sub_dir in sub_dirs:
-                    # Create subdirectories
-                    sub_path = os.path.join(root_path, sub_dir)
-                    os.makedirs(sub_path, exist_ok=True)
+        for sub_dir in sub_dirs:
+            # Create subdirectories
+            sub_path = os.path.join(root_path, sub_dir)
+            os.makedirs(sub_path, exist_ok=True)
 
         print(f"Folder structure created in {base_dir}")
     except Exception as e:
