@@ -472,7 +472,7 @@ if dataset_used == "IOTBOTNET":
     #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
+        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
