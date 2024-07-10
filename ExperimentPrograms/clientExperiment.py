@@ -1131,8 +1131,9 @@ model.summary()
 
 # Function to generate adversarial examples using FGSM
 def create_adversarial_example(model, x, y, epsilon=0.01):
-    # Ensure x is a tensor
+    # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
     x = tf.convert_to_tensor(x, dtype=tf.float32)
+    x = tf.expand_dims(x, axis=0)  # Adding batch dimension
     y = tf.convert_to_tensor(y, dtype=tf.float32)
 
     # Create a gradient tape context to record operations for automatic differentiation
@@ -1149,6 +1150,7 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
 
     # Adds the perturbation to the original input to create the adversarial example
     adversarial_example = x + perturbation
+    adversarial_example = tf.squeeze(adversarial_example, axis=0)  # Removing the batch dimension
 
     return adversarial_example
 
