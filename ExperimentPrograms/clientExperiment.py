@@ -472,7 +472,7 @@ if dataset_used == "IOTBOTNET":
     #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
+        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
@@ -1247,7 +1247,8 @@ class FLClient(fl.client.NumPyClient):
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
 
         # Save metrics to file
-        logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        logName = trainingLog
+        #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
         recordTraining(logName, history, elapsed_time, self.roundCount)
 
         return model.get_weights(), len(X_train_data), {}
@@ -1273,7 +1274,8 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        logName = evaluationLog
+        #logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
         recordEvaluation(logName, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
 
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
