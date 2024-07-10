@@ -472,7 +472,7 @@ if dataset_used == "IOTBOTNET":
     #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
+        DATASET_DIRECTORY = '/root/attack/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
@@ -569,24 +569,24 @@ if dataset_used == "IOTBOTNET":
 
     print("Loading DDOS Data...")
     # Load DDoS UDP files
-    ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
+    ddos_udp_directory = DATASET_DIRECTORY + '/ddos/DDOS UDP'
     ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    ddos_tcp_directory = DATASET_DIRECTORY + '/ddos/ddos_tcp'
+    ddos_tcp_directory = DATASET_DIRECTORY + '/ddos/DDOS TCP'
     ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
-    ddos_http_directory = DATASET_DIRECTORY + '/ddos/ddos_http'
+    ddos_http_directory = DATASET_DIRECTORY + '/ddos/DDOS HTTP'
     ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
 
     print("Loading DOS Data...")
     # Load DoS UDP files
-    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos_udp'
+    dos_udp_directory = DATASET_DIRECTORY + '/dos/dos udp'
     dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
 
     # Load DDoS TCP files
-    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos_tcp'
+    dos_tcp_directory = DATASET_DIRECTORY + '/dos/dos tcp'
     dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
 
     # Load DDoS HTTP files
