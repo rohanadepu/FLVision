@@ -1242,7 +1242,7 @@ class FLClient(fl.client.NumPyClient):
                 adv_examples.append(adv_example)
 
                 if (idx + 1) % print_every == 0 or (idx + 1) == total_examples:
-                    print(f"Progress: {(idx + 1) / total_examples * 100:.2f}%")
+                    print(f"Progress: {(idx + 1) / total_examples:.2f}%")
 
             adv_X_train_data = np.array(adv_examples)
 
