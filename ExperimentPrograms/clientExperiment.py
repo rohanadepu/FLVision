@@ -107,7 +107,6 @@ print("Selected Node:", node, "\n")
 print("Selected DATASET:", dataset_used, "\n")
 print("Poisoned Data:", poisonedDataType, "\n")
 
-
 # defense settings display
 if regularizationEnabled:
     print("Regularization Enabled", "\n")
@@ -494,7 +493,7 @@ if dataset_used == "IOTBOTNET":
     #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONED66'
 
     else:
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020/IOTBOTNET2020/iotbotnet2020_archive'
+        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
