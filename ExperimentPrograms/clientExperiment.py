@@ -1167,7 +1167,9 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
     with tf.GradientTape() as tape:
         tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
         prediction = model(x)  # Passes x through the model to get predictions
+        y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
         loss = tf.keras.losses.binary_crossentropy(y, prediction)  # Computes the binary crossentropy loss between true labels y and predictions
+
 
     # Computes the gradient of the loss with respect to the input x
     gradient = tape.gradient(loss, x)
