@@ -1254,6 +1254,7 @@ class FLClient(fl.client.NumPyClient):
             combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
             combined_y_train_data = pd.concat([y_train_data, y_train_data])
 
+            print("Training with adversarial data... \n")
             # train with the combined data
             history = self.model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
                                 steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
