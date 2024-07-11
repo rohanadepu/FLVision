@@ -63,7 +63,7 @@ print("Federated Learning Training Demo:", "\n")
 
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
-parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "CIFAR"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
 parser.add_argument('--dp', type=int, default=0, choices=[0, 1, 2], help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
@@ -823,24 +823,6 @@ if dataset_used == "IOTBOTNET":
     print("Datasets Ready...")
 
 #########################################################
-#    Model Initialization & Setup Default DEMO Cifar10  #
-#########################################################
-
-if dataset_used == "CIFAR":
-
-    # Creates the train and test dataset from calling cifar10 in TF
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-
-    input_dim = x_train.shape[1]  # feature size
-
-    #### DEMO MODEL ######
-    model = tf.keras.applications.MobileNetV2((input_dim), classes=2, weights=None)
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.sparse_categorical_crossentropy,
-                  metrics=[tf.keras.metrics.BinaryAccuracy(), Precision(), Recall(), AUC()]
-                  )
-
-#########################################################
 #    Model Initialization & Setup                    #
 #########################################################
 
@@ -1158,16 +1140,23 @@ model.summary()
 # Function to generate adversarial examples using FGSM
 def create_adversarial_example(model, x, y, epsilon=0.01):
     # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
+    print("X_train shape:", x.shape)
+    print("y_train shape:", y.shape)
+
     x = tf.convert_to_tensor(x, dtype=tf.float32)
     x = tf.expand_dims(x, axis=0)  # Adding batch dimension
     y = tf.convert_to_tensor(y, dtype=tf.float32)
     y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
+
+    print("X_train shape:", x.shape)
+    print("y_train shape:", y.shape)
 
     # Create a gradient tape context to record operations for automatic differentiation
     with tf.GradientTape() as tape:
         tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
         prediction = model(x)  # Passes x through the model to get predictions
         y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
+        print("y_train shape:", y.shape)
         loss = tf.keras.losses.binary_crossentropy(y, prediction)  # Computes the binary crossentropy loss between true labels y and predictions
 
 
