@@ -1161,6 +1161,7 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
     x = tf.convert_to_tensor(x, dtype=tf.float32)
     x = tf.expand_dims(x, axis=0)  # Adding batch dimension
     y = tf.convert_to_tensor(y, dtype=tf.float32)
+    y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
 
     # Create a gradient tape context to record operations for automatic differentiation
     with tf.GradientTape() as tape:
