@@ -13,13 +13,13 @@ import time
 experiments = [
     {"dataset": "CICIOT", "reg": True, "dp": 0, "prune": False, "adversarial": False, "eS": True, "lrSched": True, "mChkpnt": True, "node": 1, "pData": None},
     {"dataset": "IOTBOTNET", "reg": False, "dp": 1, "prune": True, "adversarial": True, "eS": False, "lrSched": False, "mChkpnt": False, "node": 2, "pData": "LF33"},
-    {"dataset": "CIFAR", "reg": True, "dp": 2, "prune": False, "adversarial": True, "eS": True, "lrSched": True, "mChkpnt": False, "node": 3, "pData": "FN66"}
     # Add more experiments as needed
 ]
 
 #########################################################
 #    Node/process/thread manager                        #
 #########################################################
+
 
 def run_experiment_on_node(node, command):
     print(f"Starting experiment on node {node} with command: {command}")
@@ -29,10 +29,12 @@ def run_experiment_on_node(node, command):
     else:
         print(f"Experiment on node {node} completed successfully.")
 
+
 def run_server(experiments):
     for experiment in experiments:
         command = f"ssh user@server-node 'python3 serverExperiment.py --dataset {experiment['dataset']}'"
         run_experiment_on_node("server", command)
+
 
 def run_client(experiment):
     node = experiment["node"]
