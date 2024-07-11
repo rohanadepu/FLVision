@@ -1177,8 +1177,9 @@ if adversarialTrainingEnabled:
     print_every = max(total_examples // 10000, 1)  # Print progress every 0.1%
 
     # Define proportion of data to use for adversarial training (e.g., 10%)
-    adv_proportion = 0.1
+    adv_proportion = 0.01
     num_adv_examples = int(total_examples * adv_proportion)
+    print("# of adversarial examples", num_adv_examples)
     adv_indices = random.sample(range(total_examples), num_adv_examples)
 
     adv_examples = []
