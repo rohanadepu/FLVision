@@ -1230,7 +1230,7 @@ class FLClient(fl.client.NumPyClient):
 
         if adversarialTrainingEnabled:
             total_examples = len(X_train_data)
-            print_every = max(total_examples // 100, 1)  # Print progress every 0.1%
+            print_every = max(total_examples // 10000, 1)  # Print progress every 0.1%
 
             # Define proportion of data to use for adversarial training (e.g., 10%)
             adv_proportion = 0.1
