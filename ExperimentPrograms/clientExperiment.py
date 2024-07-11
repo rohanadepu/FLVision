@@ -841,7 +841,7 @@ learning_rate = 0.0001  # will be optimized
 betas = [0.9, 0.999]  # Best to keep as is
 l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
-epochs = 10  # will be optimized
+epochs = 5  # will be optimized
 # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
 steps_per_epoch = len(X_train_data) // batch_size   # dependant
 
@@ -1234,7 +1234,7 @@ class FLClient(fl.client.NumPyClient):
             # Initialize list to collect adversarial examples
             adv_examples = []
             total_examples = len(X_train_data)
-            print_every = max(total_examples // 10, 1)  # Print progress every 10%
+            print_every = max(total_examples // total_examples, 1)  # Print progress every 10%
 
             # Collect adversarial example for each sample of data
             for idx, (x, y) in enumerate(zip(X_train_data.to_numpy(), y_train_data.to_numpy())):
