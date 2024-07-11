@@ -1229,35 +1229,33 @@ class FLClient(fl.client.NumPyClient):
         self.model.set_weights(parameters)
 
         if adversarialTrainingEnabled:
-            # Adversarial Training
-
-            # Initialize list to collect adversarial examples
-            adv_examples = []
             total_examples = len(X_train_data)
-            print_every = max(total_examples // total_examples, 1)  # Print progress every 10%
+            print_every = max(total_examples // 100, 1)  # Print progress every 0.1%
 
-            # Collect adversarial example for each sample of data
+            # Define proportion of data to use for adversarial training (e.g., 10%)
+            adv_proportion = 0.1
+            num_adv_examples = int(total_examples * adv_proportion)
+            adv_indices = random.sample(range(total_examples), num_adv_examples)
+
+            adv_examples = []
             for idx, (x, y) in enumerate(zip(X_train_data.to_numpy(), y_train_data.to_numpy())):
-                adv_example = create_adversarial_example(self.model, x, y)
-                adv_examples.append(adv_example)
+                if idx in adv_indices:
+                    adv_example = create_adversarial_example(self.model, x, y)
+                    adv_examples.append(adv_example)
+                else:
+                    adv_examples.append(x)
 
                 if (idx + 1) % print_every == 0 or (idx + 1) == total_examples:
-                    print(f"Progress: {(idx + 1) / total_examples:.2f}%")
+                    print(f"Progress: {(idx + 1) / total_examples * 100:.2f}%")
 
             adv_X_train_data = np.array(adv_examples)
 
-            # Convert adversarial examples to DataFrame
             adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=X_train_data.columns)
-
-            # Combine original and adversarial data
             combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
             combined_y_train_data = pd.concat([y_train_data, y_train_data])
 
-            print("Training with adversarial data... \n")
-            # train with the combined data
             history = self.model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
-                                steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
-
+                                     steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
         else:
             # Train Model
             history = self.model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
