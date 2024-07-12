@@ -27,23 +27,9 @@ node_ips = {
 }
 
 def run_command(command):
-    print(f"Running command: {command}")
-    try:
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-            error = process.stderr.readline()
-            if error:
-                print(error.strip())
-        rc = process.poll()
-        return rc
-    except Exception as e:
-        print(f"Exception occurred while running command: {e}")
-        return -1
+    print(f"Executing: {command}")
+    process = subprocess.Popen(command, shell=True)
+    process.communicate()
 
 def run_server():
     print("Starting the server node")
