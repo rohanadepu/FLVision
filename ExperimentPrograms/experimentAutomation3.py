@@ -59,8 +59,10 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
     prune_flag = "--prune" if strategy in ["model_pruning", "all"] else ""
     adv_flag = "--adversarial" if strategy in ["adversarial_training", "all"] else ""
 
+    p_data_flag = f"--pData {poisoned_data}" if poisoned_data else ""
+
     command = (
-        f"python3 clientExperiment.py --dataset {dataset} --node {node} --pData '{poisoned_data}' --evalLog eval_{log_file} --trainLog train_{log_file} {reg_flag} {dp_flag} {prune_flag} {adv_flag}"
+        f"python3 clientExperiment.py --dataset {dataset} --node {node} {p_data_flag} --evalLog eval_{log_file} --trainLog train_{log_file} {reg_flag} {dp_flag} {prune_flag} {adv_flag}"
     )
     
     run_command(command)
@@ -96,7 +98,7 @@ def main():
                     for num_nodes in num_clean_nodes_list:
                         nodes_to_use = [compromised_node] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
                         if current_node in nodes_to_use:
-                            poisoned_data = poisoned_variant if current_node == compromised_node else ""
+                            poisoned_data = poisoned_variant if current_node == compromised_node else None
                             log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_data}_strategy{strategy}_clean{num_nodes}.txt"
                             run_client(current_node, dataset, poisoned_data, strategy, log_file)
 
