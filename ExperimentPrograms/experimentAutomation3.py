@@ -34,7 +34,8 @@ def run_command(command):
 def run_server():
     print("Starting the server node")
     command = "python3 server.py"
-    run_command(command)
+    while True:
+        run_command(command)
 
 def run_client(node, dataset, poisoned_data, strategy, log_file):
     reg_flag = "--reg" if strategy in ["regularization", "all"] else ""
