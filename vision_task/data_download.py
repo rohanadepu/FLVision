@@ -1,40 +1,48 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# VisDrone2019-DET dataset https://github.com/VisDrone/VisDrone-Dataset by Tianjin University
 import os
-import gdown
-import zipfile
+from pathlib import Path
 
-# Define paths for the datasets
-data_dir = os.path.join(os.getcwd(), 'data', 'VisDrone')
-train_zip_path = os.path.join(data_dir, 'VisDrone2019-DET-train.zip')
-test_zip_path = os.path.join(data_dir, 'VisDrone2019-DET-test-dev.zip')
+from ultralytics.utils.downloads import download
 
-# Google Drive links (formatted for gdown)
-train_url = 'https://drive.google.com/uc?id=1a2oHjcEcwXP8oUF95qiwrqzACb2YlUhn'
-test_url = 'https://drive.google.com/uc?id=1PFdW_VFSCfZ_sTSZAGjQdifF_Xd5mf0V'
+def visdrone2yolo(dir):
+    from PIL import Image
+    from tqdm import tqdm
 
-# Create data directory if it doesn't exist
-os.makedirs(data_dir, exist_ok=True)
+    def convert_box(size, box):
+        # Convert VisDrone box to YOLO xywh box
+        dw = 1. / size[0]
+        dh = 1. / size[1]
+        return (box[0] + box[2] / 2) * dw, (box[1] + box[3] / 2) * dh, box[2] * dw, box[3] * dh
 
-# Function to download datasets
-def download_dataset(url, zip_path):
-    if not os.path.exists(zip_path):
-        print(f"Downloading {zip_path}...")
-        gdown.download(url, zip_path, quiet=False)
-    else:
-        print(f"{zip_path} already exists. Skipping download.")
+    (dir / 'labels').mkdir(parents=True, exist_ok=True)  # make labels directory
+    pbar = tqdm((dir / 'annotations').glob('*.txt'), desc=f'Converting {dir}')
+    for f in pbar:
+        img_size = Image.open((dir / 'images' / f.name).with_suffix('.jpg')).size
+        lines = []
+        with open(f, 'r') as file:  # read annotation.txt
+            for row in [x.split(',') for x in file.read().strip().splitlines()]:
+                if row[4] == '0':  # VisDrone 'ignored regions' class 0
+                    continue
+                cls = int(row[5]) - 1
+                box = convert_box(img_size, tuple(map(int, row[:4])))
+                lines.append(f"{cls} {' '.join(f'{x:.6f}' for x in box)}\n")
+                with open(str(f).replace(f'{os.sep}annotations{os.sep}', f'{os.sep}labels{os.sep}'), 'w') as fl:
+                    fl.writelines(lines)  # write label.txt
 
-# Function to extract datasets
-def extract_dataset(zip_path, sub_dir):
-    if os.path.exists(zip_path):
-        extract_dir = os.path.join(data_dir, sub_dir)
-        os.makedirs(extract_dir, exist_ok=True)  # Create the directory if it does not exist
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-        print(f"Extracted to {extract_dir}")
 
-# Download datasets
-download_dataset(train_url, train_zip_path)
-download_dataset(test_url, test_zip_path)
+# Download
 
-# Extract datasets
-extract_dataset(train_zip_path, 'train')  
-extract_dataset(test_zip_path, 'test') 
+
+# Correcting the dir to be a Path object
+dir = Path('datasets')
+
+urls = ['https://github.com/ultralytics/yolov5/releases/download/v1.0/VisDrone2019-DET-train.zip',
+        'https://github.com/ultralytics/yolov5/releases/download/v1.0/VisDrone2019-DET-val.zip',
+        'https://github.com/ultralytics/yolov5/releases/download/v1.0/VisDrone2019-DET-test-dev.zip',
+        'https://github.com/ultralytics/yolov5/releases/download/v1.0/VisDrone2019-DET-test-challenge.zip']
+download(urls, dir=dir, curl=True, threads=4)
+
+# Convert
+for d in 'VisDrone2019-DET-train', 'VisDrone2019-DET-val', 'VisDrone2019-DET-test-dev':
+    visdrone2yolo(dir / d)  # convert VisDrone annotations to YOLO labels
