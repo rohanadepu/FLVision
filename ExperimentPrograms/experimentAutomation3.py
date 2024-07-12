@@ -39,7 +39,7 @@ def run_server():
 
 def run_client(node, dataset, poisoned_data, strategy, log_file):
     reg_flag = "--reg" if strategy in ["regularization", "all"] else ""
-    dp_flag = "--dp 1" if strategy in ["differential_privacy", "all"] else "--dp 0"
+    dp_flag = "--dp" if strategy in ["differential_privacy", "all"] else ""
     prune_flag = "--prune" if strategy in ["model_pruning", "all"] else ""
     adv_flag = "--adversarial" if strategy in ["adversarial_training", "all"] else ""
 
