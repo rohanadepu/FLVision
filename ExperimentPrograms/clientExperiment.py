@@ -613,6 +613,15 @@ if dataset_used == "IOTBOTNET":
 
         return balanced_dataframe
 
+    def reduce_attack_samples(data, attack_ratio):
+        attack_samples = data[data['Label'] == 'Anomaly']
+        benign_samples = data[data['Label'] == 'Normal']
+
+        reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+        combined_data = pd.concat([benign_samples, reduced_attack_samples])
+
+        return combined_data
+
 
     # ---                   Load Each Attack Dataset                 --- #
 
@@ -724,13 +733,33 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-    # --- Balance Training dataset --- #
+    # --- Provide proper repesentation of classes in the train and test datasets --- #
 
     print("Balance Training Dataset...")
 
     all_attacks_train = balance_data(all_attacks_train, label_column='Label')
 
-    print("Dataset Training Balanced...")
+    print("Balance Testing Dataset...")
+
+    all_attacks_test = balance_data(all_attacks_test, label_column='Label')
+
+    # ---                   Correcting test set representation                    --- #
+
+    print("Turning attacks into anomalies...")
+    print("Testing sample size:", all_attacks_test.shape[0])
+    print("Testing benign sample size:", all_attacks_test["Label"].shape[0])
+    print("Testing attack sample size:", all_attacks_test["Label"].shape[0])
+
+    print("Adjust Test Set Representation...")
+
+    attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
+    all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
+
+    print("Testing sample size:", all_attacks_test.shape[0])
+    print("Testing benign sample size:", all_attacks_test["Label"].shape[0])
+    print("Testing attack sample size:", all_attacks_test["Label"].shape[0])
+
+    print("Test Set Representation Adjusted...")
 
     # ---                   Feature Selection                --- #
 
@@ -885,6 +914,9 @@ if pruningEnabled:
             end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
         )
     }
+
+if DP_enabled:
+    epochs = 10
 
 # set hyperparameters for callback
 es_patience = 5
