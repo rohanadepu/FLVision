@@ -29,35 +29,26 @@ node_ips = {
 def run_command(command):
     print(f"Running command: {command}")
     try:
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = result.stdout.decode()
-        error = result.stderr.decode()
-        print(f"Output: {output}")
-        print(f"Error: {error}")
-        if result.returncode != 0:
-            print(f"Command failed with error code {result.returncode}.")
-        else:
-            print(f"Command completed successfully.")
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())
+            error = process.stderr.readline()
+            if error:
+                print(error.strip())
+        rc = process.poll()
+        return rc
     except Exception as e:
         print(f"Exception occurred while running command: {e}")
+        return -1
 
 def run_server():
     print("Starting the server node")
     command = "python3 server.py"
-    # Using subprocess.Popen to run the server process in the background
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    try:
-        while True:
-            output = process.stdout.readline()
-            if output:
-                print(output.decode().strip())
-            error = process.stderr.readline()
-            if error:
-                print(error.decode().strip())
-            if output == b'' and error == b'' and process.poll() is not None:
-                break
-    except Exception as e:
-        print(f"Exception occurred while running server: {e}")
+    run_command(command)
 
 def run_client(node, dataset, poisoned_data, strategy, log_file):
     reg_flag = "--reg" if strategy in ["regularization", "all"] else ""
