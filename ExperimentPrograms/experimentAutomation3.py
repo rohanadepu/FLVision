@@ -28,30 +28,36 @@ node_ips = {
 
 def run_command(command):
     print(f"Running command: {command}")
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = result.stdout.decode()
-    error = result.stderr.decode()
-    print(f"Output: {output}")
-    print(f"Error: {error}")
-    if result.returncode != 0:
-        print(f"Command failed with error code {result.returncode}.")
-    else:
-        print(f"Command completed successfully.")
+    try:
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = result.stdout.decode()
+        error = result.stderr.decode()
+        print(f"Output: {output}")
+        print(f"Error: {error}")
+        if result.returncode != 0:
+            print(f"Command failed with error code {result.returncode}.")
+        else:
+            print(f"Command completed successfully.")
+    except Exception as e:
+        print(f"Exception occurred while running command: {e}")
 
 def run_server():
     print("Starting the server node")
     command = "python3 server.py"
     # Using subprocess.Popen to run the server process in the background
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    while True:
-        output = process.stdout.readline()
-        if output:
-            print(output.decode().strip())
-        error = process.stderr.readline()
-        if error:
-            print(error.decode().strip())
-        if output == b'' and error == b'' and process.poll() is not None:
-            break
+    try:
+        while True:
+            output = process.stdout.readline()
+            if output:
+                print(output.decode().strip())
+            error = process.stderr.readline()
+            if error:
+                print(error.decode().strip())
+            if output == b'' and error == b'' and process.poll() is not None:
+                break
+    except Exception as e:
+        print(f"Exception occurred while running server: {e}")
 
 def run_client(node, dataset, poisoned_data, strategy, log_file):
     reg_flag = "--reg" if strategy in ["regularization", "all"] else ""
@@ -83,6 +89,13 @@ def main():
     selected_datasets = args.datasets
     selected_poisoned_variants = args.pvar
     selected_defense_strategies = args.defense_strat
+
+    print(f"Role: {args.role}")
+    print(f"Node: {args.node if args.role == 'client' else 'N/A'}")
+    print(f"Datasets: {selected_datasets}")
+    print(f"Poisoned Variants: {selected_poisoned_variants}")
+    print(f"Defense Strategies: {selected_defense_strategies}")
+    print(f"Clean Nodes: {num_clean_nodes_list}")
 
     if args.role == "server":
         run_server()
