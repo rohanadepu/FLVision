@@ -160,17 +160,17 @@ if dataset_used == "CICIOT":
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
-    # if poisonedDataType == "LF33":
-    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONEDLF33'
-    #
-    # elif poisonedDataType == "LF66":
-    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONEDLF66'
-    #
-    # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONEDFN33'
-    #
-    # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '../../datasets/CICIOT2023_POISONEDFN66'
+    if poisonedDataType == "LF33":
+        DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDLF33'
+    
+    elif poisonedDataType == "LF66":
+        DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDLF66'
+    
+    elif poisonedDataType == "FN33":
+        DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDFN33'
+    
+    elif poisonedDataType == "FN66":
+        DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDFN66'
 
     if poisonedDataType:
         DATASET_DIRECTORY = f'/root/dataset/IOTBOTNET2020_POISONED{poisonedDataType}'
@@ -483,17 +483,17 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
-    # if poisonedDataType == "LF33":
-    #     DATASET_DIRECTORY = '/root/dataset/IOTBOTNET2020_POISONEDLF33'
-    #
-    # elif poisonedDataType == "LF66":
-    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF66'
-    #
-    # elif poisonedDataType == "FN33":
-    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN33'
-    #
-    # elif poisonedDataType == "FN66":
-    #     DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
+    if poisonedDataType == "LF33":
+        DATASET_DIRECTORY = '/root/dataset/IOTBOTNET2020_POISONEDLF33'
+    
+    elif poisonedDataType == "LF66":
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF66'
+    
+    elif poisonedDataType == "FN33":
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN33'
+    
+    elif poisonedDataType == "FN66":
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
 
     if poisonedDataType:
         DATASET_DIRECTORY = f'/root/dataset/IOTBOTNET2020_POISONED{poisonedDataType}'
