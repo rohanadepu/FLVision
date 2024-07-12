@@ -98,8 +98,9 @@ def main():
                     for num_nodes in num_clean_nodes_list:
                         nodes_to_use = [compromised_node] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
                         if current_node in nodes_to_use:
-                            log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_variant}_strategy{strategy}_clean{num_nodes}.txt"
-                            client_thread = threading.Thread(target=run_client, args=(current_node, dataset, poisoned_variant, strategy, log_file))
+                            poisoned_data = poisoned_variant if current_node == compromised_node else ""
+                            log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_data}_strategy{strategy}_clean{num_nodes}.txt"
+                            client_thread = threading.Thread(target=run_client, args=(current_node, dataset, poisoned_data, strategy, log_file))
                             threads.append(client_thread)
                             client_thread.start()
 
