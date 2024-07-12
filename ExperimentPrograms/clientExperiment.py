@@ -747,8 +747,12 @@ if dataset_used == "IOTBOTNET":
 
     print("Turning attacks into anomalies...")
     print("Testing sample size:", all_attacks_test.shape[0])
-    print("Testing benign sample size:", all_attacks_test["Label"].shape[0])
-    print("Testing attack sample size:", all_attacks_test["Label"].shape[0])
+
+    # Count the number of benign and attack samples in the test set
+    benign_count = (all_attacks_test['Label'] == 'Normal').sum()
+    attack_count = (all_attacks_test['Label'] != 'Normal').sum()
+    print("Testing benign sample size:", benign_count)
+    print("Testing attack sample size:", attack_count)
 
     print("Adjust Test Set Representation...")
 
@@ -756,8 +760,12 @@ if dataset_used == "IOTBOTNET":
     all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
 
     print("Testing sample size:", all_attacks_test.shape[0])
-    print("Testing benign sample size:", all_attacks_test["Label"].shape[0])
-    print("Testing attack sample size:", all_attacks_test["Label"].shape[0])
+
+    # Count the number of benign and attack samples in the test set
+    benign_count = (all_attacks_test['Label'] == 'Normal').sum()
+    attack_count = (all_attacks_test['Label'] != 'Normal').sum()
+    print("Testing benign sample size:", benign_count)
+    print("Testing attack sample size:", attack_count)
 
     print("Test Set Representation Adjusted...")
 
@@ -1261,7 +1269,7 @@ if adversarialTrainingEnabled:
 #    Metric Saving Functions                           #
 #########################################################
 
-def recordTraining(name, history, elapsed_time, roundCount):
+def recordTraining(name, history, elapsed_time, roundCount, val_loss):
     # f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
         f.write(f"Node|{node}| Round: {roundCount}\n")
@@ -1270,6 +1278,7 @@ def recordTraining(name, history, elapsed_time, roundCount):
             f.write(f"Epoch {epoch + 1}/{epochs}\n")
             for metric, values in history.history.items():
                 f.write(f"{metric}: {values[epoch]}\n")
+            f.write(f"Validation Loss: {val_loss}\n")
             f.write("\n")
 
 
@@ -1345,7 +1354,7 @@ class FLClient(fl.client.NumPyClient):
         # Save metrics to file
         logName = trainingLog
         #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
-        recordTraining(logName, history, elapsed_time, self.roundCount)
+        recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
 
         return model.get_weights(), len(X_train_data), {}
 
