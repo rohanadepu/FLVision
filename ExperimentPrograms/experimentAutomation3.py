@@ -40,7 +40,7 @@ def run_command(command):
 
 def run_server():
     print("Starting the server node")
-    command = "cd FLVision/ExperimentPrograms && python3 server.py"
+    command = "python3 server.py"
     # Using subprocess.Popen to run the server process in the background
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
@@ -60,9 +60,7 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
     adv_flag = "--adversarial" if strategy in ["adversarial_training", "all"] else ""
 
     command = (
-        f"cd FLVision/ExperimentPrograms && python3 clientExperiment.py --dataset {dataset} "
-        f"--node {node} --pData '{poisoned_data}' --evalLog eval_{log_file} --trainLog train_{log_file} "
-        f"{reg_flag} {dp_flag} {prune_flag} {adv_flag}"
+        f"python3 clientExperiment.py --dataset {dataset} --node {node} --pData '{poisoned_data}' --evalLog eval_{log_file} --trainLog train_{log_file} {reg_flag} {dp_flag} {prune_flag} {adv_flag}"
     )
     
     run_command(command)
