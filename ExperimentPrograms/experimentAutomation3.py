@@ -1,7 +1,6 @@
 import subprocess
 import threading
 import argparse
-import socket
 
 # Define the defense strategies including the option for no defenses
 defense_strategies = [
@@ -69,6 +68,8 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script Automation")
+    parser.add_argument("--role", type=str, choices=["server", "client"], required=True, help="Role of the node: server or client")
+    parser.add_argument("--node", type=int, choices=list(node_ips.keys())[:-1], help="Node number (required for clients)")
     parser.add_argument("--datasets", type=str, nargs='+', choices=datasets, required=True, help="List of datasets to use")
     parser.add_argument("--pvar", type=str, nargs='+', choices=poisoned_variants, required=True, help="List of poisoned variants to use")
     parser.add_argument("--defense_strat", type=str, nargs='+', choices=defense_strategies, required=True, help="List of defense strategies to use")
@@ -82,23 +83,14 @@ def main():
     selected_poisoned_variants = args.pvar
     selected_defense_strategies = args.defense_strat
 
-    # Determine the current node's IP address
-    current_ip = socket.gethostbyname(socket.gethostname())
-
-    # Identify the current node based on its IP address
-    current_node = None
-    for node, ip in node_ips.items():
-        if ip == current_ip:
-            current_node = node
-            break
-
-    if current_node is None:
-        print("Current node IP address not found in node_ips dictionary.")
-        return
-
-    if current_node == "server":
+    if args.role == "server":
         run_server()
     else:
+        current_node = args.node
+        if current_node is None:
+            print("Node number must be specified for client role.")
+            return
+
         threads = []
         for dataset in selected_datasets:
             for poisoned_variant in selected_poisoned_variants:
@@ -118,5 +110,5 @@ if __name__ == "__main__":
     main()
 
 #exmaple usage
-#python experimentAutomation3.py --datasets IOTBOTNET CICIOT --pvar LF33 LF66 FN33 FN66 --defense_strat none differential_privacy adversarial_training --cleannodes 1 2 4
+#python3 experimentAutomation3.py --datasets IOTBOTNET CICIOT --role client --node 1 --pvar LF33 LF66 FN33 FN66 --defense_strat none --cleannodes 1 2 4
 
