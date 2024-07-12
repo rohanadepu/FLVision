@@ -1,5 +1,4 @@
 import subprocess
-import threading
 import argparse
 
 # Define the defense strategies including the option for no defenses
@@ -41,7 +40,7 @@ def run_command(command):
 
 def run_server():
     print("Starting the server node")
-    command = "python3 server.py"
+    command = "cd FLVision/ExperimentPrograms && python3 server.py"
     # Using subprocess.Popen to run the server process in the background
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
@@ -61,7 +60,9 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
     adv_flag = "--adversarial" if strategy in ["adversarial_training", "all"] else ""
 
     command = (
-        f"python3 clientExperiment.py --dataset {dataset} --node {node} --pData {poisoned_data} --evalLog eval_{log_file} --trainLog train_{log_file} {reg_flag} {dp_flag} {prune_flag} {adv_flag}"
+        f"cd FLVision/ExperimentPrograms && python3 clientExperiment.py --dataset {dataset} "
+        f"--node {node} --pData '{poisoned_data}' --evalLog eval_{log_file} --trainLog train_{log_file} "
+        f"{reg_flag} {dp_flag} {prune_flag} {adv_flag}"
     )
     
     run_command(command)
@@ -91,7 +92,6 @@ def main():
             print("Node number must be specified for client role.")
             return
 
-        threads = []
         for dataset in selected_datasets:
             for poisoned_variant in selected_poisoned_variants:
                 for strategy in selected_defense_strategies:
@@ -100,12 +100,7 @@ def main():
                         if current_node in nodes_to_use:
                             poisoned_data = poisoned_variant if current_node == compromised_node else ""
                             log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_data}_strategy{strategy}_clean{num_nodes}.txt"
-                            client_thread = threading.Thread(target=run_client, args=(current_node, dataset, poisoned_data, strategy, log_file))
-                            threads.append(client_thread)
-                            client_thread.start()
-
-        for thread in threads:
-            thread.join()
+                            run_client(current_node, dataset, poisoned_data, strategy, log_file)
 
 if __name__ == "__main__":
     main()
