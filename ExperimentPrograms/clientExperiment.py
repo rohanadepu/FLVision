@@ -66,7 +66,7 @@ parser = argparse.ArgumentParser(description='Select dataset, model selection, a
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
-parser.add_argument('--dp', type=int, default=0, choices=[0, 1, 2], help='Differential Privacy 0: None, 1: TFP Engine, 2: Flwr Mod') # untested but working plz tune
+parser.add_argument('--dp', type=int, default=0, choices=[0, 1], help='Differential Privacy 0: None, 1: TFP Engine') # untested but working plz tune
 parser.add_argument('--prune', action='store_true', help='Enable model pruning')  # broken
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training') # bugged
 
@@ -115,8 +115,6 @@ else:
 
 if DP_enabled == 1:
     print("Differential Privacy Engine Enabled", "\n")
-elif DP_enabled == 2:
-    print("Differential Privacy Mod Enabled", "\n")
 else:
     print("Differential Privacy Disabled", "\n")
 
@@ -155,7 +153,7 @@ if dataset_used == "CICIOT":
 
     # Sample size for train and test datasets
     ciciot_train_sample_size = 20  # input: 3 samples for training
-    ciciot_test_sample_size = 1  # input: 1 sample for testing
+    ciciot_test_sample_size = 5  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
@@ -1316,19 +1314,4 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-if DP_enabled == 2:
-
-    # Create an instance of the LocalDpMod with the required params
-    local_dp_obj = LocalDpMod(
-        l2_norm_clip, 1.0, 1.0, 1e-6  # TUNE values for sensitivity, epsilon, and delta for DP 2
-    )
-
-    # Add local_dp_obj to the client-side mods
-    app = fl.client.ClientApp(
-        client_fn= FLClient,
-        mods=[fixedclipping_mod, local_dp_obj],
-    )
-    app.start("192.168.129.2:8080")
-
-else:
-    fl.client.start_client(server_address="192.168.129.2:8080", client=FLClient(model).to_client())
+fl.client.start_client(server_address="192.168.129.2:8080", client=FLClient(model).to_client())
