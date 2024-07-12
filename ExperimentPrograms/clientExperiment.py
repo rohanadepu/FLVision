@@ -66,9 +66,9 @@ parser = argparse.ArgumentParser(description='Select dataset, model selection, a
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
-parser.add_argument('--dp', type=int, default=0, choices=[0, 1], help='Differential Privacy 0: None, 1: TFP Engine') # untested but working plz tune
-parser.add_argument('--prune', action='store_true', help='Enable model pruning')  # broken
-parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training') # bugged
+parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy with TFP') # untested but working plz tune
+parser.add_argument('--prune', action='store_true', help='Enable model pruning with TFMO')  # broken
+parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training with gradients') # bugged
 
 parser.add_argument('--eS', action='store_true', help='Enable model early stop training') # callback unessary
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
@@ -113,7 +113,7 @@ if regularizationEnabled:
 else:
     print("Regularization Disabled", "\n")
 
-if DP_enabled == 1:
+if DP_enabled:
     print("Differential Privacy Engine Enabled", "\n")
 else:
     print("Differential Privacy Disabled", "\n")
@@ -1063,7 +1063,7 @@ if dataset_used == "IOTBOTNET":
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
-if DP_enabled == 1:
+if DP_enabled:
     print("\nIncluding DP into optimizer...\n")
     # Making Custom Optimizer Component with Differential Privacy
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
