@@ -173,7 +173,7 @@ if dataset_used == "CICIOT":
         DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDFN66'
 
     if poisonedDataType:
-        DATASET_DIRECTORY = f'/root/dataset/IOTBOTNET2020_POISONED{poisonedDataType}'
+        DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
 
     else:
         # directory of the stored data samples
@@ -484,7 +484,7 @@ if dataset_used == "IOTBOTNET":
     sample_size = 1
 
     if poisonedDataType == "LF33":
-        DATASET_DIRECTORY = '/root/dataset/IOTBOTNET2020_POISONEDLF33'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF33'
     
     elif poisonedDataType == "LF66":
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF66'
@@ -496,9 +496,9 @@ if dataset_used == "IOTBOTNET":
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
 
     if poisonedDataType:
-        DATASET_DIRECTORY = f'/root/dataset/IOTBOTNET2020_POISONED{poisonedDataType}'
+        DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
     else:
-        DATASET_DIRECTORY = '/root/attacks/IOTBOTNET2020'
+        DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
 
     # ---                   IOTBOTNET relevant features/attribute mappings                    --- #
     relevant_features_iotbotnet = [
