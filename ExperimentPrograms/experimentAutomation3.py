@@ -1,5 +1,7 @@
 import subprocess
 import argparse
+import time
+import os
 
 # Define the defense strategies including the option for no defenses
 defense_strategies = [
@@ -63,7 +65,7 @@ def main():
     args = parser.parse_args()
 
     compromised_node = 1  # Always set node 1 as the compromised node
-    num_clean_nodes_list = args.cleannodes
+    num_clean_nodes_list = sorted(args.cleannodes, reverse=True)  # Sort to start with the maximum number of nodes
     selected_datasets = args.datasets
     selected_poisoned_variants = args.pvar
     selected_defense_strategies = args.defense_strat
@@ -83,19 +85,21 @@ def main():
             print("Node number must be specified for client role.")
             return
 
-        for dataset in selected_datasets:
-            for poisoned_variant in selected_poisoned_variants:
-                for strategy in selected_defense_strategies:
-                    for num_nodes in num_clean_nodes_list:
-                        nodes_to_use = [compromised_node] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
-                        if current_node in nodes_to_use:
+        for num_nodes in num_clean_nodes_list:
+            nodes_to_use = [compromised_node] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
+            if current_node in nodes_to_use and current_node <= num_nodes + 1:  # Ensure current node is within the required nodes
+                for dataset in selected_datasets:
+                    for poisoned_variant in selected_poisoned_variants:
+                        for strategy in selected_defense_strategies:
                             poisoned_data = poisoned_variant if current_node == compromised_node else None
                             log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_data}_strategy{strategy}_clean{num_nodes}.txt"
                             run_client(current_node, dataset, poisoned_data, strategy, log_file)
+                            # Wait for a bit before starting the next round to ensure synchronization
+                            time.sleep(5)
 
 if __name__ == "__main__":
     main()
 
-#exmaple usage
-#python3 experimentAutomation3.py --datasets IOTBOTNET CICIOT --role client --node 1 --pvar LF33 LF66 FN33 FN66 --defense_strat none --cleannodes 1 2 4
-
+# Example usage:
+# python3 experimentAutomation3.py --role server
+# python3 experimentAutomation3.py --role client --node 1 --datasets IOTBOTNET CICIOT --pvar LF33 LF66 FN33 FN66 --defense_strat none differential_privacy adversarial_training --cleannodes 1 2 4
