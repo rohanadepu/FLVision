@@ -5,6 +5,23 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
+dict_2classes = {'DDoS-RSTFINFlood': 'Attack', 'DDoS-PSHACK_Flood': 'Attack', 'DDoS-SYN_Flood': 'Attack',
+                     'DDoS-UDP_Flood': 'Attack', 'DDoS-TCP_Flood': 'Attack', 'DDoS-ICMP_Flood': 'Attack',
+                     'DDoS-SynonymousIP_Flood': 'Attack', 'DDoS-ACK_Fragmentation': 'Attack',
+                     'DDoS-UDP_Fragmentation': 'Attack', 'DDoS-ICMP_Fragmentation': 'Attack',
+                     'DDoS-SlowLoris': 'Attack',
+                     'DDoS-HTTP_Flood': 'Attack', 'DoS-UDP_Flood': 'Attack', 'DoS-SYN_Flood': 'Attack',
+                     'DoS-TCP_Flood': 'Attack', 'DoS-HTTP_Flood': 'Attack', 'Mirai-greeth_flood': 'Attack',
+                     'Mirai-greip_flood': 'Attack', 'Mirai-udpplain': 'Attack', 'Recon-PingSweep': 'Attack',
+                     'Recon-OSScan': 'Attack', 'Recon-PortScan': 'Attack', 'VulnerabilityScan': 'Attack',
+                     'Recon-HostDiscovery': 'Attack', 'DNS_Spoofing': 'Attack', 'MITM-ArpSpoofing': 'Attack',
+                     'BenignTraffic': 'Benign', 'BrowserHijacking': 'Attack', 'Backdoor_Malware': 'Attack',
+                     'XSS': 'Attack',
+                     'Uploading_Attack': 'Attack', 'SqlInjection': 'Attack', 'CommandInjection': 'Attack',
+                     'DictionaryBruteForce': 'Attack'
+                    }
+
+
 def poison_dataset(file_path, output_folder, label):
     df = pd.read_csv(file_path)
     
@@ -32,8 +49,12 @@ def handle_file(file_path, output_folder, label, poison_probability):
         shutil.copy(file_path, os.path.join(new_output_folder, os.path.basename(file_path)))
 
 def poison_all_files(input_folder, poison_percentage):
+
+
     label = 'label' if 'CICIOT2023' in input_folder else 'Label'
     output_folder = input_folder + '_POISONED'
+
+    #if CICIOT remap labels to dict_2classes
     
     # Ensure the output directory does not exist to start fresh
     if os.path.exists(output_folder):

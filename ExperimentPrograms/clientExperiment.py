@@ -143,6 +143,7 @@ if modelCheckpointEnabled:
     print("Model Check Point Enabled", "\n")
 else:
     print("Model Check Point Disabled", "\n")
+
 #########################################################
 #    Loading Dataset For CICIOT 2023                    #
 #########################################################
@@ -152,8 +153,8 @@ if dataset_used == "CICIOT":
     # ---                   Data Loading Settings                     --- #
 
     # Sample size for train and test datasets
-    ciciot_train_sample_size = 20  # input: 3 samples for training
-    ciciot_test_sample_size = 5  # input: 1 sample for testing
+    ciciot_train_sample_size = 25  # input: 3 samples for training
+    ciciot_test_sample_size = 10  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
@@ -170,8 +171,8 @@ if dataset_used == "CICIOT":
     elif poisonedDataType == "FN66":
         DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDFN66'
 
-    if poisonedDataType:
-        DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
+    # if poisonedDataType:
+    #     DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
 
     else:
         # directory of the stored data samples
@@ -264,8 +265,17 @@ if dataset_used == "CICIOT":
         # Bring both samples together
         balanced_data = pd.concat([attack_samples, benign_samples])
 
-
         return balanced_data, len(benign_samples)
+
+
+    def reduce_attack_samples(data, attack_ratio):
+        attack_samples = data[data['label'] == 'Attack']
+        benign_samples = data[data['label'] == 'Benign']
+
+        reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+        combined_data = pd.concat([benign_samples, reduced_attack_samples])
+
+        return combined_data
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
@@ -299,14 +309,14 @@ if dataset_used == "CICIOT":
 
     # Train Dataframe
     ciciot_train_data = pd.DataFrame()
-    normal_traffic_total_size = 0
-    normal_traffic_size_limit = 100000
+    train_normal_traffic_total_size = 0
+    train_normal_traffic_size_limit = 110000
 
     print("Loading Training Data...")
     for data_set in train_sample_files:
 
         # Load Data from sampled files until enough benign traffic is loaded
-        if normal_traffic_total_size >= normal_traffic_size_limit:
+        if train_normal_traffic_total_size >= train_normal_traffic_size_limit:
             break
 
         print(f"Training dataset sample {data_set} \n")
@@ -315,35 +325,46 @@ if dataset_used == "CICIOT":
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
 
         # load the dataset, remap, then balance
-        balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, normal_traffic_total_size,
-                                                            normal_traffic_size_limit)
-        normal_traffic_total_size += benign_count  # adding to quota count
+        balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, train_normal_traffic_total_size,
+                                                            train_normal_traffic_size_limit)
+        train_normal_traffic_total_size += benign_count  # adding to quota count
 
-        print(f"Benign Traffic Train Samples: {benign_count} | {normal_traffic_total_size} |LIMIT| {normal_traffic_size_limit}")
+        print(f"Benign Traffic Train Samples: {benign_count} | {train_normal_traffic_total_size} |LIMIT| {train_normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
 
     # Test Dataframe
     ciciot_test_data = pd.DataFrame()
+    test_normal_traffic_total_size = 0
+    test_normal_traffic_size_limit = 44000
+    attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
 
     print("Loading Testing Data...")
-    for test_set in test_sample_files:
+    for data_set in test_sample_files:
 
-        # load the test dataset without balancing
-        print(f"Testing dataset sample {test_set} out of {len(test_sample_files)} \n")
+        # Load Data from sampled files until enough benign traffic is loaded
+        if test_normal_traffic_total_size >= test_normal_traffic_size_limit:
+            break
 
-        # find the path for the sample
-        data_path = os.path.join(DATASET_DIRECTORY, test_set)
+        print(f"Testing dataset sample {data_set} \n")
 
-        # read data
-        test_data = pd.read_csv(data_path)
+        # find the path for sample
+        data_path = os.path.join(DATASET_DIRECTORY, data_set)
 
-        # remap labels to new classification
-        test_data['label'] = test_data['label'].map(dict_2classes)
+        # load the dataset, remap, then balance
+        balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, test_normal_traffic_total_size,
+                                                            test_normal_traffic_size_limit)
 
-        # add to test dataset
-        ciciot_test_data = pd.concat([ciciot_test_data, test_data])
+        test_normal_traffic_total_size += benign_count  # adding to quota count
+
+        print(f"Benign Traffic Train Samples: {benign_count} | {test_normal_traffic_total_size} |LIMIT| {test_normal_traffic_size_limit}")
+
+        # add to train dataset
+        ciciot_test_data = pd.concat([ciciot_test_data, balanced_data])  # dataframe to manipulate
+
+    # Reduce the number of attack samples in the test set
+    ciciot_test_data = reduce_attack_samples(ciciot_test_data, attack_ratio)
 
     print("Train & Test Attack Data Loaded (Attack Data already Combined)...")
 
@@ -357,7 +378,7 @@ if dataset_used == "CICIOT":
 #    Process Dataset For CICIOT 2023                    #
 #########################################################
 
-        # ---                   Feature Selection                --- #
+# ---                   Feature Selection                --- #
 
     print("Selecting Features...")
 
@@ -448,8 +469,12 @@ if dataset_used == "CICIOT":
     # ---                   Assigning / X y Split                   --- #
 
     # Feature / Label Split (X y split)
-    X_train_data = ciciot_train_data.drop(columns=['label'])
-    y_train_data = ciciot_train_data['label']
+    X_data = ciciot_train_data.drop(columns=['label'])
+    y_data = ciciot_train_data['label']
+
+    # Split the data into training and validation sets
+    X_train_data, X_val_data, y_train_data, y_val_data = train_test_split(X_data, y_data, test_size=0.2,
+                                                                          random_state=47, stratify=y_data)
 
     X_test_data = ciciot_test_data.drop(columns=['label'])
     y_test_data = ciciot_test_data['label']
@@ -493,8 +518,8 @@ if dataset_used == "IOTBOTNET":
     elif poisonedDataType == "FN66":
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
 
-    if poisonedDataType:
-        DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
+    # if poisonedDataType:
+    #     DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
     else:
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
 
@@ -587,6 +612,15 @@ if dataset_used == "IOTBOTNET":
         print("Label counts after balancing:", balanced_dataframe[label_column].value_counts())
 
         return balanced_dataframe
+
+    def reduce_attack_samples(data, attack_ratio):
+        attack_samples = data[data['Label'] == 'Anomaly']
+        benign_samples = data[data['Label'] == 'Normal']
+
+        reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+        combined_data = pd.concat([benign_samples, reduced_attack_samples])
+
+        return combined_data
 
 
     # ---                   Load Each Attack Dataset                 --- #
@@ -699,13 +733,41 @@ if dataset_used == "IOTBOTNET":
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
 
-    # --- Balance Training dataset --- #
+    # --- Provide proper repesentation of classes in the train and test datasets --- #
 
     print("Balance Training Dataset...")
 
     all_attacks_train = balance_data(all_attacks_train, label_column='Label')
 
-    print("Dataset Training Balanced...")
+    print("Balance Testing Dataset...")
+
+    all_attacks_test = balance_data(all_attacks_test, label_column='Label')
+
+    # ---                   Correcting test set representation                    --- #
+
+    print("Turning attacks into anomalies...")
+    print("Testing sample size:", all_attacks_test.shape[0])
+
+    # Count the number of benign and attack samples in the test set
+    benign_count = (all_attacks_test['Label'] == 'Normal').sum()
+    attack_count = (all_attacks_test['Label'] != 'Normal').sum()
+    print("Testing benign sample size:", benign_count)
+    print("Testing attack sample size:", attack_count)
+
+    print("Adjust Test Set Representation...")
+
+    attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
+    all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
+
+    print("Testing sample size:", all_attacks_test.shape[0])
+
+    # Count the number of benign and attack samples in the test set
+    benign_count = (all_attacks_test['Label'] == 'Normal').sum()
+    attack_count = (all_attacks_test['Label'] != 'Normal').sum()
+    print("Testing benign sample size:", benign_count)
+    print("Testing attack sample size:", attack_count)
+
+    print("Test Set Representation Adjusted...")
 
     # ---                   Feature Selection                --- #
 
@@ -798,8 +860,11 @@ if dataset_used == "IOTBOTNET":
     # ---                   Assigning                    --- #
 
     # Feature / Label Split (X y split)
-    X_train_data = all_attacks_train.drop(columns=['Label'])
-    y_train_data = all_attacks_train['Label']
+    X_data = all_attacks_train.drop(columns=['Label'])
+    y_data = all_attacks_train['Label']
+
+    X_train_data, X_val_data, y_train_data, y_val_data = train_test_split(X_data, y_data, test_size=0.2,
+                                                                          random_state=47, stratify=y_data)
 
     X_test_data = all_attacks_test.drop(columns=['Label'])
     y_test_data = all_attacks_test['Label']
@@ -857,6 +922,9 @@ if pruningEnabled:
             end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
         )
     }
+
+if DP_enabled:
+    epochs = 10
 
 # set hyperparameters for callback
 es_patience = 5
@@ -1201,7 +1269,7 @@ if adversarialTrainingEnabled:
 #    Metric Saving Functions                           #
 #########################################################
 
-def recordTraining(name, history, elapsed_time, roundCount):
+def recordTraining(name, history, elapsed_time, roundCount, val_loss):
     # f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
         f.write(f"Node|{node}| Round: {roundCount}\n")
@@ -1210,6 +1278,7 @@ def recordTraining(name, history, elapsed_time, roundCount):
             f.write(f"Epoch {epoch + 1}/{epochs}\n")
             for metric, values in history.history.items():
                 f.write(f"{metric}: {values[epoch]}\n")
+            f.write(f"Validation Loss: {val_loss}\n")
             f.write("\n")
 
 
@@ -1255,12 +1324,18 @@ class FLClient(fl.client.NumPyClient):
 
         if adversarialTrainingEnabled:
 
-            history = self.model.fit(combined_X_train_data, combined_y_train_data, epochs=epochs, batch_size=batch_size,
-                                     steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
+            history = self.model.fit(combined_X_train_data, combined_y_train_data,
+                                     validation_data=(X_val_data, y_val_data),
+                                     epochs=epochs, batch_size=batch_size,
+                                     steps_per_epoch=steps_per_epoch,
+                                     callbacks=callbackFunctions)
         else:
             # Train Model
-            history = self.model.fit(X_train_data, y_train_data, epochs=epochs, batch_size=batch_size,
-                                steps_per_epoch=steps_per_epoch, callbacks=callbackFunctions)
+            history = self.model.fit(X_train_data, y_train_data,
+                                     validation_data=(X_val_data, y_val_data),
+                                     epochs=epochs, batch_size=batch_size,
+                                     steps_per_epoch=steps_per_epoch,
+                                     callbacks=callbackFunctions)
 
         if pruningEnabled:
             # Strip the pruning wrappers and save the pruned model
@@ -1272,12 +1347,14 @@ class FLClient(fl.client.NumPyClient):
 
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
+        val_loss_tensor = history.history['val_loss']
         print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+        print(f"Validation Loss tensor shape: {tf.shape(val_loss_tensor)}")
 
         # Save metrics to file
         logName = trainingLog
         #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
-        recordTraining(logName, history, elapsed_time, self.roundCount)
+        recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
 
         return model.get_weights(), len(X_train_data), {}
 
