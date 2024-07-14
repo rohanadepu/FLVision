@@ -756,7 +756,7 @@ if dataset_used == "IOTBOTNET":
 
     print("Adjust Test Set Representation...")
 
-    attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
+    attack_ratio = 0.20  # Adjust this ratio as needed to achieve desired imbalance
     all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
 
     print("Testing sample size:", all_attacks_test.shape[0])
@@ -891,24 +891,26 @@ if dataset_used == "IOTBOTNET":
 
 # ---                  Hyper Parameters                  --- #
 
+# base hyperparameters for most models
 model_name = dataset_used  # name for file
 
-noise_multiplier = 0.1
-
-l2_norm_clip = 1.0
+input_dim = X_train_data.shape[1]  # dependant for feature size
 
 batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16
-num_microbatches = 1  # this is bugged keep at 1
 
-learning_rate = 0.0001  # will be optimized
-betas = [0.9, 0.999]  # Best to keep as is
-l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+epochs = 5  # 1, 2 , 3 or 5 epochs
 
-epochs = 5  # will be optimized
 # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
-steps_per_epoch = len(X_train_data) // batch_size   # dependant
+steps_per_epoch = len(X_train_data) // batch_size   # dependant between sample size of the dataset and the batch size chosen
 
-input_dim = X_train_data.shape[1]  # dependant
+learning_rate = 0.0001  # 0.001 or .0001
+betas = [0.9, 0.999]  # Stable
+
+# regularization param
+if regularizationEnabled:
+    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+    print("Regularization Parameter:")
+    print("L2_alpha:", l2_alpha)
 
 if pruningEnabled:
     import tensorflow_model_optimization as tfmot
@@ -924,36 +926,72 @@ if pruningEnabled:
     }
 
 if DP_enabled:
+    num_microbatches = 1  # this is bugged keep at 1
+
+    noise_multiplier = 0.1  # need to optimize noise budget and determine if noise is properly added
+    l2_norm_clip = 1.0  # determine if l2 needs to be tuned as well
+
     epochs = 10
     learning_rate = 0.00001  # will be optimized
 
+    print("Differential Privacy Parameters:")
+    print("L2_norm clip:", l2_norm_clip)
+    print("Noise Multiplier:", noise_multiplier)
+    print("MicroBatches", num_microbatches)
+
+if adversarialTrainingEnabled:
+    adv_portion = 0.1
+
+    print("Adversarial Training Parameter:")
+    print("Adversarial Sample %:", adv_portion * 100, "%")
+
 # set hyperparameters for callback
-es_patience = 5
-restor_best_w = True
 
-l2lr_patience = 3
-l2lr_factor = 0.1
+# early stop
+if earlyStopEnabled:
+    es_patience = 5
+    restor_best_w = True
+    metric_to_monitor_es = 'val_loss'
 
-metric_to_monitor_es = 'loss'
-metric_to_monitor_l2lr = 'loss'
-metric_to_monitor_mc = 'auc'
+    print("Early Stop Callback Parameters:")
+    print("Early Stop Patience:", es_patience)
+    print("Early Stop Restore best weights?", restor_best_w)
+    print("Early Stop Metric Monitored:", metric_to_monitor_es)
 
-save_best_only = True
-checkpoint_mode = "min"
+
+# lr sched
+if lrSchedRedEnabled:
+    l2lr_patience = 3
+    l2lr_factor = 0.1
+    metric_to_monitor_l2lr = 'val_loss'
+
+    print("LR sched Callback Parameters:")
+    print("LR sched Patience:", l2lr_patience)
+    print("LR sched Factor:", l2lr_factor)
+    print("LR sched Metric Monitored:", metric_to_monitor_l2lr)
+
+# save best model
+if modelCheckpointEnabled:
+    save_best_only = True
+    checkpoint_mode = "min"
+    metric_to_monitor_mc = 'val_loss'
+
+    print("Model Checkpoint Callback Parameters:")
+    print("Model Checkpoint Save Best only?", save_best_only)
+    print("Model Checkpoint mode:", checkpoint_mode)
+    print("Model Checkpoint Metric Monitored:", metric_to_monitor_mc)
+
+# 'val_loss' for general error, 'val_auc' for eval trade off for TP and TF rate for BC problems, "precision", "recall", ""F1-Score for imbalanced data
 
 print("\n /////////////////////////////////////////////// \n")
-print("Hyperparameters:")
+print("Base Hyperparameters:")
 print("Input Dim (Feature Size):", input_dim)
 print("Epochs:", epochs)
 print("Batch Size:", batch_size)
-print("MicroBatches", num_microbatches)
 print(f"Steps per epoch (({len(X_train_data)} // {batch_size})):", steps_per_epoch)
 # print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)  ## Debug
 print("Betas:", betas)
 print("Learning Rate:", learning_rate)
-print("L2_alpha:", l2_alpha)
-print("L2_norm clip:", l2_norm_clip)
-print("Noise Multiplier:", noise_multiplier)
 
 # ---             !!! INITIALIZE MODEL !!!                --- #
 
@@ -1154,7 +1192,7 @@ if DP_enabled:
 else:
     print("\nDefault optimizer...\n")
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    model.compile(optimizer= optimizer,
+    model.compile(optimizer=optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
@@ -1239,33 +1277,6 @@ if adversarialTrainingEnabled:
 
         return adversarial_example
 
-
-    total_examples = len(X_train_data)
-    print_every = max(total_examples // 10000, 1)  # Print progress every 0.1%
-
-    # Define proportion of data to use for adversarial training (e.g., 1%)
-    adv_proportion = 0.01
-    num_adv_examples = int(total_examples * adv_proportion)
-    print("# of adversarial examples", num_adv_examples)
-    adv_indices = random.sample(range(total_examples), num_adv_examples)
-
-    adv_examples = []
-    for idx, (x, y) in enumerate(zip(X_train_data.to_numpy(), y_train_data.to_numpy())):
-        if idx in adv_indices:
-            adv_example = create_adversarial_example(model, x, y)
-            adv_examples.append(adv_example)
-        else:
-            adv_examples.append(x)
-
-        if (idx + 1) % print_every == 0 or (idx + 1) == total_examples:
-            print(f"Progress: {(idx + 1) / total_examples * 100:.2f}%")
-
-    adv_X_train_data = np.array(adv_examples)
-
-    adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=X_train_data.columns)
-    combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
-    combined_y_train_data = pd.concat([y_train_data, y_train_data])
-
 #########################################################
 #    Metric Saving Functions                           #
 #########################################################
@@ -1324,6 +1335,33 @@ class FLClient(fl.client.NumPyClient):
         self.model.set_weights(parameters)
 
         if adversarialTrainingEnabled:
+
+            total_examples = len(X_train_data)
+            print_every = max(total_examples // 10000, 1)  # Print progress every 0.1%
+
+            # Define proportion of data to use for adversarial training (e.g., 10%)
+            adv_proportion = adv_portion
+
+            num_adv_examples = int(total_examples * adv_proportion)
+            print("# of adversarial examples", num_adv_examples)
+            adv_indices = random.sample(range(total_examples), num_adv_examples)
+
+            adv_examples = []
+            for idx, (x, y) in enumerate(zip(X_train_data.to_numpy(), y_train_data.to_numpy())):
+                if idx in adv_indices:
+                    adv_example = create_adversarial_example(model, x, y)
+                    adv_examples.append(adv_example)
+                else:
+                    adv_examples.append(x)
+
+                if (idx + 1) % print_every == 0 or (idx + 1) == total_examples:
+                    print(f"Progress: {(idx + 1) / total_examples * 100:.2f}%")
+
+            adv_X_train_data = np.array(adv_examples)
+
+            adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=X_train_data.columns)
+            combined_X_train_data = pd.concat([X_train_data, adv_X_train_data])
+            combined_y_train_data = pd.concat([y_train_data, y_train_data])
 
             history = self.model.fit(combined_X_train_data, combined_y_train_data,
                                      validation_data=(X_val_data, y_val_data),
