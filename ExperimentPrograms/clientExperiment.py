@@ -929,7 +929,6 @@ if adversarialTrainingEnabled:
     print("Adversarial Sample %:", adv_portion * 100, "%")
 
 if pruningEnabled:
-
     # Define the pruning parameters
     pruning_params = {
         'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
@@ -993,28 +992,30 @@ print("Learning Rate:", learning_rate)
 
 if dataset_used == "CICIOT":
     model = tf.keras.models.Sequential([
-        Dense(64, activation='relu'),
+        tf.keras.layers.Input(shape=(input_dim,)),
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(32, activation='relu'),
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(16, activation='relu'),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(8, activation='relu'),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(4, activation='relu'),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(1, activation='sigmoid')
+        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
     ])
 
 # ---                   IOTBOTNET Model Def                 --- #
 
 elif dataset_used == "IOTBOTNET":
     model = tf.keras.models.Sequential([
+        tf.keras.layers.Input(shape=(input_dim,)),
         Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
