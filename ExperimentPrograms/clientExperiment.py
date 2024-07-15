@@ -305,8 +305,8 @@ if dataset_used == "CICIOT":
     train_sample_files.sort()
     test_sample_files.sort()
 
-    print("Training Sets:\n", train_sample_files, "\n")
-    print("Test Sets:\n", test_sample_files, "\n")
+    print("\nTraining Sets:\n", train_sample_files, "\n")
+    print("\nTest Sets:\n", test_sample_files, "\n")
 
     # ---      Load the data from the sampled sets of files into train and test dataframes respectively    --- #
 
