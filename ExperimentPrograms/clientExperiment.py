@@ -50,6 +50,11 @@ print("Federated Learning Training Demo:", "\n")
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
+parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
+parser.add_argument("--fixedServer", type=int, choices=[1,2,3,4], default=1, help="Fixed Server node number 1-4")
+
+parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None, help="Label Flip: LF33, LF66")
+
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy with TFP') # untested but working plz tune
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training with gradients') # bugged
@@ -57,10 +62,6 @@ parser.add_argument('--adversarial', action='store_true', help='Enable model adv
 parser.add_argument('--eS', action='store_true', help='Enable model early stop training') # callback unessary
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
 parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training') # store false irelevent
-
-# i got bored and started planning to add the poisoned pipeline into this file cause its less work
-parser.add_argument("--node", type=int, choices=[1,2,3,4,5,6], default=1, help="Client node number 1-6")
-parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None, help="Label Flip: LF33, LF66")
 
 parser.add_argument("--evalLog", type=str, default=f"training_metrics", help="Name of the training log file")
 parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics", help="Name of the evaluation log file")
@@ -70,6 +71,11 @@ args = parser.parse_args()
 
 dataset_used = args.dataset
 
+fixedServer = args.fixedServer
+node = args.node
+
+poisonedDataType = args.pData
+
 regularizationEnabled = args.reg
 DP_enabled = args.dp
 adversarialTrainingEnabled = args.adversarial
@@ -78,8 +84,6 @@ earlyStopEnabled = args.eS
 lrSchedRedEnabled = args.lrSched
 modelCheckpointEnabled = args.mChkpnt
 
-node = args.node
-poisonedDataType = args.pData
 evaluationLog = args.evalLog  # input into evaluation method if you want to input name
 trainingLog = args.trainLog  # input into train method if you want to input name
 
@@ -1266,4 +1270,13 @@ class FLClient(fl.client.NumPyClient):
 #    Start the client                                   #
 #########################################################
 
-fl.client.start_client(server_address="192.168.129.2:8080", client=FLClient(model).to_client())
+if fixedServer == 1:
+    server_address = "192.168.129.2:8080"
+elif fixedServer == 2:
+    server_address = "192.168.129.6:8080"
+elif fixedServer == 3:
+    server_address = "192.168.129.7:8080"
+else:
+    server_address = "192.168.129.8:8080"
+
+fl.client.start_client(server_address=server_address, client=FLClient(model).to_client())
