@@ -121,7 +121,9 @@ else:
     print("Differential Privacy Disabled", "\n")
 
 if pruningEnabled:
+    from tensorflow_model_optimization.python.core.keras.compat import keras
     import tensorflow_model_optimization as tfmot
+    import tf_keras as keras
     print("Pruning Enabled", "\n")
 else:
     print("Pruning Disabled", "\n")
