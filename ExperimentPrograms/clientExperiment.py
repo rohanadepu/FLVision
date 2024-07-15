@@ -471,6 +471,7 @@ if dataset_used == "CICIOT":
 
     # ---                   Assigning / X y Split                   --- #
 
+    print("\nAssign dataset to model...")
     # Feature / Label Split (X y split)
     X_data = ciciot_train_data.drop(columns=['label'])
     y_data = ciciot_train_data['label']
@@ -862,6 +863,8 @@ if dataset_used == "IOTBOTNET":
     print(all_attacks_test.shape)
 
     # ---                   Assigning                    --- #
+
+    print("\nAssign dataset to model...")
 
     # Feature / Label Split (X y split)
     X_data = all_attacks_train.drop(columns=['Label'])
