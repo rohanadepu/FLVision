@@ -369,7 +369,7 @@ if dataset_used == "CICIOT":
     # Reduce the number of attack samples in the test set
     ciciot_test_data = reduce_attack_samples(ciciot_test_data, attack_ratio)
 
-    print("Train & Test Attack Data Loaded (Attack Data already Combined)...")
+    print("\nTrain & Test Attack Data Loaded (Attack Data already Combined)...")
 
     print("CICIOT Combined Data (Train):")
     print(ciciot_train_data.head())
