@@ -1005,178 +1005,51 @@ print("Learning Rate:", learning_rate)
 
 # ---             !!! INITIALIZE MODEL !!!                --- #
 
-# ---                   CICIOT Models                   --- #
+# ---                   CICIOT Model Def              --- #
 
 if dataset_used == "CICIOT":
+    model = tf.keras.Sequential([
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+    ])
 
-    # --- Model Definition --- #
-    if not pruningEnabled and regularizationEnabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
+# ---                   IOTBOTNET Model Def                 --- #
 
-    elif not pruningEnabled and not regularizationEnabled:
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
+elif dataset_used == "IOTBOTNET":
+    model = tf.keras.Sequential([
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        BatchNormalization(),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+    ])
 
-    elif pruningEnabled and regularizationEnabled:
-        model = tf.keras.Sequential([
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-        ])
+# ---                   Add pruning to model                --- #
 
-    elif pruningEnabled and not regularizationEnabled:
-        model = tf.keras.Sequential([
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(64, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(32, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
-        ])
-
-# ---                   IOTBOTNET Models                  --- #
-
-if dataset_used == "IOTBOTNET":
-
-    # --- Model Definitions --- #
-
-    if not pruningEnabled and regularizationEnabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    elif not pruningEnabled and not regularizationEnabled:
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(2, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    elif pruningEnabled and regularizationEnabled:
-        model = tf.keras.Sequential([
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha)), **pruning_params),
-        ])
-
-    elif pruningEnabled and not regularizationEnabled:
-        model = tf.keras.Sequential([
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(16, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(8, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(4, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(2, activation='relu'), **pruning_params),
-            BatchNormalization(),
-            Dropout(0.5),
-            tfmot.sparsity.keras.prune_low_magnitude(Dense(1, activation='sigmoid'), **pruning_params),
-        ])
+if pruningEnabled:
+    model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
@@ -1229,6 +1102,7 @@ if earlyStopEnabled:
     early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience, restore_best_weights=restor_best_w)
 
     callbackFunctions.append(early_stopping)
+
 
 if lrSchedRedEnabled:
     lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor_l2lr, factor=l2lr_factor, patience=l2lr_patience)
