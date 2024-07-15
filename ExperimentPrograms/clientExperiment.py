@@ -358,7 +358,7 @@ if dataset_used == "CICIOT":
 
         test_normal_traffic_total_size += benign_count  # adding to quota count
 
-        print(f"Benign Traffic Train Samples: {benign_count} | {test_normal_traffic_total_size} |LIMIT| {test_normal_traffic_size_limit}")
+        print(f"Benign Traffic Test Samples: {benign_count} | {test_normal_traffic_total_size} |LIMIT| {test_normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_test_data = pd.concat([ciciot_test_data, balanced_data])  # dataframe to manipulate
