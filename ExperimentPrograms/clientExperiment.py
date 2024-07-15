@@ -951,7 +951,7 @@ if adversarialTrainingEnabled:
 
 # early stop
 if earlyStopEnabled:
-    es_patience = 5
+    es_patience = 5  # 3 -10 epochs
     restor_best_w = True
     metric_to_monitor_es = 'val_loss'
 
@@ -963,8 +963,8 @@ if earlyStopEnabled:
 
 # lr sched
 if lrSchedRedEnabled:
-    l2lr_patience = 3
-    l2lr_factor = 0.1
+    l2lr_patience = 3  # eppoch when metric stops imporving
+    l2lr_factor = 0.1  # Reduce lr to 10%
     metric_to_monitor_l2lr = 'val_loss'
 
     print("\nLR sched Callback Parameters:")
