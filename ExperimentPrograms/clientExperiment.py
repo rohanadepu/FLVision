@@ -1290,20 +1290,25 @@ if adversarialTrainingEnabled:
 #########################################################
 
 def recordTraining(name, history, elapsed_time, roundCount, val_loss):
-    # f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
         f.write(f"Node|{node}| Round: {roundCount}\n")
         f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
         for epoch in range(epochs):
             f.write(f"Epoch {epoch + 1}/{epochs}\n")
             for metric, values in history.history.items():
-                f.write(f"{metric}: {values[epoch]}\n")
-            f.write(f"Validation Loss: {val_loss}\n")
+                # Debug: print the length of values list and the current epoch
+                print(f"Metric: {metric}, Values Length: {len(values)}, Epoch: {epoch}")
+                if epoch < len(values):
+                    f.write(f"{metric}: {values[epoch]}\n")
+                else:
+                    print(f"Skipping metric {metric} for epoch {epoch} due to out-of-range error.")
+            if epoch < len(val_loss):
+                f.write(f"Validation Loss: {val_loss[epoch]}\n")
+            else:
+                print(f"Skipping Validation Loss for epoch {epoch} due to out-of-range error.")
             f.write("\n")
 
-
 def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
-    # f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt
     with open(name, 'a') as f:
         f.write(f"Node|{node}| Round: {evaluateCount}\n")
         f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
