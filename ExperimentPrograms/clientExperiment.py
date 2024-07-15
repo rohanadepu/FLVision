@@ -121,6 +121,7 @@ else:
     print("Differential Privacy Disabled", "\n")
 
 if pruningEnabled:
+    import tensorflow_model_optimization as tfmot
     print("Pruning Enabled", "\n")
 else:
     print("Pruning Disabled", "\n")
@@ -922,7 +923,6 @@ if regularizationEnabled:
     print("L2_alpha:", l2_alpha)
 
 if pruningEnabled:
-    import tensorflow_model_optimization as tfmot
 
     # Define the pruning parameters
     pruning_params = {
