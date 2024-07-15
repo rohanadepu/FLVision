@@ -102,11 +102,13 @@ trainingLog = args.trainLog  # input into train method if you want to input name
 
 # display selected arguments
 
+print("|MAIN CONFIG|", "\n")
 # main experiment config
 print("Selected Node:", node, "\n")
 print("Selected DATASET:", dataset_used, "\n")
 print("Poisoned Data:", poisonedDataType, "\n")
 
+print("|DEFENSES|", "\n")
 # defense settings display
 if regularizationEnabled:
     print("Regularization Enabled", "\n")
@@ -128,6 +130,7 @@ if adversarialTrainingEnabled:
 else:
     print("Adversarial Training Disabled", "\n")
 
+print("|CALL-BACK FUNCTIONS|", "\n")
 # callback functions display
 if earlyStopEnabled:
     print("early stop training Enabled", "\n")
@@ -279,7 +282,7 @@ if dataset_used == "CICIOT":
 
     # ---     Load in two separate sets of file samples for the train and test datasets --- #
 
-    print("Loading Network Traffic Data Files...")
+    print("\nLoading Network Traffic Data Files...")
 
     # List the files in the dataset
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
@@ -312,7 +315,7 @@ if dataset_used == "CICIOT":
     train_normal_traffic_total_size = 0
     train_normal_traffic_size_limit = 110000
 
-    print("Loading Training Data...")
+    print("\nLoading Training Data...")
     for data_set in train_sample_files:
 
         # Load Data from sampled files until enough benign traffic is loaded
@@ -340,7 +343,7 @@ if dataset_used == "CICIOT":
     test_normal_traffic_size_limit = 44000
     attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
 
-    print("Loading Testing Data...")
+    print("\nLoading Testing Data...")
     for data_set in test_sample_files:
 
         # Load Data from sampled files until enough benign traffic is loaded
@@ -380,7 +383,7 @@ if dataset_used == "CICIOT":
 
 # ---                   Feature Selection                --- #
 
-    print("Selecting Features...")
+    print("\nSelecting Features...")
 
     # Drop the irrelevant features (Feature selection)
     ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features)
@@ -393,7 +396,7 @@ if dataset_used == "CICIOT":
     print("Features Selected...")
 
     # prints an instance of each class in training data
-    print("Before Encoding and Scaling:")
+    print("\nBefore Encoding and Scaling:")
     unique_labels = ciciot_train_data['label'].unique()
     for label in unique_labels:
         print(f"First instance of {label}:")
@@ -401,7 +404,7 @@ if dataset_used == "CICIOT":
 
     # ---                   Encoding                     --- #
 
-    print("Encoding...")
+    print("\nEncoding...")
 
     # get each label in dataset
     unique_labels = ciciot_train_data['label'].nunique()
@@ -441,7 +444,7 @@ if dataset_used == "CICIOT":
 
     # ---                    Normalizing                      --- #
 
-    print("Normalizing...")
+    print("\nNormalizing...")
 
     # Setting up Scaler for Features normalization
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -625,6 +628,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Load Each Attack Dataset                 --- #
 
+    print("\nLoading Each IOT Network Attack Class...")
     print("Loading DDOS Data...")
     # Load DDoS UDP files
     ddos_udp_directory = DATASET_DIRECTORY + '/ddos/ddos_udp'
@@ -672,7 +676,7 @@ if dataset_used == "IOTBOTNET":
     print("Loading Finished...")
 
     # ---                   Combine all classes                    --- #
-    print("Combining Attack Data...")
+    print("\nCombining Attack Data...")
 
     # concatenate all dataframes
     ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
@@ -710,7 +714,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Cleaning                     --- #
 
-    print("Cleaning Dataset...")
+    print("\nCleaning Dataset...")
 
     # Replace inf values with NaN and then drop them
     all_attacks_combined.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
@@ -722,7 +726,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Train Test Split                  --- #
 
-    print("Train Test Split...")
+    print("\nTrain Test Split...")
 
     # Split each combined DataFrame into train and test sets
     all_attacks_train, all_attacks_test = split_train_test(all_attacks_combined)
@@ -735,17 +739,17 @@ if dataset_used == "IOTBOTNET":
 
     # --- Provide proper repesentation of classes in the train and test datasets --- #
 
-    print("Balance Training Dataset...")
+    print("\nBalance Training Dataset...")
 
     all_attacks_train = balance_data(all_attacks_train, label_column='Label')
 
-    print("Balance Testing Dataset...")
+    print("\nBalance Testing Dataset...")
 
     all_attacks_test = balance_data(all_attacks_test, label_column='Label')
 
     # ---                   Correcting test set representation                    --- #
 
-    print("Turning attacks into anomalies...")
+    print("\nTurning attacks into anomalies...")
     print("Testing sample size:", all_attacks_test.shape[0])
 
     # Count the number of benign and attack samples in the test set
@@ -771,7 +775,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Feature Selection                --- #
 
-    print("Selecting Features...")
+    print("\nSelecting Features...")
 
     # Select the relevant features in the dataset and labels
     all_attacks_train = all_attacks_train[relevant_attributes_iotbotnet]
@@ -784,7 +788,7 @@ if dataset_used == "IOTBOTNET":
     print("Features Selected...")
 
     # prints an instance of each class in training data
-    print("Before Encoding and Scaling:")
+    print("\nBefore Encoding and Scaling:")
     unique_labels = all_attacks_train['Label'].unique()
     for label in unique_labels:
         print(f"First instance of {label}:")
@@ -792,7 +796,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Encoding                      --- #
 
-    print("Encoding...")
+    print("\nEncoding...")
 
     # get each label in dataset
     unique_labels = all_attacks_train['Label'].nunique()
@@ -832,7 +836,7 @@ if dataset_used == "IOTBOTNET":
 
     # ---                   Normalizing                     --- #
 
-    print("Normalizing...")
+    print("\nNormalizing...")
 
     # Setting up Scaler for Features normalization
     scaler = MinMaxScaler(feature_range=(0, 1))
@@ -1219,13 +1223,12 @@ if pruningEnabled:
 if earlyStopEnabled:
     early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience, restore_best_weights=restor_best_w)
 
-    callbackFunctions += early_stopping
-
+    callbackFunctions.append(early_stopping)
 
 if lrSchedRedEnabled:
     lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor_l2lr, factor=l2lr_factor, patience=l2lr_patience)
 
-    callbackFunctions += lr_scheduler
+    callbackFunctions.append(lr_scheduler)
 
 
 if modelCheckpointEnabled:
@@ -1233,7 +1236,7 @@ if modelCheckpointEnabled:
                                        monitor=metric_to_monitor_mc, mode=checkpoint_mode)
 
     # add to callback functions list being added during fitting
-    callbackFunctions += model_checkpoint
+    callbackFunctions.append(model_checkpoint)
 
 # ---                   Model Analysis                   --- #
 
