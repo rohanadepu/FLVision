@@ -1032,6 +1032,7 @@ def create_model(dataset_used, input_dim, l2_alpha=None):
         ])
     return model
 
+
 model = create_model(dataset_used, input_dim, l2_alpha if regularizationEnabled else None)
 
 # ---                   Add pruning to model                --- #
