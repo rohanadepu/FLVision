@@ -1,7 +1,7 @@
-import subprocess
 import argparse
 import time
-import os
+from fabric import Connection
+import threading
 
 # Define the defense strategies including the option for no defenses
 defense_strategies = [
@@ -17,7 +17,7 @@ defense_strategies = [
 datasets = ["IOTBOTNET", "CICIOT"]
 poisoned_variants = ["LF33", "LF66", "FN33", "FN66"]
 
-# Define the IP addresses for each node
+# IP addresses for each node
 node_ips = {
     1: "192.168.129.1",
     2: "192.168.129.3",
@@ -28,18 +28,41 @@ node_ips = {
     "server": "192.168.129.2"
 }
 
-def run_command(command):
-    print(f"Executing: {command}")
-    process = subprocess.Popen(command, shell=True)
-    process.communicate()
+# Path to SSH key
+ssh_key = "aerpaw_id_rsa"
+
+def run_command_on_host(ip, command):
+    print(f"Executing on {ip}: {command}")
+    conn = Connection(host=ip, user='root', connect_kwargs={"key_filename": ssh_key})
+    result = conn.run(command, hide=True, warn=True)
+    if result.stdout:
+        print(f"[{ip}] STDOUT:\n{result.stdout.strip()}")
+    if result.stderr:
+        print(f"[{ip}] STDERR:\n{result.stderr.strip()}")
+    conn.close()
 
 def run_server():
     print("Starting the server node")
-    command = "python3 server.py"
-    while True:
-        run_command(command)
+    server_ip = node_ips["server"]
+    command = 'cd FLVision/ExperimentPrograms && nohup python3 server.py &'
+    run_command_on_host(server_ip, command)
+
+def run_client_experiments_on_node(node, datasets, poisoned_variants, defense_strategies, num_clean_nodes_list):
+    for dataset in datasets:
+        for poisoned_variant in poisoned_variants:
+            for strategy in defense_strategies:
+                for num_nodes in num_clean_nodes_list:
+                    nodes_to_use = [1] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
+                    if node in nodes_to_use:
+                        poisoned_data = poisoned_variant if node == 1 else None
+                        log_file = f"log_node{node}_dataset{dataset}_poisoned{poisoned_variant}_strategy{strategy}_clean{num_nodes}.txt"
+                        run_client(node, dataset, poisoned_data, strategy, log_file)
+                        # Wait for a bit before starting the next round to ensure synchronization
+                        time.sleep(5)
 
 def run_client(node, dataset, poisoned_data, strategy, log_file):
+    client_ip = node_ips[node]
+    
     reg_flag = "--reg" if strategy in ["regularization", "all"] else ""
     dp_flag = "--dp" if strategy in ["differential_privacy", "all"] else ""
     prune_flag = "--prune" if strategy in ["model_pruning", "all"] else ""
@@ -48,15 +71,15 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
     p_data_flag = f"--pData {poisoned_data}" if poisoned_data else ""
 
     command = (
-        f"python3 clientExperiment.py --dataset {dataset} --node {node} {p_data_flag} --evalLog eval_{log_file} --trainLog train_{log_file} {reg_flag} {dp_flag} {prune_flag} {adv_flag}"
+        f"cd FLVision/ExperimentPrograms && python3 clientExperiment.py --dataset {dataset} "
+        f"--node {node} {p_data_flag} --evalLog eval_{log_file} --trainLog train_{log_file} "
+        f"{reg_flag} {dp_flag} {prune_flag} {adv_flag}"
     )
     
-    run_command(command)
+    run_command_on_host(client_ip, command)
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Learning Training Script Automation")
-    parser.add_argument("--role", type=str, choices=["server", "client"], required=True, help="Role of the node: server or client")
-    parser.add_argument("--node", type=int, choices=list(node_ips.keys())[:-1], help="Node number (required for clients)")
     parser.add_argument("--datasets", type=str, nargs='+', choices=datasets, required=True, help="List of datasets to use")
     parser.add_argument("--pvar", type=str, nargs='+', choices=poisoned_variants, required=True, help="List of poisoned variants to use")
     parser.add_argument("--defense_strat", type=str, nargs='+', choices=defense_strategies, required=True, help="List of defense strategies to use")
@@ -65,41 +88,35 @@ def main():
     args = parser.parse_args()
 
     compromised_node = 1  # Always set node 1 as the compromised node
-    num_clean_nodes_list = sorted(args.cleannodes, reverse=True)  # Sort to start with the maximum number of nodes
+    num_clean_nodes_list = args.cleannodes
     selected_datasets = args.datasets
     selected_poisoned_variants = args.pvar
     selected_defense_strategies = args.defense_strat
 
-    print(f"Role: {args.role}")
-    print(f"Node: {args.node if args.role == 'client' else 'N/A'}")
-    print(f"Datasets: {selected_datasets}")
-    print(f"Poisoned Variants: {selected_poisoned_variants}")
-    print(f"Defense Strategies: {selected_defense_strategies}")
-    print(f"Clean Nodes: {num_clean_nodes_list}")
+    # Create a thread for the server
+    server_thread = threading.Thread(target=run_server)
+    server_thread.start()
 
-    if args.role == "server":
-        run_server()
-    else:
-        current_node = args.node
-        if current_node is None:
-            print("Node number must be specified for client role.")
-            return
+    # Give the server some time to start up
+    time.sleep(10)
 
-        for num_nodes in num_clean_nodes_list:
-            nodes_to_use = [compromised_node] + [i for i in range(2, 7)][:num_nodes]  # Select clean nodes from 2 to 6
-            if current_node in nodes_to_use and current_node <= num_nodes + 1:  # Ensure current node is within the required nodes
-                for dataset in selected_datasets:
-                    for poisoned_variant in selected_poisoned_variants:
-                        for strategy in selected_defense_strategies:
-                            poisoned_data = poisoned_variant if current_node == compromised_node else None
-                            log_file = f"log_node{current_node}_dataset{dataset}_poisoned{poisoned_data}_strategy{strategy}_clean{num_nodes}.txt"
-                            run_client(current_node, dataset, poisoned_data, strategy, log_file)
-                            # Wait for a bit before starting the next round to ensure synchronization
-                            time.sleep(5)
+    # Create and start client threads
+    client_threads = []
+
+    for node in range(1, 7):
+        client_thread = threading.Thread(target=run_client_experiments_on_node, args=(node, selected_datasets, selected_poisoned_variants, selected_defense_strategies, num_clean_nodes_list))
+        client_threads.append(client_thread)
+        client_thread.start()
+
+    # Wait for all client threads to finish
+    for thread in client_threads:
+        thread.join()
+
+    # Wait for the server thread to finish
+    server_thread.join()
 
 if __name__ == "__main__":
     main()
 
 # Example usage:
-# python3 experimentAutomation3.py --role server
-# python3 experimentAutomation3.py --role client --node 1 --datasets IOTBOTNET CICIOT --pvar LF33 LF66 FN33 FN66 --defense_strat none differential_privacy adversarial_training --cleannodes 1 2 4
+# python3 experimentAutomation3.py --datasets IOTBOTNET CICIOT --pvar LF33 LF66 FN33 FN66 --defense_strat none differential_privacy adversarial_training --cleannodes 1 2 4
