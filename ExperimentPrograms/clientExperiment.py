@@ -993,22 +993,22 @@ print("Learning Rate:", learning_rate)
 
 if dataset_used == "CICIOT":
     model = tf.keras.models.Sequential([
-        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(64, activation='relu'),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(32, activation='relu'),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(16, activation='relu'),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(8, activation='relu'),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(4, activation='relu'),
         BatchNormalization(),
         Dropout(0.5),
-        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+        Dense(1, activation='sigmoid')
     ])
 
 # ---                   IOTBOTNET Model Def                 --- #
