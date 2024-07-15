@@ -936,7 +936,7 @@ if DP_enabled:
     epochs = 10
     learning_rate = 0.00001  # will be optimized
 
-    print("\n Differential Privacy Parameters:")
+    print("\nDifferential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
     print("Noise Multiplier:", noise_multiplier)
     print("MicroBatches", num_microbatches)
