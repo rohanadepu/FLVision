@@ -1037,6 +1037,8 @@ model = create_model(dataset_used, input_dim, l2_alpha if regularizationEnabled 
 # ---                   Add pruning to model                --- #
 
 if pruningEnabled:
+    print("Type of the model before pruning:", type(model))
+
     model = tfmot.sparsity.keras.prune_low_magnitude(model, pruning_schedule=pruning_schedule)
 
 # ---         Differential Privacy Engine Model Compile              --- #
