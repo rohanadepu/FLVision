@@ -988,48 +988,52 @@ print("Learning Rate:", learning_rate)
 
 # ---             !!! INITIALIZE MODEL !!!                --- #
 
-# ---                   CICIOT Model Def              --- #
 
-if dataset_used == "CICIOT":
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
-    ])
+def create_model(dataset_used, input_dim, l2_alpha=None):
 
-# ---                   IOTBOTNET Model Def                 --- #
+    # ---                   CICIOT Model Def              --- #
+    if dataset_used == "CICIOT":
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+        ])
 
-elif dataset_used == "IOTBOTNET":
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Input(shape=(input_dim,)),
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-        BatchNormalization(),
-        Dropout(0.5),
-        Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
-    ])
+        # ---                   IOTBOTNET Model Def              --- #
+    elif dataset_used == "IOTBOTNET":
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+        ])
+    return model
+
+model = create_model(dataset_used, input_dim, l2_alpha if regularizationEnabled else None)
 
 # ---                   Add pruning to model                --- #
 
