@@ -891,6 +891,8 @@ if dataset_used == "IOTBOTNET":
 
 # ---                  Hyper Parameters                  --- #
 
+print("\n /////////////////////////////////////////////// \n")
+
 # base hyperparameters for most models
 model_name = dataset_used  # name for file
 
@@ -909,7 +911,7 @@ betas = [0.9, 0.999]  # Stable
 # regularization param
 if regularizationEnabled:
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
-    print("Regularization Parameter:")
+    print("\nRegularization Parameter:")
     print("L2_alpha:", l2_alpha)
 
 if pruningEnabled:
@@ -934,7 +936,7 @@ if DP_enabled:
     epochs = 10
     learning_rate = 0.00001  # will be optimized
 
-    print("Differential Privacy Parameters:")
+    print("\n Differential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
     print("Noise Multiplier:", noise_multiplier)
     print("MicroBatches", num_microbatches)
@@ -942,7 +944,7 @@ if DP_enabled:
 if adversarialTrainingEnabled:
     adv_portion = 0.1
 
-    print("Adversarial Training Parameter:")
+    print("\nAdversarial Training Parameter:")
     print("Adversarial Sample %:", adv_portion * 100, "%")
 
 # set hyperparameters for callback
@@ -953,7 +955,7 @@ if earlyStopEnabled:
     restor_best_w = True
     metric_to_monitor_es = 'val_loss'
 
-    print("Early Stop Callback Parameters:")
+    print("\nEarly Stop Callback Parameters:")
     print("Early Stop Patience:", es_patience)
     print("Early Stop Restore best weights?", restor_best_w)
     print("Early Stop Metric Monitored:", metric_to_monitor_es)
@@ -965,7 +967,7 @@ if lrSchedRedEnabled:
     l2lr_factor = 0.1
     metric_to_monitor_l2lr = 'val_loss'
 
-    print("LR sched Callback Parameters:")
+    print("\nLR sched Callback Parameters:")
     print("LR sched Patience:", l2lr_patience)
     print("LR sched Factor:", l2lr_factor)
     print("LR sched Metric Monitored:", metric_to_monitor_l2lr)
@@ -976,15 +978,14 @@ if modelCheckpointEnabled:
     checkpoint_mode = "min"
     metric_to_monitor_mc = 'val_loss'
 
-    print("Model Checkpoint Callback Parameters:")
+    print("\nModel Checkpoint Callback Parameters:")
     print("Model Checkpoint Save Best only?", save_best_only)
     print("Model Checkpoint mode:", checkpoint_mode)
     print("Model Checkpoint Metric Monitored:", metric_to_monitor_mc)
 
 # 'val_loss' for general error, 'val_auc' for eval trade off for TP and TF rate for BC problems, "precision", "recall", ""F1-Score for imbalanced data
 
-print("\n /////////////////////////////////////////////// \n")
-print("Base Hyperparameters:")
+print("\nBase Hyperparameters:")
 print("Input Dim (Feature Size):", input_dim)
 print("Epochs:", epochs)
 print("Batch Size:", batch_size)
