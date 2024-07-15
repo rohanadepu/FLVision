@@ -108,6 +108,7 @@ else:
 
 if pruningEnabled:
     import tensorflow_model_optimization as tfmot
+    import tf_keras as keras
     print("Pruning Enabled", "\n")
 else:
     print("Pruning Disabled", "\n")
@@ -930,14 +931,12 @@ if adversarialTrainingEnabled:
 
 if pruningEnabled:
     # Define the pruning parameters
-    pruning_params = {
-        'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
-            initial_sparsity=0.0,
-            final_sparsity=0.5,
-            begin_step=0,
-            end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
-        )
-    }
+    pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
+        initial_sparsity=0.0,
+        final_sparsity=0.5,
+        begin_step=2000,
+        end_step=4000
+    )
 
 # set hyperparameters for callback
 
@@ -1038,7 +1037,7 @@ model = create_model(dataset_used, input_dim, l2_alpha if regularizationEnabled 
 # ---                   Add pruning to model                --- #
 
 if pruningEnabled:
-    model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
+    model = tfmot.sparsity.keras.prune_low_magnitude(model, pruning_schedule=pruning_schedule)
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
