@@ -11,8 +11,6 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
 
 import flwr as fl
-from flwr.client.mod import fixedclipping_mod
-from flwr.client.mod.localdp_mod import LocalDpMod
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -21,8 +19,6 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-
-from sklearn.model_selection import KFold
 
 import numpy as np
 import pandas as pd
@@ -36,7 +32,7 @@ import pandas as pd
 # import seaborn as sns
 
 # import pickle
-import joblib
+# import joblib
 
 from sklearn.model_selection import train_test_split
 # import sklearn.cluster as cluster
@@ -121,9 +117,7 @@ else:
     print("Differential Privacy Disabled", "\n")
 
 if pruningEnabled:
-    from tensorflow_model_optimization.python.core.keras.compat import keras
     import tensorflow_model_optimization as tfmot
-    import tf_keras as keras
     print("Pruning Enabled", "\n")
 else:
     print("Pruning Disabled", "\n")
