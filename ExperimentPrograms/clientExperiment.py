@@ -1006,47 +1006,50 @@ print("Learning Rate:", learning_rate)
 # ---             !!! INITIALIZE MODEL !!!                --- #
 
 # ---                   CICIOT Model Def              --- #
-# Define pruned layers explicitly
-def create_pruned_layer(layer, **pruning_params):
-    return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
 
-# Model Definition
 if dataset_used == "CICIOT":
     model = tf.keras.Sequential([
-        create_pruned_layer(Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
         Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
     ])
+
+# ---                   IOTBOTNET Model Def                 --- #
 
 elif dataset_used == "IOTBOTNET":
     model = tf.keras.Sequential([
-        create_pruned_layer(Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
-        create_pruned_layer(Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None), **pruning_params) if pruningEnabled else Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+        Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
         Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
     ])
+
+# ---                   Add pruning to model                --- #
+
+if pruningEnabled:
+    model = tfmot.sparsity.keras.prune_low_magnitude(model, **pruning_params)
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
