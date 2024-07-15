@@ -52,7 +52,6 @@ parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], defa
 
 parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
 parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy with TFP') # untested but working plz tune
-parser.add_argument('--prune', action='store_true', help='Enable model pruning with TFMO')  # broken
 parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training with gradients') # bugged
 
 parser.add_argument('--eS', action='store_true', help='Enable model early stop training') # callback unessary
@@ -73,7 +72,6 @@ dataset_used = args.dataset
 
 regularizationEnabled = args.reg
 DP_enabled = args.dp
-pruningEnabled = args.prune
 adversarialTrainingEnabled = args.adversarial
 
 earlyStopEnabled = args.eS
@@ -105,13 +103,6 @@ if DP_enabled:
     print("Differential Privacy Engine Enabled", "\n")
 else:
     print("Differential Privacy Disabled", "\n")
-
-if pruningEnabled:
-    import tensorflow_model_optimization as tfmot
-    import tf_keras as keras
-    print("Pruning Enabled", "\n")
-else:
-    print("Pruning Disabled", "\n")
 
 if adversarialTrainingEnabled:
     print("Adversarial Training Enabled", "\n")
@@ -161,9 +152,6 @@ if dataset_used == "CICIOT":
     
     elif poisonedDataType == "FN66":
         DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDFN66'
-
-    # if poisonedDataType:
-    #     DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
 
     else:
         # directory of the stored data samples
@@ -510,8 +498,6 @@ if dataset_used == "IOTBOTNET":
     elif poisonedDataType == "FN66":
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
 
-    # if poisonedDataType:
-    #     DATASET_DIRECTORY = f'/root/datasets/IOTBOTNET2020_POISONED{poisonedDataType}'
     else:
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020'
 
@@ -880,9 +866,10 @@ if dataset_used == "IOTBOTNET":
 
     print("Datasets Ready...")
 
-#########################################################
-#    Model Initialization & Setup                    #
-#########################################################
+
+################################################################################################################
+#                                       Model Initialization & Setup                                           #
+################################################################################################################
 
 # ---                  Hyper Parameters                  --- #
 
@@ -928,15 +915,6 @@ if adversarialTrainingEnabled:
 
     print("\nAdversarial Training Parameter:")
     print("Adversarial Sample %:", adv_portion * 100, "%")
-
-if pruningEnabled:
-    # Define the pruning parameters
-    pruning_schedule = tfmot.sparsity.keras.PolynomialDecay(
-        initial_sparsity=0.0,
-        final_sparsity=0.5,
-        begin_step=2000,
-        end_step=4000
-    )
 
 # set hyperparameters for callback
 
@@ -986,13 +964,11 @@ print("Betas:", betas)
 print("Learning Rate:", learning_rate)
 
 # ---             !!! INITIALIZE MODEL !!!                --- #
-
-
-def create_model(dataset_used, input_dim, l2_alpha=None):
+def init_model_struct(dataset_used, input_dim, l2_alpha=None):
 
     # ---                   CICIOT Model Def              --- #
     if dataset_used == "CICIOT":
-        model = tf.keras.models.Sequential([
+        model_struct = tf.keras.models.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
             BatchNormalization(),
@@ -1012,9 +988,9 @@ def create_model(dataset_used, input_dim, l2_alpha=None):
             Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
         ])
 
-        # ---                   IOTBOTNET Model Def              --- #
+    # ---                   IOTBOTNET Model Def              --- #
     elif dataset_used == "IOTBOTNET":
-        model = tf.keras.models.Sequential([
+        model_struct = tf.keras.models.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
             BatchNormalization(),
@@ -1030,24 +1006,17 @@ def create_model(dataset_used, input_dim, l2_alpha=None):
             Dropout(0.5),
             Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
         ])
-    return model
+    return model_struct
 
-
-model = create_model(dataset_used, input_dim, l2_alpha if regularizationEnabled else None)
-
-# ---                   Add pruning to model                --- #
-
-if pruningEnabled:
-    print("Type of the model before pruning:", type(model))
-
-    model = tfmot.sparsity.keras.prune_low_magnitude(model, pruning_schedule=pruning_schedule)
+# initialize model from function, choosing either which dataset to use and set it up with regularization based from script arguments
+model = init_model_struct(dataset_used, input_dim, l2_alpha if regularizationEnabled else None)
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
 if DP_enabled:
     print("\nIncluding DP into optimizer...\n")
+
     # Making Custom Optimizer Component with Differential Privacy
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     dp_optimizer = tfp.DPKerasAdamOptimizer(
         l2_norm_clip=l2_norm_clip,
         noise_multiplier=noise_multiplier,
@@ -1065,11 +1034,13 @@ if DP_enabled:
 
 else:
     print("\nDefault optimizer...\n")
+
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
     model.compile(optimizer=optimizer,
                   loss=tf.keras.losses.binary_crossentropy,
-                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
-
+                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                  )
 
 # ---                   Callback components                   --- #
 
@@ -1077,17 +1048,6 @@ else:
 callbackFunctions = []
 
 # init callback functions based on inputs
-
-if pruningEnabled:
-    # Add pruning callbacks if enabled
-    pruning_callbacks = [
-        tfmot.sparsity.keras.UpdatePruningStep(),
-        tfmot.sparsity.keras.PruningSummaries(log_dir='/tmp/pruning_logs')
-    ]
-
-    # add it to main callback function list
-    callbackFunctions += pruning_callbacks
-
 
 if earlyStopEnabled:
     early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience, restore_best_weights=restor_best_w)
@@ -1255,10 +1215,6 @@ class FLClient(fl.client.NumPyClient):
                                      epochs=epochs, batch_size=batch_size,
                                      steps_per_epoch=steps_per_epoch,
                                      callbacks=callbackFunctions)
-
-        if pruningEnabled:
-            # Strip the pruning wrappers and save the pruned model
-            self.model = tfmot.sparsity.keras.strip_pruning(self.model)
 
         # Record end time and calculate elapsed time
         end_time = time.time()
