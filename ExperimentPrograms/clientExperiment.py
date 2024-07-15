@@ -26,7 +26,6 @@ import pandas as pd
 # import math
 # import glob
 
-# from IPython.display import clear_output
 # from tqdm import tqdm
 # import matplotlib.pyplot as plt
 # import seaborn as sns
@@ -35,17 +34,8 @@ import pandas as pd
 # import joblib
 
 from sklearn.model_selection import train_test_split
-# import sklearn.cluster as cluster
-# from sklearn.model_selection import cross_val_score
-# from sklearn.model_selection import cross_val_predict
-# from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
-# from sklearn.impute import SimpleImputer
-# from sklearn.pipeline import Pipeline
-# from sklearn.metrics import confusion_matrix
-# from sklearn.metrics import matthews_corrcoef
-# from sklearn.metrics import accuracy_score, f1_score
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -1002,7 +992,7 @@ print("Learning Rate:", learning_rate)
 # ---                   CICIOT Model Def              --- #
 
 if dataset_used == "CICIOT":
-    model = tf.keras.Sequential([
+    model = tf.keras.models.Sequential([
         Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
@@ -1024,7 +1014,7 @@ if dataset_used == "CICIOT":
 # ---                   IOTBOTNET Model Def                 --- #
 
 elif dataset_used == "IOTBOTNET":
-    model = tf.keras.Sequential([
+    model = tf.keras.models.Sequential([
         Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
         BatchNormalization(),
         Dropout(0.5),
