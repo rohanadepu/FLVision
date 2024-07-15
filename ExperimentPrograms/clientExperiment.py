@@ -930,11 +930,11 @@ if pruningEnabled:
 if DP_enabled:
     num_microbatches = 1  # this is bugged keep at 1
 
-    noise_multiplier = 0.7  # need to optimize noise budget and determine if noise is properly added
+    noise_multiplier = 0.5  # need to optimize noise budget and determine if noise is properly added
     l2_norm_clip = 1.25  # determine if l2 needs to be tuned as well
 
     epochs = 10
-    learning_rate = 0.00001  # will be optimized
+    learning_rate = 0.0001  # will be optimized
 
     print("\nDifferential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
@@ -1244,6 +1244,7 @@ model.summary()
 #########################################################
 
 if adversarialTrainingEnabled:
+
     # Function to generate adversarial examples using FGSM
     def create_adversarial_example(model, x, y, epsilon=0.01):
         # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
