@@ -23,7 +23,6 @@ from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 from sklearn.model_selection import KFold
-import tensorflow_privacy as tfp
 
 import numpy as np
 import pandas as pd
@@ -116,6 +115,7 @@ else:
     print("Regularization Disabled", "\n")
 
 if DP_enabled:
+    import tensorflow_privacy as tfp
     print("Differential Privacy Engine Enabled", "\n")
 else:
     print("Differential Privacy Disabled", "\n")
