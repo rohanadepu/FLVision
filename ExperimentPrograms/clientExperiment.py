@@ -908,18 +908,6 @@ if regularizationEnabled:
     print("\nRegularization Parameter:")
     print("L2_alpha:", l2_alpha)
 
-if pruningEnabled:
-
-    # Define the pruning parameters
-    pruning_params = {
-        'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
-            initial_sparsity=0.0,
-            final_sparsity=0.5,
-            begin_step=0,
-            end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
-        )
-    }
-
 if DP_enabled:
     num_microbatches = 1  # this is bugged keep at 1
 
@@ -939,6 +927,18 @@ if adversarialTrainingEnabled:
 
     print("\nAdversarial Training Parameter:")
     print("Adversarial Sample %:", adv_portion * 100, "%")
+
+if pruningEnabled:
+
+    # Define the pruning parameters
+    pruning_params = {
+        'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(
+            initial_sparsity=0.0,
+            final_sparsity=0.5,
+            begin_step=0,
+            end_step=np.ceil(1.0 * len(X_train_data) / batch_size).astype(np.int32) * epochs
+        )
+    }
 
 # set hyperparameters for callback
 
