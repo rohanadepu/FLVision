@@ -906,7 +906,7 @@ if DP_enabled:
     num_microbatches = 1  # this is bugged keep at 1
 
     noise_multiplier = 0.5  # need to optimize noise budget and determine if noise is properly added
-    l2_norm_clip = 2.0  # determine if l2 needs to be tuned as well
+    l2_norm_clip = 1.0  # determine if l2 needs to be tuned as well 1.0 - 2.0
 
     epochs = 10
     learning_rate = 0.0001  # will be optimized
@@ -917,8 +917,8 @@ if DP_enabled:
     print("MicroBatches", num_microbatches)
 
 if adversarialTrainingEnabled:
-    # adv_portion = 0.1
-    adv_portion = 0.05
+    adv_portion = 0.1
+    # adv_portion = 0.05
     learning_rate = 0.0001  # will be optimized
 
     print("\nAdversarial Training Parameter:")
@@ -944,7 +944,7 @@ if lrSchedRedEnabled:
     l2lr_factor = 0.1  # Reduce lr to 10%
     metric_to_monitor_l2lr = 'val_auc'
     if DP_enabled:
-        metric_to_monitor_l2lr = 'auc'
+        metric_to_monitor_l2lr = 'val_loss'
 
     print("\nLR sched Callback Parameters:")
     print("LR sched Patience:", l2lr_patience)
