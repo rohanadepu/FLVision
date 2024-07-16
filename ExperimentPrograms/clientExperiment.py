@@ -741,7 +741,7 @@ if dataset_used == "IOTBOTNET":
 
     print("Adjust Test Set Representation...")
 
-    attack_ratio = 0.20  # Adjust this ratio as needed to achieve desired imbalance
+    attack_ratio = 0.25  # Adjust this ratio as needed to achieve desired imbalance
     all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
 
     print("Testing sample size:", all_attacks_test.shape[0])
@@ -1132,23 +1132,23 @@ if adversarialTrainingEnabled:
     # Function to generate adversarial examples using FGSM
     def create_adversarial_example(model, x, y, epsilon=0.01):
         # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
-        print("Original x shape:", x.shape)
-        print("Original y shape:", y.shape)
+        # print("Original x shape:", x.shape)
+        # print("Original y shape:", y.shape)
 
         x = tf.convert_to_tensor(x, dtype=tf.float32)
         x = tf.expand_dims(x, axis=0)  # Adding batch dimension
         y = tf.convert_to_tensor(y, dtype=tf.float32)
         y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
 
-        print("Expanded x shape:", x.shape)
-        print("Expanded y shape:", y.shape)
+        # print("Expanded x shape:", x.shape)
+        # print("Expanded y shape:", y.shape)
 
         # Create a gradient tape context to record operations for automatic differentiation
         with tf.GradientTape() as tape:
             tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
             prediction = model(x)  # Passes x through the model to get predictions
             y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
-            print("Reshaped y shape:", y.shape)
+            # print("Reshaped y shape:", y.shape)
             loss = tf.keras.losses.binary_crossentropy(y, prediction)  # Computes the binary crossentropy loss between true labels y and predictions
 
         # Computes the gradient of the loss with respect to the input x
@@ -1159,6 +1159,7 @@ if adversarialTrainingEnabled:
 
         # Adds the perturbation to the original input to create the adversarial example
         adversarial_example = x + perturbation
+        adversarial_example = tf.clip_by_value(adversarial_example, 0, 1)  # Ensure values are within valid range
         adversarial_example = tf.squeeze(adversarial_example, axis=0)  # Removing the batch dimension
 
         return adversarial_example
@@ -1274,8 +1275,8 @@ class FLClient(fl.client.NumPyClient):
         # Debugging: Print the shape of the loss
         loss_tensor = history.history['loss']
         val_loss_tensor = history.history['val_loss']
-        print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
-        print(f"Validation Loss tensor shape: {tf.shape(val_loss_tensor)}")
+        # print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+        # print(f"Validation Loss tensor shape: {tf.shape(val_loss_tensor)}")
 
         # Save metrics to file
         logName = trainingLog
