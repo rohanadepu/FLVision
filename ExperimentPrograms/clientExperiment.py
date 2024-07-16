@@ -91,7 +91,9 @@ trainingLog = args.trainLog  # input into train method if you want to input name
 
 print("|MAIN CONFIG|", "\n")
 # main experiment config
+print("Selected Fixed Server:", fixedServer, "\n")
 print("Selected Node:", node, "\n")
+
 print("Selected DATASET:", dataset_used, "\n")
 print("Poisoned Data:", poisonedDataType, "\n")
 
