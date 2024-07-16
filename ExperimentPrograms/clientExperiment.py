@@ -909,7 +909,7 @@ if DP_enabled:
     l2_norm_clip = 1.25  # determine if l2 needs to be tuned as well
 
     epochs = 10
-    learning_rate = 0.0001  # will be optimized
+    learning_rate = 0.00001  # will be optimized
 
     print("\nDifferential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
@@ -942,7 +942,7 @@ if earlyStopEnabled:
 if lrSchedRedEnabled:
     l2lr_patience = 3  # eppoch when metric stops imporving
     l2lr_factor = 0.1  # Reduce lr to 10%
-    metric_to_monitor_l2lr = 'val_loss'
+    metric_to_monitor_l2lr = 'auc'
 
     print("\nLR sched Callback Parameters:")
     print("LR sched Patience:", l2lr_patience)
