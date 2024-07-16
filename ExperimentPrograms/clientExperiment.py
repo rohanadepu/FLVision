@@ -942,7 +942,9 @@ if earlyStopEnabled:
 if lrSchedRedEnabled:
     l2lr_patience = 3  # eppoch when metric stops imporving
     l2lr_factor = 0.1  # Reduce lr to 10%
-    metric_to_monitor_l2lr = 'auc'
+    metric_to_monitor_l2lr = 'val_auc'
+    if DP_enabled:
+        metric_to_monitor_l2lr = 'auc'
 
     print("\nLR sched Callback Parameters:")
     print("LR sched Patience:", l2lr_patience)
