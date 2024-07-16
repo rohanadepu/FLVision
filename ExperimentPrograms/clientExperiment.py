@@ -970,52 +970,97 @@ print("Betas:", betas)
 print("Learning Rate:", learning_rate)
 
 # ---             !!! INITIALIZE MODEL !!!                --- #
-def init_model_struct(dataset_used, input_dim, l2_alpha=None):
 
-    # ---                   CICIOT Model Def              --- #
-    if dataset_used == "CICIOT":
-        model_struct = tf.keras.models.Sequential([
+# ---                   CICIOT Models                   --- #
+if dataset_used == "CICIOT":
+
+    # --- Model Definition --- #
+    if regularizationEnabled:
+        # with regularization
+        model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+            Dense(1, activation='sigmoid')
         ])
 
-    # ---                   IOTBOTNET Model Def              --- #
-    elif dataset_used == "IOTBOTNET":
-        model_struct = tf.keras.models.Sequential([
+    else:
+        # without regularization
+        model = tf.keras.Sequential([
             tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(64, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(16, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(8, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None),
+            Dense(4, activation='relu'),
             BatchNormalization(),
             Dropout(0.5),
-            Dense(1, activation='sigmoid', kernel_regularizer=l2(l2_alpha) if regularizationEnabled else None)
+            Dense(1, activation='sigmoid')
         ])
-    return model_struct
 
-# initialize model from function, choosing either which dataset to use and set it up with regularization based from script arguments
-model = init_model_struct(dataset_used, input_dim, l2_alpha if regularizationEnabled else None)
+# ---                   IOTBOTNET Models                  --- #
+
+if dataset_used == "IOTBOTNET":
+
+    # --- Model Definition --- #
+    if regularizationEnabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
+    else:
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(2, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
