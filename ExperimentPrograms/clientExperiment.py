@@ -63,8 +63,8 @@ parser.add_argument('--eS', action='store_true', help='Enable model early stop t
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
 parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training') # store false irelevent
 
-parser.add_argument("--evalLog", type=str, default=f"training_metrics", help="Name of the training log file")
-parser.add_argument("--trainLog", type=str, default=f"evaluation_metrics", help="Name of the evaluation log file")
+parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics.txt", help="Name of the evaluation log file")
+parser.add_argument("--trainLog", type=str, default=f"training_metrics.txt", help="Name of the training log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -917,7 +917,7 @@ if DP_enabled:
     print("MicroBatches", num_microbatches)
 
 if adversarialTrainingEnabled:
-    adv_portion = 0.1
+    adv_portion = 0.1  # in intervals of 0.05 until to 0.20
     # adv_portion = 0.05
     learning_rate = 0.0001  # will be optimized
 
@@ -1310,9 +1310,9 @@ class FLClient(fl.client.NumPyClient):
         elapsed_time = end_time - start_time
 
         # Save metrics to file
-        logName = evaluationLog
+        logName1 = evaluationLog
         #logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
-        recordEvaluation(logName, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
+        recordEvaluation(logName1, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
 
         return loss, len(X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                         "LogCosh": logcosh}
