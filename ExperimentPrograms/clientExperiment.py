@@ -917,7 +917,9 @@ if DP_enabled:
     print("MicroBatches", num_microbatches)
 
 if adversarialTrainingEnabled:
-    adv_portion = 0.1
+    # adv_portion = 0.1
+    adv_portion = 0.05
+    learning_rate = 0.0001  # will be optimized
 
     print("\nAdversarial Training Parameter:")
     print("Adversarial Sample %:", adv_portion * 100, "%")
