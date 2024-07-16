@@ -906,7 +906,7 @@ if DP_enabled:
     num_microbatches = 1  # this is bugged keep at 1
 
     noise_multiplier = 0.5  # need to optimize noise budget and determine if noise is properly added
-    l2_norm_clip = 1.25  # determine if l2 needs to be tuned as well
+    l2_norm_clip = 2.0  # determine if l2 needs to be tuned as well
 
     epochs = 10
     learning_rate = 0.0001  # will be optimized
