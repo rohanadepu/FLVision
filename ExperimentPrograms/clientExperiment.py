@@ -909,7 +909,7 @@ if DP_enabled:
     l2_norm_clip = 1.25  # determine if l2 needs to be tuned as well
 
     epochs = 10
-    learning_rate = 0.001  # will be optimized
+    learning_rate = 0.0001  # will be optimized
 
     print("\nDifferential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
