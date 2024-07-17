@@ -5,6 +5,7 @@
 import os
 import random
 import time
+from datetime import datetime
 import argparse
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
@@ -46,6 +47,9 @@ print("Federated Learning Training Demo:", "\n")
 #    Script Parameters                               #
 #########################################################
 
+# Generate a static timestamp at the start of the script
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 # --- Argument Parsing --- #
 parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT", help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
@@ -63,8 +67,8 @@ parser.add_argument('--eS', action='store_true', help='Enable model early stop t
 parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training') # callback unessary
 parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training') # store false irelevent
 
-parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics.txt", help="Name of the evaluation log file")
-parser.add_argument("--trainLog", type=str, default=f"training_metrics.txt", help="Name of the training log file")
+parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt", help="Name of the evaluation log file")
+parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt", help="Name of the training log file")
 
 # init variables to handle arguments
 args = parser.parse_args()
@@ -899,17 +903,21 @@ betas = [0.9, 0.999]  # Stable
 # regularization param
 if regularizationEnabled:
     l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
+    if DP_enabled:
+        l2_alpha = 0.001  # Increase if overfitting, decrease if underfitting
+
     print("\nRegularization Parameter:")
     print("L2_alpha:", l2_alpha)
 
 if DP_enabled:
     num_microbatches = 1  # this is bugged keep at 1
 
-    noise_multiplier = 0.5  # need to optimize noise budget and determine if noise is properly added
-    l2_norm_clip = 1.0  # determine if l2 needs to be tuned as well 1.0 - 2.0
+    noise_multiplier = 0.3  # need to optimize noise budget and determine if noise is properly added
+    l2_norm_clip = 1.5  # determine if l2 needs to be tuned as well 1.0 - 2.0
 
     epochs = 10
-    learning_rate = 0.0001  # will be optimized
+    learning_rate = 0.0007  # will be optimized
 
     print("\nDifferential Privacy Parameters:")
     print("L2_norm clip:", l2_norm_clip)
@@ -917,8 +925,8 @@ if DP_enabled:
     print("MicroBatches", num_microbatches)
 
 if adversarialTrainingEnabled:
-    adv_portion = 0.1  # in intervals of 0.05 until to 0.20
-    # adv_portion = 0.05
+    adv_portion = 0.05  # in intervals of 0.05 until to 0.20
+    # adv_portion = 0.1
     learning_rate = 0.0001  # will be optimized
 
     print("\nAdversarial Training Parameter:")
@@ -985,19 +993,57 @@ if dataset_used == "CICIOT":
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dropout(0.4),  # Dropout layer with 50% dropout rate
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.4),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.4),
             Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.4),
             Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.4),
+            Dense(1, activation='sigmoid')
+        ])
+
+    elif regularizationEnabled and DP_enabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(1, activation='sigmoid')
+        ])
+
+    elif DP_enabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(32, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
             Dense(1, activation='sigmoid')
         ])
 
@@ -1034,16 +1080,16 @@ if dataset_used == "IOTBOTNET":
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dropout(0.3),  # Dropout layer with 50% dropout rate
             Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(1, activation='sigmoid')
         ])
 
@@ -1053,16 +1099,16 @@ if dataset_used == "IOTBOTNET":
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu'),
             BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dropout(0.3),  # Dropout layer with 50% dropout rate
             Dense(8, activation='relu'),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(4, activation='relu'),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(2, activation='relu'),
             BatchNormalization(),
-            Dropout(0.5),
+            Dropout(0.3),
             Dense(1, activation='sigmoid')
         ])
 
@@ -1171,6 +1217,32 @@ if adversarialTrainingEnabled:
 #########################################################
 #    Metric Saving Functions                           #
 #########################################################
+
+
+def recordConfig(name):
+    with open(name, 'a') as f:
+        f.write(f"Dataset Used: {dataset_used}\n")
+        f.write(f"Defenses Enabled: DP - {DP_enabled}, Adversarial Training - {adversarialTrainingEnabled}, Regularization - {regularizationEnabled}\n")
+        f.write(f"Hyperparameters:\n")
+        f.write(f"Input Dim (Feature Size): {input_dim}\n")
+        f.write(f"Epochs: {epochs}\n")
+        f.write(f"Batch Size: {batch_size}\n")
+        f.write(f"Steps per epoch: {steps_per_epoch}\n")
+        f.write(f"Betas: {betas}\n")
+        f.write(f"Learning Rate: {learning_rate}\n")
+        if DP_enabled:
+            f.write(f"L2 Norm Clip: {l2_norm_clip}\n")
+            f.write(f"Noise Multiplier: {noise_multiplier}\n")
+            f.write(f"MicroBatches: {num_microbatches}\n")
+        if adversarialTrainingEnabled:
+            f.write(f"Adversarial Sample %: {adv_portion * 100}%\n")
+        if regularizationEnabled:
+            f.write(f"L2 Alpha: {l2_alpha}\n")
+        f.write(f"Model Layer Structure:\n")
+        for layer in model.layers:
+            f.write(f"Layer: {layer.name}, Type: {layer.__class__.__name__}, Output Shape: {layer.output_shape}, Params: {layer.count_params()}\n")
+        f.write("\n")
+
 
 def recordTraining(name, history, elapsed_time, roundCount, val_loss):
     with open(name, 'a') as f:
@@ -1321,6 +1393,12 @@ class FLClient(fl.client.NumPyClient):
 #########################################################
 #    Start the client                                   #
 #########################################################
+
+# Record initial configuration before training starts
+logName = trainingLog
+recordConfig(logName)
+logName1 = evaluationLog
+recordConfig(logName1)
 
 if fixedServer == 1:
     server_address = "192.168.129.2:8080"
