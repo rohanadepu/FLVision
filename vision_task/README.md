@@ -8,6 +8,7 @@ This project demonstrates how to set up a federated learning environment using t
 - **YOLOv10 Training Notebook:** [Train YOLOv10 on Custom Dataset](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/train-yolov10-object-detection-on-custom-dataset.ipynb#scrollTo=SaKTSzSWnG7s)
 - **Ultralytics YOLOv8 Tutorial:** [Ultralytics YOLOv8 Tutorial Notebook](https://colab.research.google.com/github/ultralytics/ultralytics/blob/main/examples/tutorial.ipynb)
 - **VisDrone Dataset Details:** [VisDrone Dataset YAML](https://docs.ultralytics.com/datasets/detect/visdrone/#dataset-yaml)
+- **Weights mismatch problem:** [Weights mismatch yolov8-flower](https://github.com/ultralytics/ultralytics/issues/9554) 
 
 ## Installation
 
@@ -19,18 +20,29 @@ pip install torch
 pip install ultralytics
 ```
 
+
+Initialize the weights for one epoch on the server to avoid weights mismatch during aggregation.
+
+```bash
+python yolo_init.py 
+```
+
+
 ## Running the Server
 
 To start the Flower server with secure aggregation enabled, run the following command in your terminal:
 
 ```bash
-python flower_server.py --secAggP
+python server.py 
 ```
 
 ## Running the Client
 
-To start the YOLOv10 client for training with the specified dataset, server address, port, model weights, and number of epochs, use the following command:
+
+
+To start the YOLOv8 client  use the following command:
+
 
 ```bash
-python client.py -d VisDrone.yaml -s localhost -p 8080 -m ./models/weights/yolov10n.pt -e 2
+python client.py 
 ```
