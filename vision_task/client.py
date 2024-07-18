@@ -16,7 +16,7 @@ class YOLOClient(fl.client.NumPyClient):
         self.model = YOLO(model_name).to(DEVICE)
         self.data_yaml = data_yaml
 
-    def get_parameters(self,config):
+    def get_parameters(self, config):
         # Retrieve model parameters as a list of NumPy ndarrays
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
@@ -45,4 +45,4 @@ class YOLOClient(fl.client.NumPyClient):
 model_name = " runs/detect/run_results/weights/last.pt" # Using pre-initizalized weights for 1 epoch
 data_yaml = "VisDrone.yaml"  # Name of the dataset configuration file
 
-fl.client.start_client(server_address="[::]:8080", client=YOLOClient(model_name, data_yaml))
+fl.client.start_client(server_address="192.168.129.8:8080", client=YOLOClient(model_name, data_yaml))
