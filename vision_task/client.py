@@ -42,7 +42,7 @@ class YOLOClient(fl.client.NumPyClient):
         return float(metrics.results_dict['metrics/precision(B)']), len(metrics.curves_results), \
             {'mAP': metrics.results_dict['metrics/mAP50(B)']}
 
-model_name = " runs/detect/run_results/weights/last.pt" # Using pre-initizalized weights for 1 epoch
+model_name = " /root/FLVision/runs/detect/run_results/weights/last.pt" # Using pre-initizalized weights for 1 epoch
 data_yaml = "VisDrone.yaml"  # Name of the dataset configuration file
 
 fl.client.start_client(server_address="192.168.129.8:8080", client=YOLOClient(model_name, data_yaml))
