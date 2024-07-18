@@ -31,7 +31,7 @@ class YOLOClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
-        results = self.model.train(data=self.data_yaml, epochs=2, name='run_results', device=DEVICE ,workers=0 ,imgsz=640,  plots=False )
+        results = self.model.train(data=self.data_yaml, epochs=1, name='run_results', device=DEVICE ,workers=0 ,imgsz=640,  plots=False )
         #self.model.save('runs/detect/run_results/weights/last.pt')  # Overwrite current model with the new one
         return self.get_parameters(config={}), len(results.maps), {}
 
