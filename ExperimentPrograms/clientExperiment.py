@@ -145,7 +145,7 @@ if dataset_used == "CICIOT":
     # ---                   Data Loading Settings                     --- #
 
     # Sample size for train and test datasets
-    ciciot_train_sample_size = 25  # input: 3 samples for training
+    ciciot_train_sample_size = 50  # input: 3 samples for training
     ciciot_test_sample_size = 10  # input: 1 sample for testing
 
     # label classes 33+1 7+1 1+1
