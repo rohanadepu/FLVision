@@ -165,7 +165,7 @@ if dataset_used == "CICIOT":
 
     else:
         # directory of the stored data samples
-        DATASET_DIRECTORY = '../../datasets/CICIOT2023'
+        DATASET_DIRECTORY = '/root/datasets/CICIOT2023'
 
     # ---    CICIOT Feature Mapping for numerical and categorical features       --- #
 
@@ -1080,7 +1080,7 @@ if dataset_used == "IOTBOTNET":
             tf.keras.layers.Input(shape=(input_dim,)),
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
-            Dropout(0.3),  # Dropout layer with 50% dropout rate
+            Dropout(0.3),  # Dropout layer with 30% dropout rate
             Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.3),
