@@ -151,6 +151,9 @@ if dataset_used == "CICIOT":
     # label classes 33+1 7+1 1+1
     ciciot_label_class = "1+1"
 
+    # keep in mind evaluate dataset is being grab from same pool of training when unpoisoned
+    DATASET_DIRECTORY_EVALUATE = '/root/datasets/CICIOT2023'
+
     if poisonedDataType == "LF33":
         DATASET_DIRECTORY = '/root/datasets/CICIOT2023_POISONEDLF33'
     
@@ -270,7 +273,11 @@ if dataset_used == "CICIOT":
 
     print("\nLoading Network Traffic Data Files...")
 
-    # List the files in the dataset
+    if not poisonedDataType:
+        # List the files in the dataset
+        print("\nDATA IS UNCOMPROMISED...")
+
+    # this is grabbing the file names of the samples (this should be the same across all ciciot dataset dir
     csv_filepaths = [filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')]
     print(csv_filepaths)
 
@@ -311,7 +318,7 @@ if dataset_used == "CICIOT":
         print(f"Training dataset sample {data_set} \n")
 
         # find the path for sample
-        data_path = os.path.join(DATASET_DIRECTORY, data_set)
+        data_path = os.path.join(DATASET_DIRECTORY, data_set)  # this will grab the data from the given pool
 
         # load the dataset, remap, then balance
         balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, train_normal_traffic_total_size,
@@ -329,6 +336,7 @@ if dataset_used == "CICIOT":
     test_normal_traffic_size_limit = 44000
     attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
 
+    # load balance samples and reduce attack samples
     print("\nLoading Testing Data...")
     for data_set in test_sample_files:
 
@@ -339,7 +347,7 @@ if dataset_used == "CICIOT":
         print(f"Testing dataset sample {data_set} \n")
 
         # find the path for sample
-        data_path = os.path.join(DATASET_DIRECTORY, data_set)
+        data_path = os.path.join(DATASET_DIRECTORY_EVALUATE, data_set)  # ensures that the pool of test data isnt from the compromised pool (its the same dir as unpoisoned)
 
         # load the dataset, remap, then balance
         balanced_data, benign_count = load_and_balance_data(data_path, dict_2classes, test_normal_traffic_total_size,
@@ -496,16 +504,22 @@ if dataset_used == "IOTBOTNET":
     # sample size to select for some attacks with multiple files; MAX is 3, MIN is 2
     sample_size = 1
 
+    DATASET_DIRECTORY_EVALUATE = '/root/datasets/IOTBOTNET2020'
+
     if poisonedDataType == "LF33":
+        print("Training Dataset Compromised!!!")
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF33'
     
     elif poisonedDataType == "LF66":
+        print("Training Dataset Compromised!!!")
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDLF66'
     
     elif poisonedDataType == "FN33":
+        print("Training Dataset Compromised!!!")
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN33'
     
     elif poisonedDataType == "FN66":
+        print("Training Dataset Compromised!!!")
         DATASET_DIRECTORY = '/root/datasets/IOTBOTNET2020_POISONEDFN66'
 
     else:
@@ -693,6 +707,85 @@ if dataset_used == "IOTBOTNET":
 
     print("Attack Data Loaded & Combined...")
 
+    # ---                   ENSURE EVALUATION SET IS UNCOMPROMISED                   --- #
+    if poisonedDataType:
+        print("\n Loading uncompromised Attack Data for evaluation...")
+
+        print("Loading DDOS Data...")
+        # Load DDoS UDP files
+        ddos_udp_directory = DATASET_DIRECTORY_EVALUATE + '/ddos/ddos_udp'
+        ddos_udp_dataframes = load_files_from_directory(ddos_udp_directory, sample_size=sample_size)
+
+        # Load DDoS TCP files
+        ddos_tcp_directory = DATASET_DIRECTORY_EVALUATE + '/ddos/ddos_tcp'
+        ddos_tcp_dataframes = load_files_from_directory(ddos_tcp_directory, sample_size=sample_size)
+
+        # Load DDoS HTTP files
+        ddos_http_directory = DATASET_DIRECTORY_EVALUATE + '/ddos/ddos_http'
+        ddos_http_dataframes = load_files_from_directory(ddos_http_directory)
+
+        print("Loading DOS Data...")
+        # Load DoS UDP files
+        dos_udp_directory = DATASET_DIRECTORY_EVALUATE + '/dos/dos_udp'
+        dos_udp_dataframes = load_files_from_directory(dos_udp_directory, sample_size=sample_size)
+
+        # Load DDoS TCP files
+        dos_tcp_directory = DATASET_DIRECTORY_EVALUATE + '/dos/dos_tcp'
+        dos_tcp_dataframes = load_files_from_directory(dos_tcp_directory, sample_size=sample_size)
+
+        # Load DDoS HTTP files
+        dos_http_directory = DATASET_DIRECTORY_EVALUATE + '/dos/dos_http'
+        dos_http_dataframes = load_files_from_directory(dos_http_directory)
+
+        print("Loading SCAN Data...")
+        # Load scan_os files
+        scan_os_directory = DATASET_DIRECTORY_EVALUATE + '/scan/os'
+        scan_os_dataframes = load_files_from_directory(scan_os_directory)
+
+        # Load scan_service files
+        scan_service_directory = DATASET_DIRECTORY_EVALUATE + '/scan/service'
+        scan_service_dataframes = load_files_from_directory(scan_service_directory)
+
+        print("Loading THEFT Data...")
+        # Load theft_data_exfiltration files
+        theft_data_exfiltration_directory = DATASET_DIRECTORY_EVALUATE + '/theft/data_exfiltration'
+        theft_data_exfiltration_dataframes = load_files_from_directory(theft_data_exfiltration_directory)
+
+        # Load theft_keylogging files
+        theft_keylogging_directory = DATASET_DIRECTORY_EVALUATE + '/theft/keylogging'
+        theft_keylogging_dataframes = load_files_from_directory(theft_keylogging_directory)
+
+        # --- Combine all classes
+        # concatenate all dataframes
+        ddos_udp_data = pd.concat(ddos_udp_dataframes, ignore_index=True)
+        ddos_tcp_data = pd.concat(ddos_tcp_dataframes, ignore_index=True)
+        ddos_http_data = pd.concat(ddos_http_dataframes, ignore_index=True)
+
+        dos_udp_data = pd.concat(dos_udp_dataframes, ignore_index=True)
+        dos_tcp_data = pd.concat(dos_tcp_dataframes, ignore_index=True)
+        dos_http_data = pd.concat(dos_http_dataframes, ignore_index=True)
+
+        scan_os_data = pd.concat(scan_os_dataframes, ignore_index=True)
+        scan_service_data = pd.concat(scan_service_dataframes, ignore_index=True)
+
+        theft_data_exfiltration_data = pd.concat(theft_data_exfiltration_dataframes, ignore_index=True)
+        theft_keylogging_data = pd.concat(theft_keylogging_dataframes, ignore_index=True)
+
+        # Combine subcategories into general classes
+        ddos_combined, dos_combined, scan_combined, theft_combined = combine_general_attacks(
+            [ddos_udp_data, ddos_tcp_data, ddos_http_data],
+            [dos_udp_data, dos_tcp_data, dos_http_data],
+            [scan_os_data, scan_service_data],
+            [theft_data_exfiltration_data, theft_keylogging_data]
+        )
+
+        # Combine all attacks into one DataFrame for !!! evaluation set !!!
+        all_attacks_combined_evaluate = combine_all_attacks([
+            ddos_combined, dos_combined, scan_combined, theft_combined
+        ])
+
+        print("Attack Data Loaded & Combined...")
+
     #########################################################
     #    Process Dataset For IOTBOTNET 2020                 #
     #########################################################
@@ -707,6 +800,14 @@ if dataset_used == "IOTBOTNET":
     # Clean the dataset by dropping rows with missing values
     all_attacks_combined = all_attacks_combined.dropna()
 
+    if poisonedDataType:
+        print("\nCleaning uncompromised evaluation Dataset...")
+
+        all_attacks_combined_evaluate.replace([float('inf'), -float('inf')], float('nan'), inplace=True)
+
+        # Clean the dataset by dropping rows with missing values
+        all_attacks_combined_evaluate = all_attacks_combined.dropna()
+
     print("Nan and inf values Removed...")
 
     # ---                   Train Test Split                  --- #
@@ -718,6 +819,9 @@ if dataset_used == "IOTBOTNET":
 
     print("IOTBOTNET Combined Data (Train):")
     print(all_attacks_train.head())
+
+    if poisonedDataType:  # overwrite compromised test data with uncompromised version and continue down pipeline as usual
+        all_attacks_test = all_attacks_combined_evaluate
 
     print("IOTBOTNET Combined Data (Test):")
     print(all_attacks_test.head())
