@@ -591,19 +591,25 @@ if dataset_used == "IOTBOTNET":
         return combined_df
 
     # Function to balance the dataset via undersampling
-    def balance_data(dataframe, label_column='Label'):
+    def balance_data(dataframe, label_column='Label', benign_limit=None):
         # Get the counts of each label
         label_counts = dataframe[label_column].value_counts()
         print("Label counts before balancing:", label_counts)
 
-        # Determine the minimum count of samples across all labels
-        min_count = label_counts.min()
+        # Determine the minimum count of samples across all anomaly labels
+        anomally_count = label_counts.drop('Normal').min()
+
+        if benign_limit is not None:
+            anomally_count = min(anomally_count, benign_limit)
 
         # Sample min_count number of samples from each label
         balanced_dataframes = []
         for label in label_counts.index:
             label_df = dataframe[dataframe[label_column] == label]
-            balanced_label_df = label_df.sample(min_count, random_state=47)
+            if label == 'Normal' and benign_limit is not None:
+                balanced_label_df = label_df.sample(min(benign_limit, len(label_df)), random_state=47)
+            else:
+                balanced_label_df = label_df.sample(min(anomally_count, len(label_df)), random_state=47)
             balanced_dataframes.append(balanced_label_df)
 
         # Concatenate the balanced dataframes
@@ -614,6 +620,7 @@ if dataset_used == "IOTBOTNET":
         print("Label counts after balancing:", balanced_dataframe[label_column].value_counts())
 
         return balanced_dataframe
+
 
     def reduce_attack_samples(data, attack_ratio):
         attack_samples = data[data['Label'] == 'Anomaly']
@@ -830,11 +837,11 @@ if dataset_used == "IOTBOTNET":
 
     print("\nBalance Training Dataset...")
 
-    all_attacks_train = balance_data(all_attacks_train, label_column='Label')
+    all_attacks_train = balance_data(all_attacks_train, label_column='Label', benign_limit=110000)
 
     print("\nBalance Testing Dataset...")
 
-    all_attacks_test = balance_data(all_attacks_test, label_column='Label')
+    all_attacks_test = balance_data(all_attacks_test, label_column='Label', benign_limit=44000)
 
     # ---                   Correcting test set representation                    --- #
 
@@ -849,7 +856,7 @@ if dataset_used == "IOTBOTNET":
 
     print("Adjust Test Set Representation...")
 
-    attack_ratio = 0.25  # Adjust this ratio as needed to achieve desired imbalance
+    attack_ratio = 0.1  # Adjust this ratio as needed to achieve desired imbalance
     all_attacks_test = reduce_attack_samples(all_attacks_test, attack_ratio)
 
     print("Testing sample size:", all_attacks_test.shape[0])
