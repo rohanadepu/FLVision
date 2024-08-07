@@ -25,6 +25,8 @@ minClients = args.min_clients
 fl.server.start_server(
     config=fl.server.ServerConfig(num_rounds=roundInput),
     strategy=fl.server.strategy.FedAvg(
+        min_fit_clients=minClients,
+        min_evaluate_clients=minClients,
         min_available_clients=minClients
     )
 )
