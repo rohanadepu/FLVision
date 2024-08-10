@@ -34,7 +34,7 @@ axs[0].plot(rounds, acc_adv_training_3_nodes, label='Adversarial Training - 3 No
 axs[0].set_title('Accuracy', fontsize=16)
 axs[0].set_ylabel('Metrics', fontweight='bold', fontsize=14)
 axs[0].set_xticks(rounds)
-axs[0].set_xticklabels(rounds)
+axs[0].set_xticklabels(rounds, fontsize=12, rotation=0)  # Rotating labels for better separation
 axs[0].tick_params(axis='y', labelsize=12)  # Enlarging y-axis tick labels
 
 # Plot Precision
@@ -46,7 +46,7 @@ axs[1].plot(rounds, prec_adv_training_3_nodes, color='olive', marker='s')
 axs[1].set_title('Precision', fontsize=16)
 axs[1].set_xlabel('Rounds', fontweight='bold', fontsize=14)
 axs[1].set_xticks(rounds)
-axs[1].set_xticklabels(rounds)
+axs[1].set_xticklabels(rounds, fontsize=12, rotation=0)  # Rotating labels for better separation
 axs[1].set_yticklabels([])  # Remove y-tick labels on the second graph
 
 # Plot Recall
@@ -57,7 +57,7 @@ axs[2].plot(rounds, recall_adv_training_1_node, color='olive', marker='o')
 axs[2].plot(rounds, recall_adv_training_3_nodes, color='olive', marker='s')
 axs[2].set_title('Recall', fontsize=16)
 axs[2].set_xticks(rounds)
-axs[2].set_xticklabels(rounds)
+axs[2].set_xticklabels(rounds, fontsize=12, rotation=0)  # Rotating labels for better separation
 axs[2].set_yticklabels([])  # Remove y-tick labels on the second graph
 
 
@@ -67,7 +67,7 @@ fig.legend(['No Defense - Baseline', 'No Defense - 1 Node - FN66', 'No Defense -
            loc='upper center', bbox_to_anchor=(0.5, 0.16), ncol=2, frameon=True, fontsize=12, markerscale=1.5)
 
 # Adjust layout to give more space for the legend
-plt.subplots_adjust(left=0.08, right=0.99, bottom=0.25, wspace=0.0)
+plt.subplots_adjust(left=0.08, right=0.99, bottom=0.25, wspace=0.02)
 
 # Ensure the entire figure, including the legend, is displayed properly
 plt.show()
