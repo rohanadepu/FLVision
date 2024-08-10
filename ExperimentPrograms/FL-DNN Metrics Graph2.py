@@ -32,9 +32,10 @@ axs[0].plot(rounds, acc_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66',
 axs[0].plot(rounds, acc_adv_training_1_node, label='Adversarial Training - 1 Node - FN66', color='olive', marker='o')
 axs[0].plot(rounds, acc_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66', color='olive', marker='s')
 axs[0].set_title('Accuracy', fontsize=16)
-axs[0].set_ylabel('Metrics', fontweight='bold', fontsize=12)
+axs[0].set_ylabel('Metrics', fontweight='bold', fontsize=14)
 axs[0].set_xticks(rounds)
 axs[0].set_xticklabels(rounds)
+axs[0].tick_params(axis='y', labelsize=12)  # Enlarging y-axis tick labels
 
 # Plot Precision
 axs[1].plot(rounds, prec_baseline_node, color='blue', marker='x')
@@ -43,7 +44,7 @@ axs[1].plot(rounds, prec_no_defense_3_nodes, color='green', marker='s')
 axs[1].plot(rounds, prec_adv_training_1_node, color='olive', marker='o')
 axs[1].plot(rounds, prec_adv_training_3_nodes, color='olive', marker='s')
 axs[1].set_title('Precision', fontsize=16)
-axs[1].set_xlabel('Rounds', fontweight='bold', fontsize=12)
+axs[1].set_xlabel('Rounds', fontweight='bold', fontsize=14)
 axs[1].set_xticks(rounds)
 axs[1].set_xticklabels(rounds)
 axs[1].set_yticklabels([])  # Remove y-tick labels on the second graph
@@ -66,7 +67,7 @@ fig.legend(['No Defense - Baseline', 'No Defense - 1 Node - FN66', 'No Defense -
            loc='upper center', bbox_to_anchor=(0.5, 0.16), ncol=2, frameon=True, fontsize=12, markerscale=1.5)
 
 # Adjust layout to give more space for the legend
-plt.subplots_adjust(left=0.07, right=0.99, bottom=0.25, wspace=0.0)
+plt.subplots_adjust(left=0.08, right=0.99, bottom=0.25, wspace=0.0)
 
 # Ensure the entire figure, including the legend, is displayed properly
 plt.show()
