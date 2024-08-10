@@ -44,25 +44,25 @@ epochs_recall = np.arange(1, 4)
 plt.figure(figsize=(9, 6.3))
 
 # Accuracy
-plt.plot(epochs_acc, acc_baseline_node, label='No Defense - Baseline Accuracy', color='blue', marker='x')
-plt.plot(epochs_acc, acc_no_defense_1_node, label='No Defense - 1 Node - Baseline Accuracy', color='green', marker='o')
-plt.plot(epochs_acc, acc_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66 Accuracy', color='green', marker='s')
-plt.plot(epochs_acc, acc_adv_training_1_node, label='Adversarial Training - 1 Node - FN66 Accuracy', color='olive', marker='o')
-plt.plot(epochs_acc, acc_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66 Accuracy', color='olive', marker='s')
+plt.plot(epochs_acc, acc_baseline_node, label='No Defense - Baseline', color='blue', marker='x')
+plt.plot(epochs_acc, acc_no_defense_1_node, label='No Defense - 1 Node - FN66', color='green', marker='o')
+plt.plot(epochs_acc, acc_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66', color='green', marker='s')
+plt.plot(epochs_acc, acc_adv_training_1_node, label='Adversarial Training - 1 Node - FN66', color='olive', marker='o')
+plt.plot(epochs_acc, acc_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66', color='olive', marker='s')
 
 # Precision
-plt.plot(epochs_prec + 3, prec_baseline_node, label='No Defense - Baseline Precision', color='blue', marker='x')
-plt.plot(epochs_prec + 3, prec_no_defense_1_node, label='No Defense - 1 Node - Baseline Precision', color='green', marker='o')
-plt.plot(epochs_prec + 3, prec_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66 Precision', color='green', marker='s')
-plt.plot(epochs_prec + 3, prec_adv_training_1_node, label='Adversarial Training - 1 Node - FN66 Precision', color='olive', marker='o')
-plt.plot(epochs_prec + 3, prec_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66 Precision', color='olive', marker='s')
+plt.plot(epochs_prec + 3, prec_baseline_node, label='No Defense - Baseline', color='blue', marker='x')
+plt.plot(epochs_prec + 3, prec_no_defense_1_node, label='No Defense - 1 Node - FN66', color='green', marker='o')
+plt.plot(epochs_prec + 3, prec_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66', color='green', marker='s')
+plt.plot(epochs_prec + 3, prec_adv_training_1_node, label='Adversarial Training - 1 Node - FN66', color='olive', marker='o')
+plt.plot(epochs_prec + 3, prec_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66', color='olive', marker='s')
 
 # Recall
-plt.plot(epochs_recall + 6, recall_baseline_node, label='No Defense - Baseline Recall', color='blue', marker='x')
-plt.plot(epochs_recall + 6, recall_no_defense_1_node, label='No Defense - 1 Node - Baseline Recall', color='green', marker='o')
-plt.plot(epochs_recall + 6, recall_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66 Recall', color='green', marker='s')
-plt.plot(epochs_recall + 6, recall_adv_training_1_node, label='Adversarial Training - 1 Node - FN66 Recall', color='olive', marker='o')
-plt.plot(epochs_recall + 6, recall_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66 Recall', color='olive', marker='s')
+plt.plot(epochs_recall + 6, recall_baseline_node, label='No Defense - Baseline', color='blue', marker='x')
+plt.plot(epochs_recall + 6, recall_no_defense_1_node, label='No Defense - 1 Node - FN66', color='green', marker='o')
+plt.plot(epochs_recall + 6, recall_no_defense_3_nodes, label='No Defense - 3 Nodes - FN66', color='green', marker='s')
+plt.plot(epochs_recall + 6, recall_adv_training_1_node, label='Adversarial Training - 1 Node - FN66', color='olive', marker='o')
+plt.plot(epochs_recall + 6, recall_adv_training_3_nodes, label='Adversarial Training - 3 Nodes - FN66', color='olive', marker='s')
 
 # Adding vertical lines to separate the sections
 plt.axvline(x=3, color='black', linestyle='--')
