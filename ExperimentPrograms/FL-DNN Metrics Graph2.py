@@ -67,7 +67,7 @@ fig.legend(['No Defense - Baseline', 'No Defense - 1 Node - FN66', 'No Defense -
            loc='upper center', bbox_to_anchor=(0.5, 0.16), ncol=2, frameon=True, fontsize=12, markerscale=1.5)
 
 # Adjust layout to give more space for the legend
-plt.subplots_adjust(left=0.08, right=0.99, bottom=0.25, wspace=0.02)
+plt.subplots_adjust(left=0.08, right=0.99, bottom=0.25, wspace=0.00)
 
 # Ensure the entire figure, including the legend, is displayed properly
 plt.show()
