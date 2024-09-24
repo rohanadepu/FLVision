@@ -835,22 +835,28 @@ def main():
 
     # --- Load Data ---
     if dataset_used == "CICIOT":
-        # Load CICIOT data
-        ciciot_train_data = pd.DataFrame()  # Replace with actual loading
-        ciciot_test_data = pd.DataFrame()  # Replace with actual loading
+        # set iotbonet to none
         all_attacks_train = None
         all_attacks_test = None
+        relevant_features_iotbotnet = None
+
+        # Load CICIOT data
+        ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
     elif dataset_used == "IOTBOTNET":
-        # Load IoTBotNet data
+        # Set CICIOT to none
         ciciot_train_data = None
         ciciot_test_data = None
-        all_attacks_train = pd.DataFrame()  # Replace with actual loading
-        all_attacks_test = pd.DataFrame()  # Replace with actual loading
+        irrelevant_features_ciciot = None
+
+        # Load IOTbotnet data
+        all_attacks_train, all_attacks_test, relevant_features_iotbotnet  = loadIOTBOTNET()
+
 
     # --- Preprocess Dataset ---
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
-        dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test)
+        dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
+        irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Set up model ---
     # Hyperparameters
@@ -859,6 +865,7 @@ def main():
 
     if regularizationEnabled:
         l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
     betas = [0.9, 0.999]  # Stable
 
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
