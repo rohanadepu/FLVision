@@ -656,7 +656,7 @@ def create_generator(input_dim, noise_dim):
         Dense(input_dim, activation='sigmoid')
     ])
 
-    return generator,
+    return generator
 
 
 def create_discriminator(input_dim):
