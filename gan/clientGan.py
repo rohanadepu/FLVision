@@ -772,9 +772,15 @@ class GanClient(fl.client.NumPyClient):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
+        # Convert x_test to tensor
+        self.x_test = tf.convert_to_tensor(self.x_test.values, dtype=tf.float32)
+
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
 
         generated_samples = generator(noise, training=False)
+
+        print(self.x_test.shape)
+        print(generated_samples.shape)
 
         real_output = discriminator(self.x_test, training=False)
         fake_output = discriminator(generated_samples, training=False)
