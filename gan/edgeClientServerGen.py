@@ -688,7 +688,7 @@ def create_discriminator(input_dim):
     ])
     return discriminator
 
-
+# loss based on generating fake data that get misclassified as real by discriminator
 def generator_loss(fake_output):
     # Loss for generator is to fool the discriminator into classifying fake samples as real
     return tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(fake_output), fake_output)
@@ -717,6 +717,7 @@ class GeneratorClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.generator.set_weights(parameters)
 
+        # initiate optimizers
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
         for epoch in range(self.epochs):
@@ -724,7 +725,8 @@ class GeneratorClient(fl.client.NumPyClient):
                 # Generate noise to create fake samples
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
 
-                # calculating gradient for loss
+                # captures operations for the generator’s forward pass, computing gradients based on how well it generated fake samples that fooled the discriminator. These gradients then update the generator’s weights.
+                # using tape to track trainable variables during generation and loss calculations
                 with tf.GradientTape() as tape:
                     # Generate fake samples
                     generated_data = self.generator(noise, training=True)

@@ -697,7 +697,7 @@ def create_generator(input_dim, noise_dim):
     ])
     return generator
 
-
+# loss based on correct classifications between normal, intrusive, and fake traffic
 def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
     # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
     real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output), real_normal_output)
@@ -745,9 +745,10 @@ class DiscriminatorClient(fl.client.NumPyClient):
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
 
-                # calculating gradient for loss
+                # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
+                # using tape to track trainable variables during discriminator classification and loss calculations
                 with tf.GradientTape() as tape:
-                    # Discriminator outputs based on its classifications
+                    # Discriminator outputs based on its classifications from inputted data in parameters
                     real_normal_output = self.discriminator(normal_data, training=True)
                     real_intrusive_output = self.discriminator(intrusive_data, training=True)
                     fake_output = self.discriminator(generated_data, training=True)
