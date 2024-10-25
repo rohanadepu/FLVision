@@ -851,7 +851,6 @@ def main():
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-
     # Hyperparameters
     BATCH_SIZE = 256
     noise_dim = 100

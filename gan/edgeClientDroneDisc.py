@@ -878,7 +878,6 @@ def main():
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-
     # Hyperparameters
     BATCH_SIZE = 256
     input_dim = X_train_data.shape[1] - 1  # Exclude label column
