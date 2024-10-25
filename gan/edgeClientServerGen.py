@@ -162,10 +162,14 @@ def loadCICIOT(poisonedDataType=None):
         return balanced_data, len(benign_samples)
 
     def reduce_attack_samples(data, attack_ratio):
+        # sort samples
         attack_samples = data[data['label'] == 'Attack']
         benign_samples = data[data['label'] == 'Benign']
 
+        # samples from pool of attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+
+        # make new dataset from benign pool and reduced attack samples
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -386,10 +390,14 @@ def loadIOTBOTNET(poisonedDataType=None):
         return balanced_dataframe
 
     def reduce_attack_samples(data, attack_ratio):
+        # sort samples
         attack_samples = data[data['Label'] == 'Anomaly']
         benign_samples = data[data['Label'] == 'Normal']
 
+        # sample the attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+
+        # make new pool with benign and reduced attack pool
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -545,7 +553,7 @@ def loadIOTBOTNET(poisonedDataType=None):
 
 
 ################################################################################################################
-#                                       Preprocessing & Assigning the dataset                                  #
+#                        Preprocessing & Assigning the dataset                                  #
 ################################################################################################################
 
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
@@ -642,7 +650,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
 
 ################################################################################################################
-#                                       GAN Model Setup                                       #
+#                                       GAN Model Setup (Generator Training)                                      #
 ################################################################################################################
 
 # Function for creating the generator model
@@ -686,7 +694,7 @@ def generator_loss(fake_output):
     return tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(fake_output), fake_output)
 
 
-# Define a class to handle generator training
+# --- Class to handle generator training ---#
 class GeneratorClient(fl.client.NumPyClient):
     def __init__(self, generator, discriminator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch):
         self.generator = generator
@@ -764,10 +772,14 @@ class GeneratorClient(fl.client.NumPyClient):
 
         return float(gen_loss.numpy())
 
+################################################################################################################
+#                                       Abstract                                       #
+################################################################################################################
+
 
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Training Demo:", "\n")
+    print("Federated Learning Generator Client Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -793,6 +805,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
     parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
+
     args = parser.parse_args()
 
     dataset_used = args.dataset
@@ -804,13 +817,15 @@ def main():
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
+
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-    # --- Load Data ---
+    # --- Load Data ---#
+    # load ciciot data if selected
     if dataset_used == "CICIOT":
         # set iotbonet to none
         all_attacks_train = None
@@ -820,6 +835,7 @@ def main():
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
+    # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
         # Set CICIOT to none
         ciciot_train_data = None
@@ -829,10 +845,12 @@ def main():
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
-    # --- Preprocess Dataset ---
+    # --- Preprocess Dataset ---#
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
+
+    # --- Model setup --- #
 
     # Hyperparameters
     BATCH_SIZE = 256
@@ -857,11 +875,13 @@ def main():
         print("No pretrained generator provided. Creating a new generator.")
         generator = create_generator(input_dim, noise_dim)
 
+    # initiate client with models, data, and parameters
     client = GeneratorClient(generator, discriminator, X_train_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
+    # --- initiate federated training ---#
     fl.client.start_numpy_client(server_address="localhost:8080", client=client)
 
-    # Save the trained generator model
+    # --- Save the trained discriminator model ---#
     generator.save("generator_model.h5")
 
 

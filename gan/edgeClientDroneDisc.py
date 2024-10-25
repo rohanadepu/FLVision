@@ -162,10 +162,14 @@ def loadCICIOT(poisonedDataType=None):
         return balanced_data, len(benign_samples)
 
     def reduce_attack_samples(data, attack_ratio):
+        # sort samples
         attack_samples = data[data['label'] == 'Attack']
         benign_samples = data[data['label'] == 'Benign']
 
+        # samples from pool of attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+
+        # make new dataset from benign pool and reduced attack samples
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -386,10 +390,14 @@ def loadIOTBOTNET(poisonedDataType=None):
         return balanced_dataframe
 
     def reduce_attack_samples(data, attack_ratio):
+        # sort samples
         attack_samples = data[data['Label'] == 'Anomaly']
         benign_samples = data[data['Label'] == 'Normal']
 
+        # sample the attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
+
+        # make new pool with benign and reduced attack pool
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -477,7 +485,7 @@ def loadIOTBOTNET(poisonedDataType=None):
     print("Attack Data Loaded & Combined...")
 
     ################################################################################################################
-    #                              First Steps of Preprocessing IOTBOTNET 2020 Dataset                             #
+    #                        First Steps of Preprocessing IOTBOTNET 2020 Dataset                             #
     ################################################################################################################
 
     # ---                   Cleaning                     --- #
@@ -545,7 +553,7 @@ def loadIOTBOTNET(poisonedDataType=None):
 
 
 ################################################################################################################
-#                                       Preprocessing & Assigning the dataset                                  #
+#                          Preprocessing & Assigning the dataset                                  #
 ################################################################################################################
 
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
@@ -560,6 +568,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
         ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
 
+        # initiate model training and test data
         train_data = ciciot_train_data
         test_data = ciciot_test_data
 
@@ -572,6 +581,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         all_attacks_train = shuffle(all_attacks_train, random_state=47)
         all_attacks_test = shuffle(all_attacks_test, random_state=47)
 
+        # initiate model training and test data
         train_data = all_attacks_train
         test_data = all_attacks_test
 
@@ -590,10 +600,14 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     class_counts = train_data['Label' if dataset_used == "IOTBOTNET" else 'label'].value_counts()
     print(class_counts)
 
-    # Encoding
+    # initiate encoder
     label_encoder = LabelEncoder()
+
+    # fit and encode training data
     train_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.fit_transform(
         train_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
+
+    # encode test data
     test_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.transform(
         test_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
@@ -606,11 +620,14 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     # --- Normalizing ---
     print("\nNormalizing...")
 
-    # Normalizing
+    # initiate scaler and colums to scale
     scaler = MinMaxScaler(feature_range=(0, 1))
     relevant_num_cols = train_data.columns.difference(['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
+    # fit scaler
     scaler.fit(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
+
+    # Normalize data
     train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
     test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
 
@@ -642,7 +659,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
 
 ################################################################################################################
-#                                       GAN Model Setup                                       #
+#                                       GAN Model Setup (Discriminator Training)                                       #
 ################################################################################################################
 
 # Function for creating the discriminator model
@@ -690,7 +707,7 @@ def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
     return total_loss
 
 
-# Define a class to handle discriminator training
+# --- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
@@ -780,10 +797,14 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
         return float(disc_loss.numpy())
 
+################################################################################################################
+#                                       Abstract                                       #
+################################################################################################################
+
 
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Training Demo:", "\n")
+    print("Federated Learning Discriminator Client Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -811,6 +832,7 @@ def main():
                         default=None)
     parser.add_argument('--pretrained_discriminator', type=str,
                         help="Path to pretrained discriminator model (optional)", default=None)
+
     args = parser.parse_args()
 
     dataset_used = args.dataset
@@ -822,13 +844,15 @@ def main():
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
+
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-    # --- Load Data ---
+    # --- Load Data ---#
+    # load ciciot data if selected
     if dataset_used == "CICIOT":
         # set iotbonet to none
         all_attacks_train = None
@@ -838,6 +862,7 @@ def main():
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
+    # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
         # Set CICIOT to none
         ciciot_train_data = None
@@ -847,10 +872,12 @@ def main():
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
-    # --- Preprocess Dataset ---
+    # --- Preprocess Dataset ---#
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
+
+    # --- Model setup --- #
 
     # Hyperparameters
     BATCH_SIZE = 256
@@ -875,11 +902,13 @@ def main():
         print("No pretrained generator provided. Creating a new generator.")
         generator = create_generator(input_dim, noise_dim)
 
+    # initiate client with models, data, and parameters
     client = DiscriminatorClient(discriminator, generator, X_train_data, X_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
+    # --- initiate federated training ---#
     fl.client.start_numpy_client(server_address="localhost:8080", client=client)
 
-    # Save the trained discriminator model
+    # --- Save the trained discriminator model ---#
     discriminator.save("discriminator_model.h5")
 
 
