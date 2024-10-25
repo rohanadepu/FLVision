@@ -692,7 +692,7 @@ def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
 
 # Define a class to handle discriminator training
 class DiscriminatorClient(fl.client.NumPyClient):
-    def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch):
+    def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
         self.generator = generator # Generator is fixed during discriminator training
         self.x_train = x_train
@@ -703,6 +703,7 @@ class DiscriminatorClient(fl.client.NumPyClient):
         self.noise_dim = noise_dim
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
+        self.dataset_used = dataset_used
 
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
@@ -726,8 +727,9 @@ class DiscriminatorClient(fl.client.NumPyClient):
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
 
+                # calculating gradient for loss
                 with tf.GradientTape() as tape:
-                    # Discriminator outputs
+                    # Discriminator outputs based on its classifications
                     real_normal_output = self.discriminator(normal_data, training=True)
                     real_intrusive_output = self.discriminator(intrusive_data, training=True)
                     fake_output = self.discriminator(generated_data, training=True)

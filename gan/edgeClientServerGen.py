@@ -716,17 +716,18 @@ class GeneratorClient(fl.client.NumPyClient):
                 # Generate noise to create fake samples
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
 
+                # calculating gradient for loss
                 with tf.GradientTape() as tape:
                     # Generate fake samples
                     generated_data = self.generator(noise, training=True)
 
-                    # Discriminator output for fake data
+                    # Discriminator output for fake data classifications
                     fake_output = self.discriminator(generated_data, training=False)
 
-                    # Loss for generator to fool the discriminator
+                    # Loss for generator to fool the discriminator based on its classifications
                     loss = generator_loss(fake_output)
 
-                # Update the generator based on the loss
+                # Update the generator based on the gradients from loss
                 gradients = tape.gradient(loss, self.generator.trainable_variables)
                 optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
 
