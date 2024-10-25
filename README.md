@@ -1,4 +1,4 @@
-# FLVision
+# HFL-DNN-GAN-NIDS
 
 Faculty Advisors:
 
@@ -6,11 +6,9 @@ Graduate Mentors:
 
 Undergraduate Researchers:
 
-* Rohan Adepu
-
 * Kevin Kostage
 
-* Jenaya Monroe
+* Sean Peppers
 
 
 ## Steps to Run
