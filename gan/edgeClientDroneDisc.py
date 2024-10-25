@@ -738,8 +738,8 @@ class DiscriminatorClient(fl.client.NumPyClient):
             for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
                 # Assume real_data contains both normal and intrusive traffic
                 # Split the real_data into normal and intrusive samples
-                normal_data = real_data[real_data['label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['label'] == 0]  # Real malicious traffic
+                normal_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
+                intrusive_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 0]  # Real malicious traffic
 
                 # Generate fake data using the generator
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
@@ -906,7 +906,8 @@ def main():
         generator = create_generator(input_dim, noise_dim)
 
     # initiate client with models, data, and parameters
-    client = DiscriminatorClient(discriminator, generator, X_train_data, X_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
+    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
+                                 , noise_dim, epochs, steps_per_epoch, dataset_used)
 
     # --- initiate federated training ---#
     fl.client.start_numpy_client(server_address="localhost:8080", client=client)

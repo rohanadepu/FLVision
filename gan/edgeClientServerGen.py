@@ -879,7 +879,8 @@ def main():
         generator = create_generator(input_dim, noise_dim)
 
     # initiate client with models, data, and parameters
-    client = GeneratorClient(generator, discriminator, X_train_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
+    client = GeneratorClient(generator, discriminator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE,
+                             noise_dim, epochs, steps_per_epoch)
 
     # --- initiate federated training ---#
     fl.client.start_numpy_client(server_address="localhost:8080", client=client)
