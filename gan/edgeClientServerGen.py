@@ -735,8 +735,10 @@ class GeneratorClient(fl.client.NumPyClient):
                     # Loss for generator to fool the discriminator based on its classifications
                     loss = generator_loss(fake_output)
 
-                # Update the generator based on the gradients from loss
+                # calculate the gradient based on the loss respect to the weights of the model
                 gradients = tape.gradient(loss, self.generator.trainable_variables)
+
+                # Update the model based on the gradient of the loss respect to the weights of the model
                 optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
 
                 if step % 100 == 0:

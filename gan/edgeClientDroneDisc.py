@@ -731,6 +731,7 @@ class DiscriminatorClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.discriminator.set_weights(parameters)
 
+        # initiate optimizers
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
         for epoch in range(self.epochs):
@@ -754,8 +755,10 @@ class DiscriminatorClient(fl.client.NumPyClient):
                     # Loss calculation for normal, intrusive, and fake data
                     loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
-                # Update the discriminator based on the loss
+                # calculate the gradient based on the loss respect to the weights of the model
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
+
+                # Update the model based on the gradient of the loss respect to the weights of the model
                 optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
