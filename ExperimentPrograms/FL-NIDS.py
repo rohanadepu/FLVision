@@ -662,7 +662,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 #                                       GAN Model Setup (Discriminator Training)                                       #
 ################################################################################################################
 # ---                   CICIOT Models                   --- #
-if dataset_used == "CICIOT":
+def create_CICIOT_Model(input_dim,regularizationEnabled,DP_enabled,l2_alpha ):
 
     # --- Model Definition --- #
     if regularizationEnabled:
@@ -749,7 +749,7 @@ if dataset_used == "CICIOT":
 
 # ---                   IOTBOTNET Models                  --- #
 
-if dataset_used == "IOTBOTNET":
+def create_IOTBOTNET_Model(input_dim,regularizationEnabled,l2_alpha ):
 
     # --- Model Definition --- #
     if regularizationEnabled:
@@ -792,70 +792,11 @@ if dataset_used == "IOTBOTNET":
 
 # ---         Differential Privacy Engine Model Compile              --- #
 
-if DP_enabled:
-    print("\nIncluding DP into optimizer...\n")
 
-    # Making Custom Optimizer Component with Differential Privacy
-    dp_optimizer = tfp.DPKerasAdamOptimizer(
-        l2_norm_clip=l2_norm_clip,
-        noise_multiplier=noise_multiplier,
-        num_microbatches=num_microbatches,
-        learning_rate=learning_rate
-    )
-
-    # compile model with custom dp optimizer
-    model.compile(optimizer=dp_optimizer,
-                  loss=tf.keras.losses.binary_crossentropy,
-                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                  )
-
-# ---              Normal Model Compile                        --- #
-
-else:
-    print("\nDefault optimizer...\n")
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-    model.compile(optimizer=optimizer,
-                  loss=tf.keras.losses.binary_crossentropy,
-                  metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                  )
-
-# ---                   Callback components                   --- #
-
-# init main call back functions list
-callbackFunctions = []
-
-# init callback functions based on inputs
-
-if earlyStopEnabled:
-    early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience, restore_best_weights=restor_best_w)
-
-    callbackFunctions.append(early_stopping)
-
-
-if lrSchedRedEnabled:
-    lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor_l2lr, factor=l2lr_factor, patience=l2lr_patience)
-
-    callbackFunctions.append(lr_scheduler)
-
-
-if modelCheckpointEnabled:
-    model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
-                                       monitor=metric_to_monitor_mc, mode=checkpoint_mode)
-
-    # add to callback functions list being added during fitting
-    callbackFunctions.append(model_checkpoint)
-
-# ---                   Model Analysis                   --- #
-
-model.summary()
 
 #########################################################
 #    Adversarial Training Functions                     #
 #########################################################
-
-if adversarialTrainingEnabled:
 
     # Function to generate adversarial examples using FGSM
     def create_adversarial_example(model, x, y, epsilon=0.01):
@@ -964,12 +905,72 @@ class FlNidsClient(fl.client.NumPyClient):
         self.model = model_used
         self.adversarialTrainingEnabled
         self.X_train_data
+        self.DP_enabled
+        self.earlyStopEnabled
 
         self.roundCount = 0
         self.evaluateCount = 0
 
+        if self.DP_enabled:
+            print("\nIncluding DP into optimizer...\n")
+
+            # Making Custom Optimizer Component with Differential Privacy
+            dp_optimizer = tfp.DPKerasAdamOptimizer(
+                l2_norm_clip=l2_norm_clip,
+                noise_multiplier=noise_multiplier,
+                num_microbatches=num_microbatches,
+                learning_rate=learning_rate
+            )
+
+            # compile model with custom dp optimizer
+            self.model.compile(optimizer=dp_optimizer,
+                          loss=tf.keras.losses.binary_crossentropy,
+                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                          )
+
+        # ---              Normal Model Compile                        --- #
+
+        else:
+            print("\nDefault optimizer...\n")
+
+            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+            self.model.compile(optimizer=optimizer,
+                          loss=tf.keras.losses.binary_crossentropy,
+                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                          )
+
+        # ---                   Callback components                   --- #
+
+        # init main call back functions list
+        self.callbackFunctions = []
+
+        # init callback functions based on inputs
+
+        if self.earlyStopEnabled:
+            early_stopping = EarlyStopping(monitor=metric_to_monitor_es, patience=es_patience,
+                                           restore_best_weights=restor_best_w)
+
+            self.callbackFunctions.append(early_stopping)
+
+        if self.lrSchedRedEnabled:
+            lr_scheduler = ReduceLROnPlateau(monitor=metric_to_monitor_l2lr, factor=l2lr_factor, patience=l2lr_patience)
+
+            self.callbackFunctions.append(lr_scheduler)
+
+        if self.modelCheckpointEnabled:
+            model_checkpoint = ModelCheckpoint(f'best_model_{model_name}.h5', save_best_only=save_best_only,
+                                               monitor=metric_to_monitor_mc, mode=checkpoint_mode)
+
+            # add to callback functions list being added during fitting
+            self.callbackFunctions.append(model_checkpoint)
+
+        # ---                   Model Analysis                   --- #
+
+        self.model.summary()
+
     def get_parameters(self, config):
-        return model.get_weights()
+        return self.model.get_weights()
 
     def fit(self, parameters, config):
         # increment round count

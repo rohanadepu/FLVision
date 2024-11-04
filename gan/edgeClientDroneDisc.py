@@ -707,6 +707,8 @@ def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
     return total_loss
 
 
+
+
 # --- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
@@ -724,6 +726,13 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
+
+        # # Compile the discriminator
+        # self.discriminator.compile(
+        #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+        #     loss=discriminator_loss,  # Using the custom loss function
+        #     metrics=['accuracy']
+        # )
 
     def get_parameters(self, config):
         return self.discriminator.get_weights()
