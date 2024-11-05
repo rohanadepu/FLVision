@@ -1471,7 +1471,7 @@ class FLClient(fl.client.NumPyClient):
         #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
         recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
 
-        return model.get_weights(), len(X_train_data), {}
+        return self.model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         # increment evaluate count
