@@ -240,6 +240,46 @@ class GanClient(fl.client.NumPyClient):
 
         return float(disc_loss.numpy()), float(gen_loss.numpy())
 
+    def evaluate_validation_NIDS(self, pretrained_nids_path):
+        # Generate fake samples using the generator
+        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+        generated_samples = self.generator(noise, training=False)
+
+        # Split validation data into normal and intrusive traffic
+        normal_data = self.X_val_data[self.y_val_data == 1]  # Real normal traffic
+        intrusive_data = self.X_val_data[self.y_val_data == 0]  # Real intrusive traffic
+
+        # load Pretrained NIDS model
+        nids = tf.keras.models.load_model(pretrained_nids_path)
+
+        # Step 4: Pass real and fake data through the NIDS model to get binary classification probabilities
+        real_normal_output = nids(normal_data, training=False)  # Expected [P(normal), P(intrusive)]
+        real_intrusive_output = nids(intrusive_data, training=False)  # Expected [P(normal), P(intrusive)]
+        fake_output = nids(generated_samples, training=False)  # Expected [P(normal), P(intrusive)]
+
+        # Step 5: Define target labels for binary cross-entropy loss
+        # Real normal traffic should have high probability in the normal class
+        real_normal_labels = tf.ones((real_normal_output.shape[0],),
+                                     dtype=tf.int32)  # Shape matches the number of samples
+        # Real intrusive traffic should have high probability in the intrusive class
+        real_intrusive_labels = tf.zeros((real_intrusive_output.shape[0],),
+                                         dtype=tf.int32)  # Shape matches the number of samples
+        # Fake traffic (generated samples) should be labeled as normal (to fool the NIDS)
+        fake_labels = tf.ones((fake_output.shape[0],), dtype=tf.int32)  # Shape matches the number of generated samples
+
+        # Step 6: Calculate binary cross-entropy loss for each category
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+        real_normal_loss = bce(real_normal_labels, real_normal_output[:, 0])  # Compare with "normal" class probability
+        real_intrusive_loss = bce(real_intrusive_labels,
+                                  real_intrusive_output[:, 1])  # Compare with "intrusive" class probability
+        fake_loss = bce(fake_labels, fake_output[:, 0])  # Compare with "normal" class probability for generated samples
+
+        # Step 7: Combine the losses
+        nids_loss = real_normal_loss + real_intrusive_loss
+        gen_loss = fake_loss  # Generator loss to fool the NIDS
+
+        return float(nids_loss.numpy()), float(gen_loss.numpy())
+
     def fit(self, parameters, config):
         self.generator.set_weights(parameters)
 
