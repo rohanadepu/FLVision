@@ -841,6 +841,7 @@ def main():
                         help="Name of the training log file")
 
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
                         default=None)
     parser.add_argument('--pretrained_discriminator', type=str,

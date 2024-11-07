@@ -52,31 +52,71 @@ def create_model():
     return model
 
 
-# Load or define server-side data
-# Replace these lines with your actual server data loading process
-server_data = ...  # Server-side data for further training (e.g., representative or synthetic data)
-server_labels = ...  # Corresponding labels for server-side data
+def main():
 
-# Parsing command line arguments
-parser = argparse.ArgumentParser(description="Federated Learning Server with Model Saving")
-parser.add_argument("--rounds", type=int, choices=range(1, 11), default=8, help="Rounds of training 1-10")
-parser.add_argument("--min_clients", type=int, choices=range(1, 7), default=2,
-                    help="Minimum number of clients required for training")
 
-args = parser.parse_args()
-roundInput = args.rounds
-minClients = args.min_clients
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Start the federated server with custom strategy
-fl.server.start_server(
-    config=fl.server.ServerConfig(num_rounds=roundInput),
-    strategy=SaveModelStrategy(
-        server_data=server_data,
-        server_labels=server_labels,
-        epochs=3,  # Set the number of server-side fine-tuning epochs
-        batch_size=32,
-        min_fit_clients=minClients,
-        min_evaluate_clients=minClients,
-        min_available_clients=minClients
+    # Parsing command line arguments
+    parser = argparse.ArgumentParser(description="Federated Learning Server with Model Saving")
+    parser.add_argument("--rounds", type=int, choices=range(1, 11), default=8, help="Rounds of training 1-10")
+    parser.add_argument("--min_clients", type=int, choices=range(1, 7), default=2, help="Minimum number of clients required for training")
+
+    parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
+                        help='Datasets to use: CICIOT, IOTBOTNET')
+
+    parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None,
+                        help="Label Flip: LF33, LF66")
+
+    parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
+
+    parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt",
+                        help="Name of the evaluation log file")
+    parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt",
+                        help="Name of the training log file")
+
+    parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
+                        default=None)
+    parser.add_argument('--pretrained_discriminator', type=str,
+                        help="Path to pretrained discriminator model (optional)", default=None)
+
+    args = parser.parse_args()
+    roundInput = args.rounds
+    minClients = args.min_clients
+    dataset_used = args.dataset
+
+
+    poisonedDataType = args.pData
+    regularizationEnabled = args.reg
+    epochs = args.epochs
+
+    # display selected arguments
+    print("|MAIN SERVER CONFIG|", "\n")
+
+    # main experiment config
+    print("Selected DATASET:", dataset_used, "\n")
+    print("Poisoned Data:", poisonedDataType, "\n")
+
+    # Load or define server-side data
+    # Replace these lines with your actual server data loading process
+    server_data = ...  # Server-side data for further training (e.g., representative or synthetic data)
+    server_labels = ...  # Corresponding labels for server-side data
+
+    # Start the federated server with custom strategy
+    fl.server.start_server(
+        config=fl.server.ServerConfig(num_rounds=roundInput),
+        strategy=SaveModelStrategy(
+            server_data=server_data,
+            server_labels=server_labels,
+            epochs=3,  # Set the number of server-side fine-tuning epochs
+            batch_size=32,
+            min_fit_clients=minClients,
+            min_evaluate_clients=minClients,
+            min_available_clients=minClients
+        )
     )
-)
+
+
+if __name__ == "__main__":
+    main()

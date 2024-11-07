@@ -722,7 +722,7 @@ def generate_and_save_network_traffic(model, test_input):
 learning_rate = 0.0001  # 0.001 or .0001
 
 # premade functions
-binary_crossentropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+# binary_crossentropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 generator_optimizer = tf.keras.optimizers.Adam(learning_rate)
 discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate)
 seed = tf.random.normal([16, 100])
@@ -844,11 +844,10 @@ class GanClient(fl.client.NumPyClient):
         return {"discriminator_loss": float(disc_loss.numpy()), "generator_loss": float(gen_loss.numpy())}, len(self.x_test), {}
 
 
-
-
 ################################################################################################################
 #                                                   Execute                                                   #
 ################################################################################################################
+
 def main():
     print("\n ////////////////////////////// \n")
     print("Federated Learning Training Demo:", "\n")
@@ -876,8 +875,7 @@ def main():
 
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
 
-    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
-                        default=None)
+    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
     parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
     # init variables to handle arguments
@@ -893,6 +891,7 @@ def main():
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
+
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
@@ -916,7 +915,7 @@ def main():
         irrelevant_features_ciciot = None
 
         # Load IOTbotnet data
-        all_attacks_train, all_attacks_test, relevant_features_iotbotnet  = loadIOTBOTNET()
+        all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
 
     # --- Preprocess Dataset ---

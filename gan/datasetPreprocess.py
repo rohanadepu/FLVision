@@ -59,6 +59,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
         ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
 
+        # initiate model training and test data
         train_data = ciciot_train_data
         test_data = ciciot_test_data
 
@@ -71,6 +72,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         all_attacks_train = shuffle(all_attacks_train, random_state=47)
         all_attacks_test = shuffle(all_attacks_test, random_state=47)
 
+        # initiate model training and test data
         train_data = all_attacks_train
         test_data = all_attacks_test
 
@@ -89,10 +91,14 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     class_counts = train_data['Label' if dataset_used == "IOTBOTNET" else 'label'].value_counts()
     print(class_counts)
 
-    # Encoding
+    # initiate encoder
     label_encoder = LabelEncoder()
+
+    # fit and encode training data
     train_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.fit_transform(
         train_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
+
+    # encode test data
     test_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.transform(
         test_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
@@ -105,11 +111,14 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     # --- Normalizing ---
     print("\nNormalizing...")
 
-    # Normalizing
+    # initiate scaler and colums to scale
     scaler = MinMaxScaler(feature_range=(0, 1))
     relevant_num_cols = train_data.columns.difference(['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
+    # fit scaler
     scaler.fit(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
+
+    # Normalize data
     train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
     test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
 
