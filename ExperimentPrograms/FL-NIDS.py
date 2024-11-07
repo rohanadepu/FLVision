@@ -661,8 +661,10 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 ################################################################################################################
 #                                       GAN Model Setup (Discriminator Training)                                       #
 ################################################################################################################
+
+
 # ---                   CICIOT Models                   --- #
-def create_CICIOT_Model(input_dim,regularizationEnabled,DP_enabled,l2_alpha ):
+def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
 
     # --- Model Definition --- #
     if regularizationEnabled:
@@ -747,9 +749,12 @@ def create_CICIOT_Model(input_dim,regularizationEnabled,DP_enabled,l2_alpha ):
             Dense(1, activation='sigmoid')
         ])
 
+    return model
+
+
 # ---                   IOTBOTNET Models                  --- #
 
-def create_IOTBOTNET_Model(input_dim,regularizationEnabled,l2_alpha):
+def create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha):
 
     # --- Model Definition --- #
     if regularizationEnabled:
@@ -790,6 +795,8 @@ def create_IOTBOTNET_Model(input_dim,regularizationEnabled,l2_alpha):
             Dense(1, activation='sigmoid')
         ])
 
+    return model
+
 
 #########################################################
 #    Federated Learning Setup                           #
@@ -798,17 +805,58 @@ def create_IOTBOTNET_Model(input_dim,regularizationEnabled,l2_alpha):
 
 class FlNidsClient(fl.client.NumPyClient):
 
-    def __init__(self, model_used, adversarialTrainingEnabled, regularizationEnabled, DP_enabled,):
-        self.model = model_used
-        self.adversarialTrainingEnabled
-        self.X_train_data
-        self.DP_enabled
-        self.earlyStopEnabled
-        self.l2_norm_clip
-        self.noise_multiplier
-        self.num_microbatches
-        self.learning_rate
+    def __init__(self, model_used, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data, y_train_data,
+                 X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches,
+                 batch_size, epochs, steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience,
+                 restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc, checkpoint_mode):
 
+        # ---         Variable init              --- #
+
+        # model
+        self.model = model_used
+        self.data_used = dataset_used
+        self.node = node
+
+        # flags
+        self.adversarialTrainingEnabled = adversarialTrainingEnabled
+        self.DP_enabled = DP_enabled
+        self.earlyStopEnabled = earlyStopEnabled
+
+        # data
+        self.X_train_data = X_train_data
+        self.y_train_data = y_train_data
+        self.X_test_data = X_test_data
+        self.y_test_data = y_test_data
+        self.X_val_data = X_val_data
+        self.y_val_data = y_val_data
+
+        # hyperparams
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.epochs = epochs
+        self.steps_per_epoch = steps_per_epoch
+        # dp
+        self.num_microbatches = num_microbatches
+        self.l2_norm_clip = l2_norm_clip
+        self.noise_multiplier = noise_multiplier
+        # adversarial
+        self.adv_portion = adv_portion
+
+        # callback params
+        # early stop
+        self.metric_to_monitor_es = metric_to_monitor_es
+        self.es_patience = es_patience
+        self.restor_best_w = restor_best_w
+        # lr schedule
+        self.metric_to_monitor_l2lr = metric_to_monitor_l2lr
+        self.l2lr_factor = l2lr_patience
+        self.l2lr_patience = es_patience
+        # model checkpoint
+        self.save_best_only = save_best_only
+        self.metric_to_monitor_mc = metric_to_monitor_mc
+        self.checkpoint_mode = checkpoint_mode
+
+        # counters
         self.roundCount = 0
         self.evaluateCount = 0
 
@@ -828,9 +876,8 @@ class FlNidsClient(fl.client.NumPyClient):
 
             # compile model with custom dp optimizer
             self.model.compile(optimizer=dp_optimizer,
-                          loss=tf.keras.losses.binary_crossentropy,
-                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                          )
+                               loss=tf.keras.losses.binary_crossentropy,
+                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
 
         # ---              Normal Model Compile                        --- #
 
@@ -840,9 +887,9 @@ class FlNidsClient(fl.client.NumPyClient):
             optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
 
             self.model.compile(optimizer=optimizer,
-                          loss=tf.keras.losses.binary_crossentropy,
-                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                          )
+                               loss=tf.keras.losses.binary_crossentropy,
+                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                               )
 
         # ---                   Callback components                   --- #
 
@@ -973,37 +1020,13 @@ class FlNidsClient(fl.client.NumPyClient):
         self.recordEvaluation(logName1, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
 
         return loss, len(self.X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
-                                        "LogCosh": logcosh}
+                                             "LogCosh": logcosh}
 
     #########################################################
     #    Metric Saving Functions                           #
     #########################################################
 
-    def recordConfig(self, name):
-        with open(name, 'a') as f:
-            f.write(f"Dataset Used: {self.dataset_used}\n")
-            f.write(
-                f"Defenses Enabled: DP - {self.DP_enabled}, Adversarial Training - {self.adversarialTrainingEnabled}, Regularization - {self.regularizationEnabled}\n")
-            f.write(f"Hyperparameters:\n")
-            f.write(f"Input Dim (Feature Size): {self.input_dim}\n")
-            f.write(f"Epochs: {self.epochs}\n")
-            f.write(f"Batch Size: {self.batch_size}\n")
-            f.write(f"Steps per epoch: {self.steps_per_epoch}\n")
-            f.write(f"Betas: {self.betas}\n")
-            f.write(f"Learning Rate: {self.learning_rate}\n")
-            if self.DP_enabled:
-                f.write(f"L2 Norm Clip: {self.l2_norm_clip}\n")
-                f.write(f"Noise Multiplier: {self.Noise_multiplier}\n")
-                f.write(f"MicroBatches: {self.num_microbatches}\n")
-            if self.adversarialTrainingEnabled:
-                f.write(f"Adversarial Sample %: {self.adv_portion * 100}%\n")
-            if self.regularizationEnabled:
-                f.write(f"L2 Alpha: {self.l2_alpha}\n")
-            f.write(f"Model Layer Structure:\n")
-            for layer in self.model.layers:
-                f.write(
-                    f"Layer: {layer.name}, Type: {layer.__class__.__name__}, Output Shape: {layer.output_shape}, Params: {layer.count_params()}\n")
-            f.write("\n")
+
 
     def recordTraining(self, name, history, elapsed_time, roundCount, val_loss):
         with open(name, 'a') as f:
@@ -1077,12 +1100,43 @@ class FlNidsClient(fl.client.NumPyClient):
         return adversarial_example
 
 
+def recordConfig(name, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model):
+    with open(name, 'a') as f:
+        f.write(f"Dataset Used: {dataset_used}\n")
+        f.write(
+            f"Defenses Enabled: DP - {DP_enabled}, Adversarial Training - {adversarialTrainingEnabled}, Regularization - {regularizationEnabled}\n")
+        f.write(f"Hyperparameters:\n")
+        f.write(f"Input Dim (Feature Size): {input_dim}\n")
+        f.write(f"Epochs: {epochs}\n")
+        f.write(f"Batch Size: {batch_size}\n")
+        f.write(f"Steps per epoch: {steps_per_epoch}\n")
+        f.write(f"Betas: {betas}\n")
+        f.write(f"Learning Rate: {learning_rate}\n")
+        if DP_enabled:
+            f.write(f"L2 Norm Clip: {l2_norm_clip}\n")
+            f.write(f"Noise Multiplier: {noise_multiplier}\n")
+            f.write(f"MicroBatches: {num_microbatches}\n")
+        if adversarialTrainingEnabled:
+            f.write(f"Adversarial Sample %: {adv_portion * 100}%\n")
+        if regularizationEnabled:
+            f.write(f"L2 Alpha: {l2_alpha}\n")
+        f.write(f"Model Layer Structure:\n")
+        for layer in model.layers:
+            f.write(
+                f"Layer: {layer.name}, Type: {layer.__class__.__name__}, Output Shape: {layer.output_shape}, Params: {layer.count_params()}\n")
+        f.write("\n")
+
+
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################
 
 
 def main():
+
+    # --- Script Arguments and Start up ---#
     print("\n ////////////////////////////// \n")
     print("Federated Learning Discriminator Client Training:", "\n")
 
@@ -1094,8 +1148,7 @@ def main():
     parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
                         help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
-    parser.add_argument('--pretrained_model', type=str,
-                        help="Path to pretrained discriminator model (optional)", default=None)
+    parser.add_argument('--pretrained_model', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
     parser.add_argument("--node", type=int, choices=[1, 2, 3, 4, 5, 6], default=1, help="Client node number 1-6")
     parser.add_argument("--fixedServer", type=int, choices=[1, 2, 3, 4], default=1, help="Fixed Server node number 1-4")
@@ -1104,21 +1157,15 @@ def main():
                         help="Label Flip: LF33, LF66")
 
     parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
-    parser.add_argument('--dp', action='store_true',
-                        help='Enable Differential Privacy with TFP')  # untested but working plz tune
-    parser.add_argument('--adversarial', action='store_true',
-                        help='Enable model adversarial training with gradients')  # bugged
+    parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy with TFP')  # untested but working plz tune
+    parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training with gradients')  # bugged
 
     parser.add_argument('--eS', action='store_true', help='Enable model early stop training')  # callback unessary
-    parser.add_argument('--lrSched', action='store_true',
-                        help='Enable model lr scheduling training')  # callback unessary
-    parser.add_argument('--mChkpnt', action='store_true',
-                        help='Enable model model checkpoint training')  # store false irelevent
+    parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training')  # callback unessary
+    parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training')  # store false irelevent
 
-    parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt",
-                        help="Name of the evaluation log file")
-    parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt",
-                        help="Name of the training log file")
+    parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt", help="Name of the evaluation log file")
+    parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt", help="Name of the training log file")
 
     args = parser.parse_args()
 
@@ -1158,7 +1205,6 @@ def main():
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-
     print("|DEFENSES|", "\n")
     # defense settings display
     if regularizationEnabled:
@@ -1176,7 +1222,6 @@ def main():
         print("Adversarial Training Enabled", "\n")
     else:
         print("Adversarial Training Disabled", "\n")
-
 
     print("|CALL-BACK FUNCTIONS|", "\n")
     # callback functions display
@@ -1329,24 +1374,32 @@ def main():
         print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
         model = tf.keras.models.load_model(args.pretrained_discriminator)
 
-    elif dataset_used == "CICIOT" and pretrained_model == None:
+    elif dataset_used == "CICIOT" and pretrained_model is None:
         print("No pretrained discriminator provided. Creating a new mdoel.")
 
         model = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
 
-    elif dataset_used == "IOTBOTNET" and pretrained_model == None:
+    elif dataset_used == "IOTBOTNET" and pretrained_model is None:
         print("No pretrained discriminator provided. Creating a new model.")
 
         model = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
 
-    # initiate client with models, data, and parameters
-    client = FlNidsClient(dataset_used)
+    #--- initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
+    client = FlNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data,
+                          y_train_data, X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier,
+                          num_microbatches, batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
+                          metric_to_monitor_es, es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
+                          save_best_only, metric_to_monitor_mc, checkpoint_mode)
 
     # Record initial configuration before training starts
     logName = trainingLog
-    recordConfig(logName)
+    recordConfig(logName, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model)
     logName1 = evaluationLog
-    recordConfig(logName1)
+    recordConfig(logName1, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model)
 
     # select server that is hosting
     if fixedServer == 1:
