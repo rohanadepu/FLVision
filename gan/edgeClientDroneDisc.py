@@ -707,8 +707,6 @@ def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
     return total_loss
 
 
-
-
 # --- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):

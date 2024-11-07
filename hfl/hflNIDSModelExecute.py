@@ -44,10 +44,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
-from gan.ciciotDatasetLoad import (loadCICIOT)
-from gan.iotbotnetDatasetLoad import loadIOTBOTNET
-from gan.datasetPreprocess import preprocess_dataset
-from hflNIDSModelTrain import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
+from ciciotDatasetLoad import (loadCICIOT)
+from iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetPreprocess import preprocess_dataset
+from hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################
