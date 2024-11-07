@@ -44,7 +44,7 @@ from sklearn.utils import shuffle
 
 
 ###################################################################################
-#               Load Config for IOTBOTNET 2023 Dataset                            #
+#               Load Config for IOTBOTNET 2020 Dataset                            #
 ###################################################################################
 def loadIOTBOTNET(poisonedDataType=None):
 
