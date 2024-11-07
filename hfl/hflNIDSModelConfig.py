@@ -182,10 +182,49 @@ def create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha):
 
 
 #########################################################
+    #    Adversarial Training Function                   #
+##########################################################
+
+    # Function to generate adversarial examples using FGSM
+def create_adversarial_example(model, x, y, epsilon=0.01):
+    # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
+    # print("Original x shape:", x.shape)
+    # print("Original y shape:", y.shape)
+
+    x = tf.convert_to_tensor(x, dtype=tf.float32)
+    x = tf.expand_dims(x, axis=0)  # Adding batch dimension
+    y = tf.convert_to_tensor(y, dtype=tf.float32)
+    y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
+
+    # print("Expanded x shape:", x.shape)
+    # print("Expanded y shape:", y.shape)
+
+    # Create a gradient tape context to record operations for automatic differentiation
+    with tf.GradientTape() as tape:
+        tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
+        prediction = model(x)  # Passes x through the model to get predictions
+        y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
+        # print("Reshaped y shape:", y.shape)
+        loss = tf.keras.losses.binary_crossentropy(y,
+                                                   prediction)  # Computes the binary crossentropy loss between true labels y and predictions
+
+    # Computes the gradient of the loss with respect to the input x
+    gradient = tape.gradient(loss, x)
+
+    # Creates the perturbation using the sign of the gradient and scales it by epsilon
+    perturbation = epsilon * tf.sign(gradient)
+
+    # Adds the perturbation to the original input to create the adversarial example
+    adversarial_example = x + perturbation
+    adversarial_example = tf.clip_by_value(adversarial_example, 0, 1)  # Ensure values are within valid range
+    adversarial_example = tf.squeeze(adversarial_example, axis=0)  # Removing the batch dimension
+
+    return adversarial_example
+
+
+#########################################################
 #    Federated Learning Setup                           #
 #########################################################
-
-
 class FlNidsClient(fl.client.NumPyClient):
 
     def __init__(self, model_used, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data, y_train_data,
@@ -333,7 +372,7 @@ class FlNidsClient(fl.client.NumPyClient):
             adv_examples = []
             for idx, (x, y) in enumerate(zip(self.X_train_data.to_numpy(), self.y_train_data.to_numpy())):
                 if idx in adv_indices:
-                    adv_example = self.create_adversarial_example(self.model, x, y)
+                    adv_example = create_adversarial_example(self.model, x, y)
                     adv_examples.append(adv_example)
                 else:
                     adv_examples.append(x)
@@ -409,8 +448,6 @@ class FlNidsClient(fl.client.NumPyClient):
     #    Metric Saving Functions                           #
     #########################################################
 
-
-
     def recordTraining(self, name, history, elapsed_time, roundCount, val_loss):
         with open(name, 'a') as f:
             f.write(f"Node|{self.node}| Round: {roundCount}\n")
@@ -441,46 +478,6 @@ class FlNidsClient(fl.client.NumPyClient):
             f.write(f"AUC: {auc}\n")
             f.write(f"LogCosh: {logcosh}\n")
             f.write("\n")
-
-    #########################################################
-    #    Adversarial Training Functions                     #
-    #########################################################
-
-    # Function to generate adversarial examples using FGSM
-    def create_adversarial_example(self, model, x, y, epsilon=0.01):
-        # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
-        # print("Original x shape:", x.shape)
-        # print("Original y shape:", y.shape)
-
-        x = tf.convert_to_tensor(x, dtype=tf.float32)
-        x = tf.expand_dims(x, axis=0)  # Adding batch dimension
-        y = tf.convert_to_tensor(y, dtype=tf.float32)
-        y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
-
-        # print("Expanded x shape:", x.shape)
-        # print("Expanded y shape:", y.shape)
-
-        # Create a gradient tape context to record operations for automatic differentiation
-        with tf.GradientTape() as tape:
-            tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
-            prediction = model(x)  # Passes x through the model to get predictions
-            y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
-            # print("Reshaped y shape:", y.shape)
-            loss = tf.keras.losses.binary_crossentropy(y,
-                                                       prediction)  # Computes the binary crossentropy loss between true labels y and predictions
-
-        # Computes the gradient of the loss with respect to the input x
-        gradient = tape.gradient(loss, x)
-
-        # Creates the perturbation using the sign of the gradient and scales it by epsilon
-        perturbation = epsilon * tf.sign(gradient)
-
-        # Adds the perturbation to the original input to create the adversarial example
-        adversarial_example = x + perturbation
-        adversarial_example = tf.clip_by_value(adversarial_example, 0, 1)  # Ensure values are within valid range
-        adversarial_example = tf.squeeze(adversarial_example, axis=0)  # Removing the batch dimension
-
-        return adversarial_example
 
 
 def recordConfig(name, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
