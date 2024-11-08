@@ -228,10 +228,9 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
         with open(name, 'a') as f:
             f.write(f"Node|{self.node}| Round: {evaluateCount}\n")
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
-            f.write(f"Loss: {loss}\n")
-            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Loss: {loss}\n")-
             f.write(f"Precision: {precision}\n")
             f.write(f"Recall: {recall}\n")
-            f.write(f"AUC: {auc}\n")
+            f.write(f"AUC: {auc}\n")-
             f.write(f"LogCosh: {logcosh}\n")
             f.write("\n")
