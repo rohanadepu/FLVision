@@ -3,8 +3,6 @@
 #########################################################
 
 import os
-import random
-import time
 from datetime import datetime
 import argparse
 
@@ -14,19 +12,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.metrics import AUC, Precision, Recall
-from tensorflow.keras.losses import LogCosh
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from tensorflow.keras.optimizers import Adam
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from numpy import expand_dims
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # import math
 # import glob
@@ -38,15 +25,11 @@ from numpy import expand_dims
 # import pickle
 # import joblib
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
-from sklearn.utils import shuffle
-
-from ciciotDatasetLoad import (loadCICIOT)
-from iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetPreprocess import preprocess_dataset
-from hflDiscModelConfig import DiscriminatorClient, create_discriminator
-from hflGenModelConfig import create_generator
+from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.hflGenModelConfig import GeneratorClient, create_generator
+from modelTrainingConfig.hflDiscModelConfig import create_discriminator
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################
@@ -54,7 +37,7 @@ from hflGenModelConfig import create_generator
 
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Discriminator Client Training:", "\n")
+    print("Federated Learning Generator Client Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -78,11 +61,8 @@ def main():
                         help="Name of the training log file")
 
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
-
-    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
-                        default=None)
-    parser.add_argument('--pretrained_discriminator', type=str,
-                        help="Path to pretrained discriminator model (optional)", default=None)
+    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
+    parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
     args = parser.parse_args()
 
@@ -131,8 +111,8 @@ def main():
     # --- Model setup --- #
     # Hyperparameters
     BATCH_SIZE = 256
-    input_dim = X_train_data.shape[1] - 1  # Exclude label column
     noise_dim = 100
+    input_dim = X_train_data.shape[1]
     epochs = 5
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
 
@@ -141,7 +121,7 @@ def main():
         print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
         discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
     else:
-        print("No pretrained discriminator provided. Creating a new discriminator.")
+        print("No pretrained discriminator provided. Creating a new discriminator model.")
         discriminator = create_discriminator(input_dim)
 
     # Load or create the generator model
@@ -153,14 +133,14 @@ def main():
         generator = create_generator(input_dim, noise_dim)
 
     # initiate client with models, data, and parameters
-    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
-                                 , noise_dim, epochs, steps_per_epoch, dataset_used)
+    client = GeneratorClient(generator, discriminator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE,
+                             noise_dim, epochs, steps_per_epoch)
 
     # --- initiate federated training ---#
     fl.client.start_numpy_client(server_address="localhost:8080", client=client)
 
     # --- Save the trained discriminator model ---#
-    discriminator.save("discriminator_model.h5")
+    generator.save("generator_model.h5")
 
 
 if __name__ == "__main__":

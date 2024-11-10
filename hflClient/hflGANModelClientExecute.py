@@ -4,7 +4,6 @@
 
 import os
 import random
-import time
 from datetime import datetime
 import argparse
 
@@ -13,13 +12,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 
 import flwr as fl
 
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
-from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -39,22 +33,19 @@ from numpy import expand_dims
 # import joblib
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
-from ciciotDatasetLoad import (loadCICIOT)
-from iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetPreprocess import preprocess_dataset
-from hflGenModelConfig import GeneratorClient, create_generator
-from hflDiscModelConfig import create_discriminator
-################################################################################################################
-#                                       Abstract                                       #
-################################################################################################################
+from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.fullGANmodelConfig import create_model, GanClient
 
-
+################################################################################################################
+#                                                   Execute                                                   #
+################################################################################################################
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Generator Client Training:", "\n")
+    print("Federated Learning Training Demo:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -78,9 +69,8 @@ def main():
                         help="Name of the training log file")
 
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
-    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
-    parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
+    # init variables to handle arguments
     args = parser.parse_args()
 
     dataset_used = args.dataset
@@ -90,74 +80,66 @@ def main():
     regularizationEnabled = args.reg
     epochs = args.epochs
 
+
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
-
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-    # --- Load Data ---#
-    # load ciciot data if selected
+    # --- Load Data ---
     if dataset_used == "CICIOT":
-        # set iotbonet to none
+        # Load CICIOT data
+        ciciot_train_data = loadCICIOT  # Replace with actual loading
+        ciciot_test_data = pd.DataFrame()  # Replace with actual loading
         all_attacks_train = None
         all_attacks_test = None
-        relevant_features_iotbotnet = None
 
-        # Load CICIOT data
-        ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
-
-    # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
-        # Set CICIOT to none
+        # Load IoTBotNet data
         ciciot_train_data = None
         ciciot_test_data = None
-        irrelevant_features_ciciot = None
+        all_attacks_train = pd.DataFrame()  # Replace with actual loading
+        all_attacks_test = pd.DataFrame()  # Replace with actual loading
 
-        # Load IOTbotnet data
-        all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
-
-    # --- Preprocess Dataset ---#
+    # --- Preprocess Dataset ---
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
-        dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
-        irrelevant_features_ciciot, relevant_features_iotbotnet)
+        dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test)
 
-    # --- Model setup --- #
+    # --- Set up model ---
     # Hyperparameters
     BATCH_SIZE = 256
     noise_dim = 100
-    input_dim = X_train_data.shape[1]
-    epochs = 5
+
+    if regularizationEnabled:
+        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+    betas = [0.9, 0.999]  # Stable
+
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
 
-    # Load or create the discriminator model
-    if args.pretrained_discriminator:
-        print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+    input_dim = X_train_data.shape[1]
+
+    model = create_model(input_dim, noise_dim)
+
+    client = GanClient(model,
+                       X_train_data, X_test_data,
+                       BATCH_SIZE, noise_dim,
+                       epochs, steps_per_epoch)
+
+    # --- Initiate Training ---
+    if fixedServer == 4:
+        server_address = "192.168.129.8:8080"
+    elif fixedServer == 2:
+        server_address = "192.168.129.6:8080"
+    elif fixedServer == 3:
+        server_address = "192.168.129.7:8080"
     else:
-        print("No pretrained discriminator provided. Creating a new discriminator model.")
-        discriminator = create_discriminator(input_dim)
+        server_address = "192.168.129.2:8080"
 
-    # Load or create the generator model
-    if args.pretrained_generator:
-        print(f"Loading pretrained generator from {args.pretrained_generator}")
-        generator = tf.keras.models.load_model(args.pretrained_generator)
-    else:
-        print("No pretrained generator provided. Creating a new generator.")
-        generator = create_generator(input_dim, noise_dim)
-
-    # initiate client with models, data, and parameters
-    client = GeneratorClient(generator, discriminator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE,
-                             noise_dim, epochs, steps_per_epoch)
-
-    # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
-
-    # --- Save the trained discriminator model ---#
-    generator.save("generator_model.h5")
+    # Train GAN model
+    fl.client.start_numpy_client(server_address=server_address, client=client)
 
 
 if __name__ == "__main__":

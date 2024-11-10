@@ -175,15 +175,12 @@ class DiscriminatorIntrusionTrainingClient(fl.client.NumPyClient):
         for instances in self.x_test_ds:
             real_normal_output = self.discriminator(instances[instances['label'] == 1], training=False)
             real_intrusive_output = self.discriminator(instances[instances['label'] == 0], training=False)
-            fake_output = self.discriminator(self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False), training=False)
-            loss += discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+
+            loss += discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
         return float(loss.numpy()), len(self.x_test), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
-        # Generate fake samples using the generator
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
 
         # Split validation data into normal and intrusive traffic
         normal_data = self.x_val[self.y_val == 1]  # Real normal traffic
@@ -192,17 +189,17 @@ class DiscriminatorIntrusionTrainingClient(fl.client.NumPyClient):
         # Pass real and fake data through the discriminator
         real_normal_output = self.discriminator(normal_data, training=False)
         real_intrusive_output = self.discriminator(intrusive_data, training=False)
-        fake_output = self.discriminator(generated_samples, training=False)
 
         # Compute the discriminator loss using the real and fake outputs
-        disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+        disc_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output, )
 
         return float(disc_loss.numpy())
+
 
 class DiscriminatorSyntheticTrainingClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
-        self.generator = generator # Generator is fixed during discriminator training
+        self.generator = generator  # Generator is fixed during discriminator training
         self.x_train = x_train
         self.x_val = x_val  # Validation data
         self.y_val = y_val  # Validation labels

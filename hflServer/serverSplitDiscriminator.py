@@ -3,53 +3,10 @@ import argparse
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 
-
-# Custom FedAvg strategy with server-side model training and saving
-class SaveModelStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, server_data, server_labels, epochs=5, batch_size=32, **kwargs):
-        super().__init__(**kwargs)
-        self.server_data = server_data
-        self.server_labels = server_labels
-        self.epochs = epochs
-        self.batch_size = batch_size
-
-    def on_fit_end(self, server_round, aggregated_weights, failures):
-        # Create model and set aggregated weights
-        model = create_model()
-        model.set_weights(aggregated_weights)
-
-        # Compile model for server-side training
-        model.compile(optimizer=Adam(learning_rate=0.0001), loss="categorical_crossentropy", metrics=["accuracy"])
-
-        # Further train model on server-side data
-        if self.server_data is not None and self.server_labels is not None:
-            print(f"Training aggregated model on server-side data for {self.epochs} epochs...")
-            model.fit(self.server_data, self.server_labels, epochs=self.epochs, batch_size=self.batch_size, verbose=1)
-
-        # Save the fine-tuned model
-        model.save("federated_model_fine_tuned.h5")
-        print(f"Model fine-tuned and saved after round {server_round}.")
-
-        # Send updated weights back to clients
-        return model.get_weights(), {}
-
-
-# Assuming a function that creates the model architecture
-def create_model():
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(512, activation='relu', input_shape=(input_dim,)),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(3, activation='softmax')  # Assuming 3 classes
-    ])
-    return model
+from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.
 
 
 def main():
@@ -98,10 +55,47 @@ def main():
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-    # Load or define server-side data
-    # Replace these lines with your actual server data loading process
-    server_data = ...  # Server-side data for further training (e.g., representative or synthetic data)
-    server_labels = ...  # Corresponding labels for server-side data
+    # --- Load Data ---#
+    # load ciciot data if selected
+    if dataset_used == "CICIOT":
+        # set iotbonet to none
+        all_attacks_train = None
+        all_attacks_test = None
+        relevant_features_iotbotnet = None
+
+        # Load CICIOT data
+        ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
+
+    # load iotbotnet data if selected
+    elif dataset_used == "IOTBOTNET":
+        # Set CICIOT to none
+        ciciot_train_data = None
+        ciciot_test_data = None
+        irrelevant_features_ciciot = None
+
+        # Load IOTbotnet data
+        all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
+
+    # --- Preprocess Dataset ---#
+    X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
+        dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
+        irrelevant_features_ciciot, relevant_features_iotbotnet)
+
+    # --- Model setup --- #
+    # Hyperparameters
+    BATCH_SIZE = 256
+    input_dim = X_train_data.shape[1] - 1  # Exclude label column
+    noise_dim = 100
+    epochs = 5
+    steps_per_epoch = len(X_train_data) // BATCH_SIZE
+
+    # Load or create the generator model
+    if args.pretrained_generator:
+        print(f"Loading pretrained generator from {args.pretrained_generator}")
+        generator = tf.keras.models.load_model(args.pretrained_generator)
+    else:
+        print("No pretrained generator provided. Creating a new generator.")
+        generator = create_generator(input_dim, noise_dim)
 
     # Start the federated server with custom strategy
     fl.server.start_server(

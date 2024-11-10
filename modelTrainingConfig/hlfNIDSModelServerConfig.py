@@ -44,9 +44,16 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer
 from sklearn.utils import shuffle
 from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
-class SaveModelStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, server_data, server_labels, epochs=5, batch_size=32, **kwargs):
+class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
+    def __init__(self, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
+                 X_train_data, y_train_data,X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
+                 noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
+                 metric_to_monitor_es, es_patience,restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
+                 save_best_only, metric_to_monitor_mc, checkpoint_mode, **kwargs):
         super().__init__(**kwargs)
+
+        self.generator = generator
+
         self.data_used = dataset_used
         self.node = node
 
@@ -95,7 +102,7 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
 
         self.callbackFunctions = []
 
-    def on_fit_end(self, server_round, aggregated_weights, failures, input_dim, dataset_used, DP_enabled, regularizationEnabled, l2_alpha):
+    def on_fit_end(self, server_round, aggregated_weights, failures):
         # increment round count
         self.roundCount += 1
 
@@ -106,15 +113,15 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
         start_time = time.time()
 
         # Create model and set aggregated weights
-        if dataset_used == "IOTBOTNET":
+        if self.dataset_used == "IOTBOTNET":
             print("No pretrained discriminator provided. Creating a new model.")
 
-            model = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
+            model = create_IOTBOTNET_Model(self.input_dim, self.regularizationEnabled, self.l2_alpha)
 
         else:
             print("No pretrained discriminator provided. Creating a new mdoel.")
 
-            model = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
+            model = create_CICIOT_Model(self.input_dim, self.regularizationEnabled, self.DP_enabled, self.l2_alpha)
 
         model.set_weights(aggregated_weights)
 
@@ -168,6 +175,8 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
 
             # add to callback functions list being added during fitting
             self.callbackFunctions.append(model_checkpoint)
+
+        # generate new balanced data from generator to add to training dataset
 
         # Further train model on server-side data
         if self.X_train_data is not None and self.y_train_data is not None:
@@ -228,9 +237,9 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
         with open(name, 'a') as f:
             f.write(f"Node|{self.node}| Round: {evaluateCount}\n")
             f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
-            f.write(f"Loss: {loss}\n")-
+            f.write(f"Loss: {loss}\n")
             f.write(f"Precision: {precision}\n")
             f.write(f"Recall: {recall}\n")
-            f.write(f"AUC: {auc}\n")-
+            f.write(f"AUC: {auc}\n")
             f.write(f"LogCosh: {logcosh}\n")
             f.write("\n")

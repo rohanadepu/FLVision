@@ -16,17 +16,13 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
-from tensorflow.keras.losses import LogCosh
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from numpy import expand_dims
 
@@ -41,13 +37,11 @@ from numpy import expand_dims
 # import joblib
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
-from sklearn.utils import shuffle
 
-from ciciotDatasetLoad import (loadCICIOT)
-from iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetPreprocess import preprocess_dataset
-from hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
+from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
 
 
 ################################################################################################################
