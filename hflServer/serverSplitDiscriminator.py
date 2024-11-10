@@ -6,7 +6,7 @@ from tensorflow.keras.optimizers import Adam
 from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.
+from modelTrainingConfig.hflDiscSplitModelServerConfig import DiscriminatorSynteticStrategy
 
 
 def main():
@@ -100,7 +100,7 @@ def main():
     # Start the federated server with custom strategy
     fl.server.start_server(
         config=fl.server.ServerConfig(num_rounds=roundInput),
-        strategy=SaveModelStrategy(
+        strategy=DiscriminatorSynteticStrategy(
             server_data=server_data,
             server_labels=server_labels,
             epochs=3,  # Set the number of server-side fine-tuning epochs
