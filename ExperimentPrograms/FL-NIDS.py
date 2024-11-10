@@ -662,151 +662,472 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 #                                       GAN Model Setup (Discriminator Training)                                       #
 ################################################################################################################
 
-# Function for creating the discriminator model
-def create_discriminator(input_dim):
-    # Discriminator is designed to classify three classes:
-    # - Normal (Benign) traffic
-    # - Intrusive (Malicious) traffic
-    # - Generated (Fake) traffic from the generator
-    discriminator = tf.keras.Sequential([
-        Dense(512, activation='relu', input_shape=(input_dim,)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(256, activation='relu'),
-        Dropout(0.3),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
-    return discriminator
+
+# ---                   CICIOT Models                   --- #
+def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
+
+    # --- Model Definition --- #
+    if regularizationEnabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(1, activation='sigmoid')
+        ])
+
+    elif regularizationEnabled and DP_enabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.4),
+            Dense(1, activation='sigmoid')
+        ])
+
+    elif DP_enabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(32, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(1, activation='sigmoid')
+        ])
+
+    else:
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(64, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),  # Dropout layer with 50% dropout rate
+            Dense(32, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+
+    return model
 
 
-# Function for creating the generator model
-def create_generator(input_dim, noise_dim):
-    generator = tf.keras.Sequential([
-        Dense(128, activation='relu', input_shape=(noise_dim,)),
-        BatchNormalization(),
-        Dense(256, activation='relu'),
-        BatchNormalization(),
-        Dense(512, activation='relu'),
-        BatchNormalization(),
-        Dense(input_dim, activation='sigmoid')  # Generate traffic features
-    ])
-    return generator
+# ---                   IOTBOTNET Models                  --- #
 
-# loss based on correct classifications between normal, intrusive, and fake traffic
-def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
-    # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output), real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_intrusive_output), real_intrusive_output)
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.constant([-1], dtype=tf.float32), fake_output)
-    total_loss = real_normal_loss + real_intrusive_loss + fake_loss
-    return total_loss
+def create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha):
+
+    # --- Model Definition --- #
+    if regularizationEnabled:
+        # with regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.3),  # Dropout layer with 30% dropout rate
+            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(1, activation='sigmoid')
+        ])
+
+    else:
+        # without regularization
+        model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(input_dim,)),
+            Dense(16, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),  # Dropout layer with 50% dropout rate
+            Dense(8, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(4, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(2, activation='relu'),
+            BatchNormalization(),
+            Dropout(0.3),
+            Dense(1, activation='sigmoid')
+        ])
+
+    return model
 
 
-# --- Class to handle discriminator training ---#
-class DiscriminatorClient(fl.client.NumPyClient):
-    def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
-        self.discriminator = discriminator
-        self.generator = generator # Generator is fixed during discriminator training
-        self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
-        self.x_test = x_test
-        self.BATCH_SIZE = BATCH_SIZE
-        self.noise_dim = noise_dim
+#########################################################
+#    Federated Learning Setup                           #
+#########################################################
+
+
+class FlNidsClient(fl.client.NumPyClient):
+
+    def __init__(self, model_used, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data, y_train_data,
+                 X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches,
+                 batch_size, epochs, steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience,
+                 restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc, checkpoint_mode):
+
+        # ---         Variable init              --- #
+
+        # model
+        self.model = model_used
+        self.data_used = dataset_used
+        self.node = node
+
+        # flags
+        self.adversarialTrainingEnabled = adversarialTrainingEnabled
+        self.DP_enabled = DP_enabled
+        self.earlyStopEnabled = earlyStopEnabled
+
+        # data
+        self.X_train_data = X_train_data
+        self.y_train_data = y_train_data
+        self.X_test_data = X_test_data
+        self.y_test_data = y_test_data
+        self.X_val_data = X_val_data
+        self.y_val_data = y_val_data
+
+        # hyperparams
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.dataset_used = dataset_used
+        # dp
+        self.num_microbatches = num_microbatches
+        self.l2_norm_clip = l2_norm_clip
+        self.noise_multiplier = noise_multiplier
+        # adversarial
+        self.adv_portion = adv_portion
 
-        self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
-        self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
+        # callback params
+        # early stop
+        self.metric_to_monitor_es = metric_to_monitor_es
+        self.es_patience = es_patience
+        self.restor_best_w = restor_best_w
+        # lr schedule
+        self.metric_to_monitor_l2lr = metric_to_monitor_l2lr
+        self.l2lr_factor = l2lr_patience
+        self.l2lr_patience = es_patience
+        # model checkpoint
+        self.save_best_only = save_best_only
+        self.metric_to_monitor_mc = metric_to_monitor_mc
+        self.checkpoint_mode = checkpoint_mode
 
-        # # Compile the discriminator
-        # self.discriminator.compile(
-        #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-        #     loss=discriminator_loss,  # Using the custom loss function
-        #     metrics=['accuracy']
-        # )
+        # counters
+        self.roundCount = 0
+        self.evaluateCount = 0
+
+        # ---         Differential Privacy Engine Model Compile              --- #
+
+        if self.DP_enabled:
+            import tensorflow_privacy as tfp
+            print("\nIncluding DP into optimizer...\n")
+
+            # Making Custom Optimizer Component with Differential Privacy
+            dp_optimizer = tfp.DPKerasAdamOptimizer(
+                l2_norm_clip=self.l2_norm_clip,
+                noise_multiplier=self.noise_multiplier,
+                num_microbatches=self.num_microbatches,
+                learning_rate=self.learning_rate
+            )
+
+            # compile model with custom dp optimizer
+            self.model.compile(optimizer=dp_optimizer,
+                               loss=tf.keras.losses.binary_crossentropy,
+                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+
+        # ---              Normal Model Compile                        --- #
+
+        else:
+            print("\nDefault optimizer...\n")
+
+            optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+
+            self.model.compile(optimizer=optimizer,
+                               loss=tf.keras.losses.binary_crossentropy,
+                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                               )
+
+        # ---                   Callback components                   --- #
+
+        # init main call back functions list
+        self.callbackFunctions = []
+
+        # init callback functions based on inputs
+
+        if self.earlyStopEnabled:
+            early_stopping = EarlyStopping(monitor=self.metric_to_monitor_es, patience=self.es_patience,
+                                           restore_best_weights=self.restor_best_w)
+
+            self.callbackFunctions.append(early_stopping)
+
+        if self.lrSchedRedEnabled:
+            lr_scheduler = ReduceLROnPlateau(monitor=self.metric_to_monitor_l2lr, factor=self.l2lr_factor, patience=self.l2lr_patience)
+
+            self.callbackFunctions.append(lr_scheduler)
+
+        if self.modelCheckpointEnabled:
+            model_checkpoint = ModelCheckpoint(f'best_model_{self.model_name}.h5', save_best_only=self.save_best_only,
+                                               monitor=self.metric_to_monitor_mc, mode=self.checkpoint_mode)
+
+            # add to callback functions list being added during fitting
+            self.callbackFunctions.append(model_checkpoint)
+
+        # ---                   Model Analysis                   --- #
+
+        self.model.summary()
 
     def get_parameters(self, config):
-        return self.discriminator.get_weights()
+        return self.model.get_weights()
 
     def fit(self, parameters, config):
-        self.discriminator.set_weights(parameters)
+        # increment round count
+        self.roundCount += 1
 
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        # debug print
+        print("Round:", self.roundCount, "\n")
 
-        for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Assume real_data contains both normal and intrusive traffic
-                # Split the real_data into normal and intrusive samples
-                normal_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 0]  # Real malicious traffic
+        # Record start time
+        start_time = time.time()
 
-                # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-                generated_data = self.generator(noise, training=False)
+        self.model.set_weights(parameters)
 
-                # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
-                # using tape to track trainable variables during discriminator classification and loss calculations
-                with tf.GradientTape() as tape:
-                    # Discriminator outputs based on its classifications from inputted data in parameters
-                    real_normal_output = self.discriminator(normal_data, training=True)
-                    real_intrusive_output = self.discriminator(intrusive_data, training=True)
-                    fake_output = self.discriminator(generated_data, training=True)
+        if self.adversarialTrainingEnabled:
 
-                    # Loss calculation for normal, intrusive, and fake data
-                    loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+            total_examples = len(self.X_train_data)
+            print_every = max(total_examples // 10000, 1)  # Print progress every 0.1%
 
-                # calculate the gradient based on the loss respect to the weights of the model
-                gradients = tape.gradient(loss, self.discriminator.trainable_variables)
+            # Define proportion of data to use for adversarial training (e.g., 10%)
+            adv_proportion = self.adv_portion
 
-                # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+            num_adv_examples = int(total_examples * adv_proportion)
+            print("# of adversarial examples", num_adv_examples)
+            adv_indices = random.sample(range(total_examples), num_adv_examples)
 
-                if step % 100 == 0:
-                    print(f"Epoch {epoch+1}, Step {step}, D Loss: {loss.numpy()}")
+            adv_examples = []
+            for idx, (x, y) in enumerate(zip(self.X_train_data.to_numpy(), self.y_train_data.to_numpy())):
+                if idx in adv_indices:
+                    adv_example = self.create_adversarial_example(self.model, x, y)
+                    adv_examples.append(adv_example)
+                else:
+                    adv_examples.append(x)
 
-            # After each epoch, evaluate on the validation set
-            val_disc_loss = self.evaluate_validation()
-            print(f'Epoch {epoch+1}, Validation D Loss: {val_disc_loss}')
+                if (idx + 1) % print_every == 0 or (idx + 1) == total_examples:
+                    print(f"Progress: {(idx + 1) / total_examples * 100:.2f}%")
 
-        return self.get_parameters(config={}), len(self.x_train), {}
+            adv_X_train_data = np.array(adv_examples)
+
+            adv_X_train_data = pd.DataFrame(adv_X_train_data, columns=self.X_train_data.columns)
+            combined_X_train_data = pd.concat([self.X_train_data, adv_X_train_data])
+            combined_y_train_data = pd.concat([self.y_train_data, self.y_train_data])
+
+            history = self.model.fit(combined_X_train_data, combined_y_train_data,
+                                     validation_data=(self.X_val_data, self.y_val_data),
+                                     epochs=self.epochs, batch_size=self.batch_size,
+                                     steps_per_epoch=self.steps_per_epoch,
+                                     callbacks=self.callbackFunctions)
+        else:
+            # Train Model
+            history = self.model.fit(self.X_train_data, self.y_train_data,
+                                     validation_data=(self.X_val_data, self.y_val_data),
+                                     epochs=self.epochs, batch_size=self.batch_size,
+                                     steps_per_epoch=self.steps_per_epoch,
+                                     callbacks=self.callbackFunctions)
+
+        # Record end time and calculate elapsed time
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        # Debugging: Print the shape of the loss
+        loss_tensor = history.history['loss']
+        val_loss_tensor = history.history['val_loss']
+        # print(f"Loss tensor shape: {tf.shape(loss_tensor)}")
+        # print(f"Validation Loss tensor shape: {tf.shape(val_loss_tensor)}")
+
+        # Save metrics to file
+        logName = self.trainingLog
+        #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        self.recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
+
+        return self.model.get_weights(), len(self.X_train_data), {}
 
     def evaluate(self, parameters, config):
-        self.discriminator.set_weights(parameters)
-        loss = 0
-        for instances in self.x_test_ds:
-            real_normal_output = self.discriminator(instances[instances['label'] == 1], training=False)
-            real_intrusive_output = self.discriminator(instances[instances['label'] == 0], training=False)
-            fake_output = self.discriminator(self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False), training=False)
-            loss += discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-        return float(loss.numpy()), len(self.x_test), {}
+        # increment evaluate count
+        self.evaluateCount += 1
 
-    # Function to evaluate the discriminator on validation data
-    def evaluate_validation(self):
-        # Generate fake samples using the generator
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        # debug print
+        print("Evaluate Round:", self.evaluateCount, "\n")
 
-        # Split validation data into normal and intrusive traffic
-        normal_data = self.x_val[self.y_val == 1]  # Real normal traffic
-        intrusive_data = self.x_val[self.y_val == 0]  # Real intrusive traffic
+        # Record start time
+        start_time = time.time()
 
-        # Pass real and fake data through the discriminator
-        real_normal_output = self.discriminator(normal_data, training=False)
-        real_intrusive_output = self.discriminator(intrusive_data, training=False)
-        fake_output = self.discriminator(generated_samples, training=False)
+        # set the weights given from server
+        self.model.set_weights(parameters)
 
-        # Compute the discriminator loss using the real and fake outputs
-        disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+        # Test the model
+        loss, accuracy, precision, recall, auc, logcosh = self.model.evaluate(self.X_test_data, self.y_test_data)
 
-        return float(disc_loss.numpy())
+        # Record end time and calculate elapsed time
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        # Save metrics to file
+        logName1 = self.evaluationLog
+        #logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
+        self.recordEvaluation(logName1, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
+
+        return loss, len(self.X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
+                                             "LogCosh": logcosh}
+
+    #########################################################
+    #    Metric Saving Functions                           #
+    #########################################################
+
+
+
+    def recordTraining(self, name, history, elapsed_time, roundCount, val_loss):
+        with open(name, 'a') as f:
+            f.write(f"Node|{self.node}| Round: {roundCount}\n")
+            f.write(f"Training Time Elapsed: {elapsed_time} seconds\n")
+            for epoch in range(self.epochs):
+                f.write(f"Epoch {epoch + 1}/{self.epochs}\n")
+                for metric, values in history.history.items():
+                    # Debug: print the length of values list and the current epoch
+                    print(f"Metric: {metric}, Values Length: {len(values)}, Epoch: {epoch}")
+                    if epoch < len(values):
+                        f.write(f"{metric}: {values[epoch]}\n")
+                    else:
+                        print(f"Skipping metric {metric} for epoch {epoch} due to out-of-range error.")
+                if epoch < len(val_loss):
+                    f.write(f"Validation Loss: {val_loss[epoch]}\n")
+                else:
+                    print(f"Skipping Validation Loss for epoch {epoch} due to out-of-range error.")
+                f.write("\n")
+
+    def recordEvaluation(self, name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
+        with open(name, 'a') as f:
+            f.write(f"Node|{self.node}| Round: {evaluateCount}\n")
+            f.write(f"Evaluation Time Elapsed: {elapsed_time} seconds\n")
+            f.write(f"Loss: {loss}\n")
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"Precision: {precision}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"AUC: {auc}\n")
+            f.write(f"LogCosh: {logcosh}\n")
+            f.write("\n")
+
+    #########################################################
+    #    Adversarial Training Functions                     #
+    #########################################################
+
+    # Function to generate adversarial examples using FGSM
+    def create_adversarial_example(self, model, x, y, epsilon=0.01):
+        # Ensure x is a tensor and has the correct shape (batch_size, input_dim)
+        # print("Original x shape:", x.shape)
+        # print("Original y shape:", y.shape)
+
+        x = tf.convert_to_tensor(x, dtype=tf.float32)
+        x = tf.expand_dims(x, axis=0)  # Adding batch dimension
+        y = tf.convert_to_tensor(y, dtype=tf.float32)
+        y = tf.expand_dims(y, axis=0)  # Adding batch dimension to match prediction shape
+
+        # print("Expanded x shape:", x.shape)
+        # print("Expanded y shape:", y.shape)
+
+        # Create a gradient tape context to record operations for automatic differentiation
+        with tf.GradientTape() as tape:
+            tape.watch(x)  # Adds the tensor x to the list of watched tensors, allowing its gradients to be computed
+            prediction = model(x)  # Passes x through the model to get predictions
+            y = tf.reshape(y, prediction.shape)  # Reshape y to match the shape of prediction
+            # print("Reshaped y shape:", y.shape)
+            loss = tf.keras.losses.binary_crossentropy(y,
+                                                       prediction)  # Computes the binary crossentropy loss between true labels y and predictions
+
+        # Computes the gradient of the loss with respect to the input x
+        gradient = tape.gradient(loss, x)
+
+        # Creates the perturbation using the sign of the gradient and scales it by epsilon
+        perturbation = epsilon * tf.sign(gradient)
+
+        # Adds the perturbation to the original input to create the adversarial example
+        adversarial_example = x + perturbation
+        adversarial_example = tf.clip_by_value(adversarial_example, 0, 1)  # Ensure values are within valid range
+        adversarial_example = tf.squeeze(adversarial_example, axis=0)  # Removing the batch dimension
+
+        return adversarial_example
+
+
+def recordConfig(name, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model):
+    with open(name, 'a') as f:
+        f.write(f"Dataset Used: {dataset_used}\n")
+        f.write(
+            f"Defenses Enabled: DP - {DP_enabled}, Adversarial Training - {adversarialTrainingEnabled}, Regularization - {regularizationEnabled}\n")
+        f.write(f"Hyperparameters:\n")
+        f.write(f"Input Dim (Feature Size): {input_dim}\n")
+        f.write(f"Epochs: {epochs}\n")
+        f.write(f"Batch Size: {batch_size}\n")
+        f.write(f"Steps per epoch: {steps_per_epoch}\n")
+        f.write(f"Betas: {betas}\n")
+        f.write(f"Learning Rate: {learning_rate}\n")
+        if DP_enabled:
+            f.write(f"L2 Norm Clip: {l2_norm_clip}\n")
+            f.write(f"Noise Multiplier: {noise_multiplier}\n")
+            f.write(f"MicroBatches: {num_microbatches}\n")
+        if adversarialTrainingEnabled:
+            f.write(f"Adversarial Sample %: {adv_portion * 100}%\n")
+        if regularizationEnabled:
+            f.write(f"L2 Alpha: {l2_alpha}\n")
+        f.write(f"Model Layer Structure:\n")
+        for layer in model.layers:
+            f.write(
+                f"Layer: {layer.name}, Type: {layer.__class__.__name__}, Output Shape: {layer.output_shape}, Params: {layer.count_params()}\n")
+        f.write("\n")
+
 
 ################################################################################################################
 #                                       Abstract                                       #
@@ -814,6 +1135,8 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
 
 def main():
+
+    # --- Script Arguments and Start up ---#
     print("\n ////////////////////////////// \n")
     print("Federated Learning Discriminator Client Training:", "\n")
 
@@ -823,7 +1146,9 @@ def main():
     # --- Argument Parsing --- #
     parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
     parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
-                        help='Datasets to use: CICIOT, IOTBOTNET')
+                        help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
+
+    parser.add_argument('--pretrained_model', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
     parser.add_argument("--node", type=int, choices=[1, 2, 3, 4, 5, 6], default=1, help="Client node number 1-6")
     parser.add_argument("--fixedServer", type=int, choices=[1, 2, 3, 4], default=1, help="Fixed Server node number 1-4")
@@ -832,18 +1157,15 @@ def main():
                         help="Label Flip: LF33, LF66")
 
     parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
+    parser.add_argument('--dp', action='store_true', help='Enable Differential Privacy with TFP')  # untested but working plz tune
+    parser.add_argument('--adversarial', action='store_true', help='Enable model adversarial training with gradients')  # bugged
 
-    parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt",
-                        help="Name of the evaluation log file")
-    parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt",
-                        help="Name of the training log file")
+    parser.add_argument('--eS', action='store_true', help='Enable model early stop training')  # callback unessary
+    parser.add_argument('--lrSched', action='store_true', help='Enable model lr scheduling training')  # callback unessary
+    parser.add_argument('--mChkpnt', action='store_true', help='Enable model model checkpoint training')  # store false irelevent
 
-    parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
-
-    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
-                        default=None)
-    parser.add_argument('--pretrained_discriminator', type=str,
-                        help="Path to pretrained discriminator model (optional)", default=None)
+    parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt", help="Name of the evaluation log file")
+    parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt", help="Name of the training log file")
 
     args = parser.parse_args()
 
@@ -854,16 +1176,72 @@ def main():
     regularizationEnabled = args.reg
     epochs = args.epochs
 
-    # display selected arguments
-    print("|MAIN CONFIG|", "\n")
+    dataset_used = args.dataset
+    pretrained_model = args.pretrained_model
 
+    fixedServer = args.fixedServer
+    node = args.node
+
+    poisonedDataType = args.pData
+
+    regularizationEnabled = args.reg
+    DP_enabled = args.dp
+    adversarialTrainingEnabled = args.adversarial
+
+    earlyStopEnabled = args.eS
+    lrSchedRedEnabled = args.lrSched
+    modelCheckpointEnabled = args.mChkpnt
+
+    evaluationLog = args.evalLog  # input into evaluation method if you want to input name
+    trainingLog = args.trainLog  # input into train method if you want to input name
+
+    # display selected arguments
+
+    print("|MAIN CONFIG|", "\n")
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
+
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
+    print("|DEFENSES|", "\n")
+    # defense settings display
+    if regularizationEnabled:
+        print("Regularization Enabled", "\n")
+    else:
+        print("Regularization Disabled", "\n")
+
+    if DP_enabled:
+
+        print("Differential Privacy Engine Enabled", "\n")
+    else:
+        print("Differential Privacy Disabled", "\n")
+
+    if adversarialTrainingEnabled:
+        print("Adversarial Training Enabled", "\n")
+    else:
+        print("Adversarial Training Disabled", "\n")
+
+    print("|CALL-BACK FUNCTIONS|", "\n")
+    # callback functions display
+    if earlyStopEnabled:
+        print("early stop training Enabled", "\n")
+    else:
+        print("early stop training Disabled", "\n")
+
+    if lrSchedRedEnabled:
+        print("lr scheduler  Enabled", "\n")
+    else:
+        print("lr scheduler Disabled", "\n")
+
+    if modelCheckpointEnabled:
+        print("Model Check Point Enabled", "\n")
+    else:
+        print("Model Check Point Disabled", "\n")
+
     # --- Load Data ---#
+
     # load ciciot data if selected
     if dataset_used == "CICIOT":
         # set iotbonet to none
@@ -890,38 +1268,154 @@ def main():
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-    # Hyperparameters
-    BATCH_SIZE = 256
-    input_dim = X_train_data.shape[1] - 1  # Exclude label column
-    noise_dim = 100
-    epochs = 5
-    steps_per_epoch = len(X_train_data) // BATCH_SIZE
 
-    # Load or create the discriminator model
-    if args.pretrained_discriminator:
+    #--- Hyperparameters ---#
+    print("\n /////////////////////////////////////////////// \n")
+
+    # base hyperparameters for most models
+    model_name = dataset_used  # name for file
+
+    input_dim = X_train_data.shape[1]  # dependant for feature size
+
+    batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16, maybe even 256
+
+    epochs = 5  # 1, 2 , 3 or 5 epochs
+
+    # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
+    steps_per_epoch = len(
+        X_train_data) // batch_size  # dependant between sample size of the dataset and the batch size chosen
+
+    learning_rate = 0.0001  # 0.001 or .0001
+    betas = [0.9, 0.999]  # Stable
+
+    # regularization param
+    if regularizationEnabled:
+        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
+        if DP_enabled:
+            l2_alpha = 0.001  # Increase if overfitting, decrease if underfitting
+
+        print("\nRegularization Parameter:")
+        print("L2_alpha:", l2_alpha)
+
+    if DP_enabled:
+        num_microbatches = 1  # this is bugged keep at 1
+
+        noise_multiplier = 0.3  # need to optimize noise budget and determine if noise is properly added
+        l2_norm_clip = 1.5  # determine if l2 needs to be tuned as well 1.0 - 2.0
+
+        epochs = 10
+        learning_rate = 0.0007  # will be optimized
+
+        print("\nDifferential Privacy Parameters:")
+        print("L2_norm clip:", l2_norm_clip)
+        print("Noise Multiplier:", noise_multiplier)
+        print("MicroBatches", num_microbatches)
+
+    if adversarialTrainingEnabled:
+        adv_portion = 0.05  # in intervals of 0.05 until to 0.20
+        # adv_portion = 0.1
+        learning_rate = 0.0001  # will be optimized
+
+        print("\nAdversarial Training Parameter:")
+        print("Adversarial Sample %:", adv_portion * 100, "%")
+
+    # set hyperparameters for callback
+
+    # early stop
+    if earlyStopEnabled:
+        es_patience = 5  # 3 -10 epochs
+        restor_best_w = True
+        metric_to_monitor_es = 'val_loss'
+
+        print("\nEarly Stop Callback Parameters:")
+        print("Early Stop Patience:", es_patience)
+        print("Early Stop Restore best weights?", restor_best_w)
+        print("Early Stop Metric Monitored:", metric_to_monitor_es)
+
+    # lr sched
+    if lrSchedRedEnabled:
+        l2lr_patience = 3  # eppoch when metric stops imporving
+        l2lr_factor = 0.1  # Reduce lr to 10%
+        metric_to_monitor_l2lr = 'val_auc'
+        if DP_enabled:
+            metric_to_monitor_l2lr = 'val_loss'
+
+        print("\nLR sched Callback Parameters:")
+        print("LR sched Patience:", l2lr_patience)
+        print("LR sched Factor:", l2lr_factor)
+        print("LR sched Metric Monitored:", metric_to_monitor_l2lr)
+
+    # save best model
+    if modelCheckpointEnabled:
+        save_best_only = True
+        checkpoint_mode = "min"
+        metric_to_monitor_mc = 'val_loss'
+
+        print("\nModel Checkpoint Callback Parameters:")
+        print("Model Checkpoint Save Best only?", save_best_only)
+        print("Model Checkpoint mode:", checkpoint_mode)
+        print("Model Checkpoint Metric Monitored:", metric_to_monitor_mc)
+
+    # 'val_loss' for general error, 'val_auc' for eval trade off for TP and TF rate for BC problems, "precision", "recall", ""F1-Score for imbalanced data
+
+    print("\nBase Hyperparameters:")
+    print("Input Dim (Feature Size):", input_dim)
+    print("Epochs:", epochs)
+    print("Batch Size:", batch_size)
+    print(f"Steps per epoch (({len(X_train_data)} // {batch_size})):", steps_per_epoch)
+    # print(f"Steps per epoch (({len(X_train_data)} // {batch_size}) // {epochs}):", steps_per_epoch)  ## Debug
+    print("Betas:", betas)
+    print("Learning Rate:", learning_rate)
+
+    #--- Load or Create model ----#
+
+    if pretrained_model:
         print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
-    else:
-        print("No pretrained discriminator provided. Creating a new discriminator.")
-        discriminator = create_discriminator(input_dim)
+        model = tf.keras.models.load_model(args.pretrained_discriminator)
 
-    # Load or create the generator model
-    if args.pretrained_generator:
-        print(f"Loading pretrained generator from {args.pretrained_generator}")
-        generator = tf.keras.models.load_model(args.pretrained_generator)
-    else:
-        print("No pretrained generator provided. Creating a new generator.")
-        generator = create_generator(input_dim, noise_dim)
+    elif dataset_used == "CICIOT" and pretrained_model is None:
+        print("No pretrained discriminator provided. Creating a new mdoel.")
 
-    # initiate client with models, data, and parameters
-    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
-                                 , noise_dim, epochs, steps_per_epoch, dataset_used)
+        model = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
+
+    elif dataset_used == "IOTBOTNET" and pretrained_model is None:
+        print("No pretrained discriminator provided. Creating a new model.")
+
+        model = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
+
+    #--- initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
+    client = FlNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data,
+                          y_train_data, X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier,
+                          num_microbatches, batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
+                          metric_to_monitor_es, es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
+                          save_best_only, metric_to_monitor_mc, checkpoint_mode)
+
+    # Record initial configuration before training starts
+    logName = trainingLog
+    recordConfig(logName, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model)
+    logName1 = evaluationLog
+    recordConfig(logName1, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
+                 adv_portion, l2_alpha, model)
+
+    # select server that is hosting
+    if fixedServer == 1:
+        server_address = "192.168.129.2:8080"
+    elif fixedServer == 2:
+        server_address = "192.168.129.6:8080"
+    elif fixedServer == 3:
+        server_address = "192.168.129.7:8080"
+    else:
+        server_address = "192.168.129.8:8080"
 
     # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
+    fl.client.start_numpy_client(server_address=server_address, client=client)
 
     # --- Save the trained discriminator model ---#
-    discriminator.save("discriminator_model.h5")
+    model.save("discriminator_model.h5")
 
 
 if __name__ == "__main__":

@@ -1374,6 +1374,7 @@ def recordTraining(name, history, elapsed_time, roundCount, val_loss):
                 print(f"Skipping Validation Loss for epoch {epoch} due to out-of-range error.")
             f.write("\n")
 
+
 def recordEvaluation(name, elapsed_time, evaluateCount, loss, accuracy, precision, recall, auc, logcosh):
     with open(name, 'a') as f:
         f.write(f"Node|{node}| Round: {evaluateCount}\n")
@@ -1399,7 +1400,7 @@ class FLClient(fl.client.NumPyClient):
         self.evaluateCount = 0
 
     def get_parameters(self, config):
-        return model.get_weights()
+        return self.model.get_weights()
 
     def fit(self, parameters, config):
         # increment round count
@@ -1470,7 +1471,7 @@ class FLClient(fl.client.NumPyClient):
         #logName = f'training_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
         recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
 
-        return model.get_weights(), len(X_train_data), {}
+        return self.model.get_weights(), len(X_train_data), {}
 
     def evaluate(self, parameters, config):
         # increment evaluate count

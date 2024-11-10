@@ -162,14 +162,10 @@ def loadCICIOT(poisonedDataType=None):
         return balanced_data, len(benign_samples)
 
     def reduce_attack_samples(data, attack_ratio):
-        # sort samples
         attack_samples = data[data['label'] == 'Attack']
         benign_samples = data[data['label'] == 'Benign']
 
-        # samples from pool of attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
-
-        # make new dataset from benign pool and reduced attack samples
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -390,14 +386,10 @@ def loadIOTBOTNET(poisonedDataType=None):
         return balanced_dataframe
 
     def reduce_attack_samples(data, attack_ratio):
-        # sort samples
         attack_samples = data[data['Label'] == 'Anomaly']
         benign_samples = data[data['Label'] == 'Normal']
 
-        # sample the attack samples
         reduced_attack_samples = attack_samples.sample(frac=attack_ratio, random_state=47)
-
-        # make new pool with benign and reduced attack pool
         combined_data = pd.concat([benign_samples, reduced_attack_samples])
 
         return combined_data
@@ -485,7 +477,7 @@ def loadIOTBOTNET(poisonedDataType=None):
     print("Attack Data Loaded & Combined...")
 
     ################################################################################################################
-    #                        First Steps of Preprocessing IOTBOTNET 2020 Dataset                             #
+    #                              First Steps of Preprocessing IOTBOTNET 2020 Dataset                             #
     ################################################################################################################
 
     # ---                   Cleaning                     --- #
@@ -553,7 +545,7 @@ def loadIOTBOTNET(poisonedDataType=None):
 
 
 ################################################################################################################
-#                          Preprocessing & Assigning the dataset                                  #
+#                                       Preprocessing & Assigning the dataset                                  #
 ################################################################################################################
 
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
@@ -568,7 +560,6 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         ciciot_train_data = shuffle(ciciot_train_data, random_state=47)
         ciciot_test_data = shuffle(ciciot_test_data, random_state=47)
 
-        # initiate model training and test data
         train_data = ciciot_train_data
         test_data = ciciot_test_data
 
@@ -581,7 +572,6 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         all_attacks_train = shuffle(all_attacks_train, random_state=47)
         all_attacks_test = shuffle(all_attacks_test, random_state=47)
 
-        # initiate model training and test data
         train_data = all_attacks_train
         test_data = all_attacks_test
 
@@ -600,14 +590,10 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     class_counts = train_data['Label' if dataset_used == "IOTBOTNET" else 'label'].value_counts()
     print(class_counts)
 
-    # initiate encoder
+    # Encoding
     label_encoder = LabelEncoder()
-
-    # fit and encode training data
     train_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.fit_transform(
         train_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
-
-    # encode test data
     test_data['Label' if dataset_used == "IOTBOTNET" else 'label'] = label_encoder.transform(
         test_data['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
@@ -620,14 +606,11 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     # --- Normalizing ---
     print("\nNormalizing...")
 
-    # initiate scaler and colums to scale
+    # Normalizing
     scaler = MinMaxScaler(feature_range=(0, 1))
     relevant_num_cols = train_data.columns.difference(['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
-    # fit scaler
     scaler.fit(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
-
-    # Normalize data
     train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
     test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
 
@@ -658,33 +641,10 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     print("Data Assigned...")
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
 
+
 ################################################################################################################
-#                                       GAN Model Setup (Discriminator Training)                                       #
+#                                       GAN Model Setup                                       #
 ################################################################################################################
-
-# Function for creating the discriminator model
-def create_discriminator(input_dim):
-    # Discriminator is designed to classify three classes:
-    # - Normal (Benign) traffic
-    # - Intrusive (Malicious) traffic
-    # - Generated (Fake) traffic from the generator
-    discriminator = tf.keras.Sequential([
-        Dense(512, activation='relu', input_shape=(input_dim,)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(256, activation='relu'),
-        Dropout(0.3),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
-    return discriminator
-
-
-# Function for creating the generator model
 def create_generator(input_dim, noise_dim):
     generator = tf.keras.Sequential([
         Dense(128, activation='relu', input_shape=(noise_dim,)),
@@ -697,9 +657,35 @@ def create_generator(input_dim, noise_dim):
     ])
     return generator
 
-# loss based on correct classifications between normal, intrusive, and fake traffic
+
+def create_discriminator(input_dim):
+    # Output will be a softmax over 3 classes: Normal (1), Intrusive (0), Fake (-1)
+    discriminator = tf.keras.Sequential([
+        Dense(512, activation='relu', input_shape=(input_dim,)),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(256, activation='relu'),
+        Dropout(0.3),
+        BatchNormalization(),
+        Dense(128, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(3, activation='softmax')  # 3 classes: normal, intrusive, fake
+    ])
+    return discriminator
+
+
+def create_model(input_dim, noise_dim):
+    model = Sequential()
+
+    model.add(create_generator(input_dim, noise_dim))
+    model.add(create_discriminator(input_dim))
+
+    return model
+
+
 def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
-    # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
+    # Categorical cross-entropy for the three classes: normal, intrusive, and fake
     real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output), real_normal_output)
     real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_intrusive_output), real_intrusive_output)
     fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.constant([-1], dtype=tf.float32), fake_output)
@@ -707,96 +693,71 @@ def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
     return total_loss
 
 
-# --- Class to handle discriminator training ---#
-class DiscriminatorClient(fl.client.NumPyClient):
-    def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
+# def generator_loss(fake_output):
+#     # Generator tries to maximize P(normal or intrusive) and minimize P(fake)
+#     normal_or_intrusive_prob = tf.reduce_sum(fake_output[:, :2], axis=1)  # Summing P(normal) and P(intrusive)
+#     loss = -tf.reduce_mean(tf.math.log(normal_or_intrusive_prob + 1e-7))  # Small constant to prevent log(0)
+#     return loss
+
+def generator_loss(fake_output):
+    # Loss for generator is to fool the discriminator into classifying fake samples as real
+    return tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(fake_output), fake_output)
+
+
+def generate_and_save_network_traffic(model, test_input):
+    predictions = model(test_input, training=False)
+
+    fig = plt.figure(figsize=(4, 4))
+
+    for i in range(predictions.shape[0]):
+        plt.subplot(4, 4, i + 1)
+        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+        plt.axis('off')
+
+    plt.savefig('image.png')
+    plt.show()
+
+
+# hyperparameter
+learning_rate = 0.0001  # 0.001 or .0001
+
+# premade functions
+binary_crossentropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+generator_optimizer = tf.keras.optimizers.Adam(learning_rate)
+discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate)
+seed = tf.random.normal([16, 100])
+
+
+################################################################################################################
+#                                               FL-GAN TRAINING Setup                                         #
+################################################################################################################
+class GanClient(fl.client.NumPyClient):
+    def __init__(self, generator, discriminator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch):
+        self.generator = generator
         self.discriminator = discriminator
-        self.generator = generator # Generator is fixed during discriminator training
         self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
+        self.x_val = x_val  # Add validation data
+        self.y_val = y_val
         self.x_test = x_test
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.dataset_used = dataset_used
 
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
 
-        # # Compile the discriminator
-        # self.discriminator.compile(
-        #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-        #     loss=discriminator_loss,  # Using the custom loss function
-        #     metrics=['accuracy']
-        # )
-
     def get_parameters(self, config):
-        return self.discriminator.get_weights()
+        return self.generator.get_weights()
 
-    def fit(self, parameters, config):
-        self.discriminator.set_weights(parameters)
-
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-
-        for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Assume real_data contains both normal and intrusive traffic
-                # Split the real_data into normal and intrusive samples
-                normal_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 0]  # Real malicious traffic
-
-                # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-                generated_data = self.generator(noise, training=False)
-
-                # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
-                # using tape to track trainable variables during discriminator classification and loss calculations
-                with tf.GradientTape() as tape:
-                    # Discriminator outputs based on its classifications from inputted data in parameters
-                    real_normal_output = self.discriminator(normal_data, training=True)
-                    real_intrusive_output = self.discriminator(intrusive_data, training=True)
-                    fake_output = self.discriminator(generated_data, training=True)
-
-                    # Loss calculation for normal, intrusive, and fake data
-                    loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-
-                # calculate the gradient based on the loss respect to the weights of the model
-                gradients = tape.gradient(loss, self.discriminator.trainable_variables)
-
-                # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
-
-                if step % 100 == 0:
-                    print(f"Epoch {epoch+1}, Step {step}, D Loss: {loss.numpy()}")
-
-            # After each epoch, evaluate on the validation set
-            val_disc_loss = self.evaluate_validation()
-            print(f'Epoch {epoch+1}, Validation D Loss: {val_disc_loss}')
-
-        return self.get_parameters(config={}), len(self.x_train), {}
-
-    def evaluate(self, parameters, config):
-        self.discriminator.set_weights(parameters)
-        loss = 0
-        for instances in self.x_test_ds:
-            real_normal_output = self.discriminator(instances[instances['label'] == 1], training=False)
-            real_intrusive_output = self.discriminator(instances[instances['label'] == 0], training=False)
-            fake_output = self.discriminator(self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False), training=False)
-            loss += discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-        return float(loss.numpy()), len(self.x_test), {}
-
-    # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
 
         # Split validation data into normal and intrusive traffic
-        normal_data = self.x_val[self.y_val == 1]  # Real normal traffic
-        intrusive_data = self.x_val[self.y_val == 0]  # Real intrusive traffic
+        normal_data = self.X_val_data[self.y_val_data == 1]  # Real normal traffic
+        intrusive_data = self.X_val_data[self.y_val_data == 0]  # Real intrusive traffic
 
         # Pass real and fake data through the discriminator
         real_normal_output = self.discriminator(normal_data, training=False)
@@ -806,16 +767,116 @@ class DiscriminatorClient(fl.client.NumPyClient):
         # Compute the discriminator loss using the real and fake outputs
         disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
-        return float(disc_loss.numpy())
+        # Compute the generator loss: How well does the generator fool the discriminator
+        gen_loss = generator_loss(fake_output)
+
+        return float(disc_loss.numpy()), float(gen_loss.numpy())
+
+
+    def evaluate_validation_NIDS(self):
+        # Generate fake samples using the generator
+        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+        generated_samples = self.generator(noise, training=False)
+
+        # Split validation data into normal and intrusive traffic
+        normal_data = self.X_val_data[self.y_val_data == 1]  # Real normal traffic
+        intrusive_data = self.X_val_data[self.y_val_data == 0]  # Real intrusive traffic
+
+        # Pass real and fake data through the discriminator
+        real_normal_output = self.discriminator(normal_data, training=False)
+        real_intrusive_output = self.discriminator(intrusive_data, training=False)
+        fake_output = self.discriminator(generated_samples, training=False)
+
+        # Pass fake data and real data to NIDS model
+
+        # Compute the discriminator loss using the real and fake outputs
+        disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+
+        # Compute the generator loss: How well does the generator fool the discriminator
+        gen_loss = generator_loss(fake_output)
+
+        return float(disc_loss.numpy()), float(gen_loss.numpy())
+
+    def fit(self, parameters, config):
+        self.generator.set_weights(parameters)
+
+        gen_optimizer = Adam(learning_rate=0.0001)
+        disc_optimizer = Adam(learning_rate=0.0001)
+
+        for epoch in range(self.epochs):
+            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
+
+                # Split real data into normal and intrusive traffic
+                normal_data = real_data[real_data['label'] == 1]  # Real normal traffic
+                intrusive_data = real_data[real_data['label'] == 0]  # Real intrusive traffic
+
+                # Generate fake data
+                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                generated_samples = self.generator(noise, training=True)
+
+                with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+                    # Discriminator outputs
+                    real_normal_output = self.discriminator(normal_data, training=True)
+                    real_intrusive_output = self.discriminator(intrusive_data, training=True)
+                    fake_output = self.discriminator(generated_samples, training=True)
+
+                    # Calculate losses of both models
+                    disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+                    gen_loss = generator_loss(fake_output)
+
+                # Apply gradients to both generator and discriminator (Training the models)
+                # calculating gradiants of loss respect weights
+                # (chain rule loss of model respect to outputs product of output respect to weights)
+                gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
+                gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
+
+                # Applying new parameters given from gradients
+                gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
+                disc_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
+
+                if step % 100 == 0:
+                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+
+            # After each epoch, evaluate on the validation set
+            val_disc_loss, val_gen_loss = self.evaluate_validation()
+            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}, Validation G Loss: {val_gen_loss}')
+
+        return self.get_parameters(config={}), len(self.x_train), {}
+
+    def evaluate(self, parameters, config):
+        self.generator.set_weights(parameters)
+        self.discriminator.set_weights(parameters)
+
+        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+        generated_samples = self.generator(noise, training=False)
+
+        # Split the real test data into normal and intrusive traffic
+        normal_data = self.x_test[self.x_test['label'] == 1]  # Real normal traffic
+        intrusive_data = self.x_test[self.x_test['label'] == 0]  # Real intrusive traffic
+
+        print(self.x_test.shape)
+        print(generated_samples.shape)
+
+        real_normal_output = self.discriminator(normal_data, training=True)
+        real_intrusive_output = self.discriminator(intrusive_data, training=True)
+        fake_output = self.discriminator(generated_samples, training=True)
+
+        disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+
+        # Compute the generator loss: How well does the generator fool the discriminator
+        gen_loss = generator_loss(fake_output)
+
+        return {"discriminator_loss": float(disc_loss.numpy()), "generator_loss": float(gen_loss.numpy())}, len(self.x_test), {}
+
+
+
 
 ################################################################################################################
-#                                       Abstract                                       #
+#                                                   Execute                                                   #
 ################################################################################################################
-
-
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Discriminator Client Training:", "\n")
+    print("Federated Learning Training Demo:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -842,9 +903,9 @@ def main():
 
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
                         default=None)
-    parser.add_argument('--pretrained_discriminator', type=str,
-                        help="Path to pretrained discriminator model (optional)", default=None)
+    parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
+    # init variables to handle arguments
     args = parser.parse_args()
 
     dataset_used = args.dataset
@@ -854,17 +915,16 @@ def main():
     regularizationEnabled = args.reg
     epochs = args.epochs
 
+
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
-
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
     print("Selected DATASET:", dataset_used, "\n")
     print("Poisoned Data:", poisonedDataType, "\n")
 
-    # --- Load Data ---#
-    # load ciciot data if selected
+    # --- Load Data ---
     if dataset_used == "CICIOT":
         # set iotbonet to none
         all_attacks_train = None
@@ -874,7 +934,6 @@ def main():
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
-    # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
         # Set CICIOT to none
         ciciot_train_data = None
@@ -882,46 +941,55 @@ def main():
         irrelevant_features_ciciot = None
 
         # Load IOTbotnet data
-        all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
+        all_attacks_train, all_attacks_test, relevant_features_iotbotnet  = loadIOTBOTNET()
 
-    # --- Preprocess Dataset ---#
+
+    # --- Preprocess Dataset ---
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
-    # --- Model setup --- #
+    # --- Set up model ---
+
     # Hyperparameters
     BATCH_SIZE = 256
-    input_dim = X_train_data.shape[1] - 1  # Exclude label column
     noise_dim = 100
-    epochs = 5
+
+    if regularizationEnabled:
+        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
+    betas = [0.9, 0.999]  # Stable
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
+    input_dim = X_train_data.shape[1]
 
-    # Load or create the discriminator model
-    if args.pretrained_discriminator:
-        print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
-    else:
-        print("No pretrained discriminator provided. Creating a new discriminator.")
-        discriminator = create_discriminator(input_dim)
-
-    # Load or create the generator model
+    # Load or create generator
     if args.pretrained_generator:
-        print(f"Loading pretrained generator from {args.pretrained_generator}")
         generator = tf.keras.models.load_model(args.pretrained_generator)
     else:
-        print("No pretrained generator provided. Creating a new generator.")
         generator = create_generator(input_dim, noise_dim)
 
-    # initiate client with models, data, and parameters
-    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
-                                 , noise_dim, epochs, steps_per_epoch, dataset_used)
+    # Load or create discriminator
+    if args.pretrained_discriminator:
+        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+    else:
+        discriminator = create_discriminator(input_dim)
 
-    # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
+    # Set up client and train
+    client = GanClient(generator, discriminator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE, noise_dim, epochs,
+                       steps_per_epoch)
 
-    # --- Save the trained discriminator model ---#
-    discriminator.save("discriminator_model.h5")
+    # --- Initiate Training ---
+    if fixedServer == 4:
+        server_address = "192.168.129.8:8080"
+    elif fixedServer == 2:
+        server_address = "192.168.129.6:8080"
+    elif fixedServer == 3:
+        server_address = "192.168.129.7:8080"
+    else:
+        server_address = "192.168.129.2:8080"
+
+    # Train GAN model
+    fl.client.start_client(server_address=server_address, client=client.to_client())
 
 
 if __name__ == "__main__":

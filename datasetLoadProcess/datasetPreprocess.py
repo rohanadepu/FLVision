@@ -49,6 +49,7 @@ from sklearn.utils import shuffle
 
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
                        all_attacks_test=None, irrelevant_features_ciciot=None, relevant_features_iotbotnet=None):
+    # --- Feature Selection 1 ---#
     print("\nSelecting Features...")
     if dataset_used == "CICIOT":
         # Drop the irrelevant features (Feature selection)
@@ -78,7 +79,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 
     print("Features Selected...")
 
-    # --- Encoding ---
+    # --- Encoding 2 ---#
     print("\nEncoding...")
 
     # Print instances before encoding and scaling
@@ -108,7 +109,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 
     print("Labels Encoded...")
 
-    # --- Normalizing ---
+    # --- Normalizing 3 ---#
     print("\nNormalizing...")
 
     # initiate scaler and colums to scale
@@ -132,7 +133,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     print(test_data.head())
     print(test_data.shape)
 
-    # --- Assigning and Splitting ---
+    # --- Assigning and Splitting 4 ---#
     print("\nAssigning Data to Models...")
 
     # Train & Validation data
