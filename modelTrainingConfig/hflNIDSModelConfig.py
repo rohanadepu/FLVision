@@ -21,6 +21,7 @@ from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
+import tensorflow_privacy as tfp
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -293,7 +294,6 @@ class FlNidsClient(fl.client.NumPyClient):
         # ---         Differential Privacy Engine Model Compile              --- #
 
         if self.DP_enabled:
-            import tensorflow_privacy as tfp
             print("\nIncluding DP into optimizer...\n")
 
             # Making Custom Optimizer Component with Differential Privacy
@@ -320,6 +320,8 @@ class FlNidsClient(fl.client.NumPyClient):
                                loss=tf.keras.losses.binary_crossentropy,
                                metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
                                )
+
+            print("\nModel Compiled...\n")
 
         # ---                   Callback components                   --- #
 
