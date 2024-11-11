@@ -229,10 +229,11 @@ def create_adversarial_example(model, x, y, epsilon=0.01):
 class FlNidsClient(fl.client.NumPyClient):
 
     def __init__(self, model_used, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
-                 lrSchedRedEnabled, X_train_data, y_train_data, X_test_data, y_test_data, X_val_data, y_val_data,
-                 l2_norm_clip, noise_multiplier, num_microbatches, batch_size, epochs, steps_per_epoch, learning_rate,
-                 adv_portion, metric_to_monitor_es, es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
-                 save_best_only, metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog):
+                 lrSchedRedEnabled, modelCheckpointEnabled, X_train_data, y_train_data, X_test_data, y_test_data,
+                 X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches, batch_size, epochs,
+                 steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience, restor_best_w,
+                 metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc, checkpoint_mode,
+                 evaluationLog, trainingLog):
 
         # ---         Variable init              --- #
 
@@ -248,6 +249,7 @@ class FlNidsClient(fl.client.NumPyClient):
         self.earlyStopEnabled = earlyStopEnabled
         self.DP_enabled = DP_enabled
         self.lrSchedRedEnabled = lrSchedRedEnabled
+        self.modelCheckpointEnabled = modelCheckpointEnabled
 
         # data
         self.X_train_data = X_train_data
