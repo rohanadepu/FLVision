@@ -298,7 +298,6 @@ def main():
     print("Learning Rate:", learning_rate)
 
     #--- Load or Create model ----#
-
     if pretrained_model:
         print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
         model = tf.keras.models.load_model(args.pretrained_discriminator)
@@ -315,11 +314,11 @@ def main():
 
     #--- initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
     client = FlNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
-                          lrSchedRedEnabled, X_train_data, y_train_data, X_test_data, y_test_data, X_val_data,
-                          y_val_data, l2_norm_clip, noise_multiplier, num_microbatches, batch_size, epochs,
-                          steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience,
-                          restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc,
-                          checkpoint_mode, evaluationLog, trainingLog)
+                          lrSchedRedEnabled, modelCheckpointEnabled, X_train_data, y_train_data, X_test_data,
+                          y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches,
+                          batch_size, epochs, steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es,
+                          es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
+                          metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
     # Record initial configuration before training starts
     logName = trainingLog
