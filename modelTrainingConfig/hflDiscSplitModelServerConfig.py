@@ -18,7 +18,7 @@ def discriminator_loss_synthetic(real_normal_output, fake_output):
     return total_loss
 
 # Custom FedAvg strategy with server-side model training and saving
-class SaveModelStrategy(fl.server.strategy.FedAvg):
+class DiscriminatorSynteticStrategy(fl.server.strategy.FedAvg):
     def __init__(self, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim

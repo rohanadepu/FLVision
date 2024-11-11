@@ -106,7 +106,7 @@ def discriminator_loss_synthetic(real_normal_output, fake_output):
 
 
 # --- Class to handle discriminator training ---#
-class DiscriminatorIntrusionTrainingClient(fl.client.NumPyClient):
+class DiscriminatorIntrusionClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
         self.generator = generator # Generator is fixed during discriminator training
