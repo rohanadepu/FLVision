@@ -36,7 +36,7 @@ from numpy import expand_dims
 
 from sklearn.model_selection import train_test_split
 
-from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
