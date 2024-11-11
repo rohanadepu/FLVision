@@ -45,8 +45,6 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 
 
-
-
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################
@@ -91,7 +89,7 @@ def main():
     node = args.node
     poisonedDataType = args.pData
     regularizationEnabled = args.reg
-    epochs = args.epochs
+    # epochs = args.epochs
 
     dataset_used = args.dataset
     pretrained_model = args.pretrained_model
