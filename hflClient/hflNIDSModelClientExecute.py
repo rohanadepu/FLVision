@@ -2,11 +2,19 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 import time
 from datetime import datetime
 import argparse
+sys.path.append(os.path.abspath('..'))
+
+from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
+
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -36,10 +44,7 @@ from numpy import expand_dims
 
 from sklearn.model_selection import train_test_split
 
-from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
+
 
 
 ################################################################################################################
