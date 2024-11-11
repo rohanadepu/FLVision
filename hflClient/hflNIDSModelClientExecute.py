@@ -196,8 +196,8 @@ def main():
     epochs = 5  # 1, 2 , 3 or 5 epochs
 
     # steps_per_epoch = (len(X_train_data) // batch_size) // epochs  # dependant  # debug
-    steps_per_epoch = len(
-        X_train_data) // batch_size  # dependant between sample size of the dataset and the batch size chosen
+    # dependant between sample size of the dataset and the batch size chosen
+    steps_per_epoch = len(X_train_data) // batch_size
 
     learning_rate = 0.0001  # 0.001 or .0001
     betas = [0.9, 0.999]  # Stable
@@ -314,11 +314,12 @@ def main():
         model = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
 
     #--- initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
-    client = FlNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled, X_train_data,
-                          y_train_data, X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier,
-                          num_microbatches, batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
-                          metric_to_monitor_es, es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
-                          save_best_only, metric_to_monitor_mc, checkpoint_mode)
+    client = FlNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
+                          lrSchedRedEnabled, X_train_data, y_train_data, X_test_data, y_test_data, X_val_data,
+                          y_val_data, l2_norm_clip, noise_multiplier, num_microbatches, batch_size, epochs,
+                          steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience,
+                          restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc,
+                          checkpoint_mode, evaluationLog, trainingLog)
 
     # Record initial configuration before training starts
     logName = trainingLog
