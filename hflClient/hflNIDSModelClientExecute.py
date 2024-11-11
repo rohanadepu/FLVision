@@ -8,8 +8,6 @@ import time
 from datetime import datetime
 import argparse
 
-from gan import ciciotDatasetLoad
-
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
 
