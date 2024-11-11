@@ -156,24 +156,23 @@ def main():
         print("Model Check Point Disabled", "\n")
 
     # --- Load Data ---#
+    # Initiate CICIOT to none
+    ciciot_train_data = None
+    ciciot_test_data = None
+    irrelevant_features_ciciot = None
+
+    # Initiate iotbonet to none
+    all_attacks_train = None
+    all_attacks_test = None
+    relevant_features_iotbotnet = None
 
     # load ciciot data if selected
     if dataset_used == "CICIOT":
-        # set iotbonet to none
-        all_attacks_train = None
-        all_attacks_test = None
-        relevant_features_iotbotnet = None
-
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
     # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
-        # Set CICIOT to none
-        ciciot_train_data = None
-        ciciot_test_data = None
-        irrelevant_features_ciciot = None
-
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
@@ -202,6 +201,21 @@ def main():
 
     learning_rate = 0.0001  # 0.001 or .0001
     betas = [0.9, 0.999]  # Stable
+
+    # initiate optional variables
+    l2_alpha = None
+    l2_norm_clip = None
+    noise_multiplier = None
+    num_microbatches = None
+    adv_portion = None
+    metric_to_monitor_es = None
+    es_patience = None
+    restor_best_w = None
+    metric_to_monitor_l2lr = None
+    l2lr_patience = None
+    save_best_only = None
+    metric_to_monitor_mc = None
+    checkpoint_mode = None
 
     # regularization param
     if regularizationEnabled:
