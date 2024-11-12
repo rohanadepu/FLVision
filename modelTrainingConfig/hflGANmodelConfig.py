@@ -62,8 +62,8 @@ def generate_and_save_network_traffic(model, test_input):
 
 
 class GanClient(fl.client.NumPyClient):
-    def __init__(self, generator, discriminator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs,
-                 steps_per_epoch, learning_rate):
+    def __init__(self, generator, discriminator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+                 noise_dim, epochs,steps_per_epoch, learning_rate):
         self.generator = generator
         self.discriminator = discriminator
         self.nids = nids

@@ -71,18 +71,22 @@ def create_discriminator(input_dim):
 
 # --- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
-    def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
+    def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+                 noise_dim, epochs, steps_per_epoch):
+        self.generator = generator
         self.discriminator = discriminator
-        self.generator = generator  # Generator is fixed during discriminator training
+
         self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
+        self.y_train = y_train
+        self.x_val = x_val  # Add validation data
+        self.y_val = y_val
         self.x_test = x_test
+        self.y_test = y_test
+
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.dataset_used = dataset_used
 
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
@@ -98,19 +102,24 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
     # loss based on correct classifications between normal, intrusive, and fake traffic
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-        # Assign labels: 0 for normal, 1 for intrusive, and 2 for fake
-        real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(
-            tf.zeros_like(real_normal_output), real_normal_output
-        )
-        real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(
-            tf.ones_like(real_intrusive_output), real_intrusive_output
-        )
-        fake_loss = tf.keras.losses.sparse_categorical_crossentropy(
-            tf.ones_like(fake_output) * 2, fake_output
-        )
+        # Create labels matching the shape of the output logits
+        real_normal_labels = tf.zeros((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
+        real_intrusive_labels = tf.ones((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
+        fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
 
-        # Total loss as the mean of all three losses
-        total_loss = tf.reduce_mean(real_normal_loss + real_intrusive_loss + fake_loss)
+        # Calculate sparse categorical cross-entropy loss for each group separately
+        real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
+        real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
+                                                                              real_intrusive_output)
+        fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
+
+        # Compute the mean for each loss group independently
+        mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+        mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
+        mean_fake_loss = tf.reduce_mean(fake_loss)
+
+        # Total loss as the average of mean losses for each group
+        total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
         return total_loss
 
     def get_parameters(self, config):
@@ -119,13 +128,18 @@ class DiscriminatorClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.discriminator.set_weights(parameters)
 
-        for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Assume real_data contains both normal and intrusive traffic
-                # Split the real_data into normal and intrusive samples
-                normal_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 0]  # Real malicious traffic
+        # Create a TensorFlow dataset that includes both features and labels
+        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
 
+        for epoch in range(self.epochs):
+            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
+                # Create masks for normal and intrusive traffic based on labels
+                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
+                intrusive_mask = tf.equal(real_labels, 0)  # Assuming label 0 for intrusive
+
+                # Filter data based on these masks
+                normal_data = tf.boolean_mask(real_data, normal_mask)
+                intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
                 # Generate fake data using the generator
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)

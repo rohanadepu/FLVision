@@ -63,13 +63,18 @@ def create_generator(input_dim, noise_dim):
 
 # --- Class to handle generator training ---#
 class GeneratorClient(fl.client.NumPyClient):
-    def __init__(self, generator, discriminator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch):
+    def __init__(self, generator, discriminator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim,
+                 epochs, steps_per_epoch):
         self.generator = generator
         self.discriminator = discriminator  # Discriminator is fixed during generator training
+
         self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
+        self.y_train = y_train
+        self.x_val = x_val  # Add validation data
+        self.y_val = y_val
         self.x_test = x_test
+        self.y_test = y_test
+
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
@@ -82,10 +87,9 @@ class GeneratorClient(fl.client.NumPyClient):
 
     # loss based on generating fake data that get misclassified as real by discriminator
     def generator_loss(self, fake_output):
-        # Generator aims to fool the discriminator by classifying fake samples as normal (0)
-        return tf.keras.losses.sparse_categorical_crossentropy(
-            tf.zeros_like(fake_output), fake_output
-        )
+        # Generator aims to fool the discriminator by making fake samples appear as class 0 (normal)
+        fake_labels = tf.zeros((tf.shape(fake_output)[0],), dtype=tf.int32)  # Shape (batch_size,)
+        return tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
 
     def get_parameters(self, config):
         return self.generator.get_weights()
