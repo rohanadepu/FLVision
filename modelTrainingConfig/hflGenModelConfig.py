@@ -41,6 +41,8 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
+
+
 ################################################################################################################
 #                                       GAN Model Setup (Generator Training)                                      #
 ################################################################################################################
@@ -57,33 +59,6 @@ def create_generator(input_dim, noise_dim):
         Dense(input_dim, activation='sigmoid')  # Generate traffic features
     ])
     return generator
-
-
-# Function for creating the discriminator model
-def create_discriminator(input_dim):
-    # Discriminator is designed to classify three classes:
-    # - Normal (Benign) traffic
-    # - Intrusive (Malicious) traffic
-    # - Generated (Fake) traffic from the generator
-    discriminator = tf.keras.Sequential([
-        Dense(512, activation='relu', input_shape=(input_dim,)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(256, activation='relu'),
-        Dropout(0.3),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
-    return discriminator
-
-# loss based on generating fake data that get misclassified as real by discriminator
-def generator_loss(fake_output):
-    # Loss for generator is to fool the discriminator into classifying fake samples as real
-    return tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(fake_output), fake_output)
 
 
 # --- Class to handle generator training ---#
@@ -103,14 +78,20 @@ class GeneratorClient(fl.client.NumPyClient):
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
 
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
+    # loss based on generating fake data that get misclassified as real by discriminator
+    def generator_loss(self, fake_output):
+        # Generator aims to fool the discriminator by classifying fake samples as normal (0)
+        return tf.keras.losses.sparse_categorical_crossentropy(
+            tf.zeros_like(fake_output), fake_output
+        )
+
     def get_parameters(self, config):
         return self.generator.get_weights()
 
     def fit(self, parameters, config):
         self.generator.set_weights(parameters)
-
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
         for epoch in range(self.epochs):
             for step in range(self.steps_per_epoch):
@@ -127,13 +108,13 @@ class GeneratorClient(fl.client.NumPyClient):
                     fake_output = self.discriminator(generated_data, training=False)
 
                     # Loss for generator to fool the discriminator based on its classifications
-                    loss = generator_loss(fake_output)
+                    loss = self.generator_loss(fake_output)
 
                 # calculate the gradient based on the loss respect to the weights of the model
                 gradients = tape.gradient(loss, self.generator.trainable_variables)
 
                 # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
+                self.optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch + 1}, Step {step}, G Loss: {loss.numpy()}")
@@ -151,7 +132,7 @@ class GeneratorClient(fl.client.NumPyClient):
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
             generated_samples = self.generator(noise, training=False)
             fake_output = self.discriminator(generated_samples, training=False)
-            loss += generator_loss(fake_output)
+            loss += self.generator_loss(fake_output)
         return float(loss.numpy()), len(self.x_test), {}
 
     # Function to evaluate the generator on validation data
@@ -164,6 +145,6 @@ class GeneratorClient(fl.client.NumPyClient):
         fake_output = self.discriminator(generated_samples, training=False)
 
         # Compute the generator loss (how well it fools the discriminator)
-        gen_loss = generator_loss(fake_output)
+        gen_loss = self.generator_loss(fake_output)
 
         return float(gen_loss.numpy())
