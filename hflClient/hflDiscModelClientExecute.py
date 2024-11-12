@@ -132,6 +132,12 @@ def main():
     epochs = epochs
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
 
+    print("\nBase Hyperparameters:")
+    print("Input Dim (Feature Size):", input_dim)
+    print("Epochs:", epochs)
+    print("Batch Size:", BATCH_SIZE)
+    print(f"Steps per epoch (({len(X_train_data)} // {BATCH_SIZE})):", steps_per_epoch)
+
     # --- Load or Create model ----#
 
     # Load or create the discriminator model
