@@ -191,7 +191,7 @@ def main():
         server_address = "192.168.129.2:8080"
 
     # Train GAN model
-    fl.client.start_client(server_address=server_address, client=client)
+    fl.client.start_client(server_address=server_address, client=client.to_client())
 
     # --- Save the trained generator model ---#
     generator.save("generator_GAN_V1.h5")
