@@ -62,16 +62,18 @@ def generate_and_save_network_traffic(model, test_input):
 
 
 class GanClient(fl.client.NumPyClient):
-    def __init__(self, generator, discriminator, nids, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs,
+    def __init__(self, generator, discriminator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs,
                  steps_per_epoch, learning_rate):
         self.generator = generator
         self.discriminator = discriminator
         self.nids = nids
 
         self.x_train = x_train
+        self.y_train = y_train
         self.x_val = x_val  # Add validation data
         self.y_val = y_val
         self.x_test = x_test
+        self.y_test = y_test
 
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
@@ -116,9 +118,13 @@ class GanClient(fl.client.NumPyClient):
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
 
-        # Split validation data into normal and intrusive traffic
-        normal_data = self.X_val_data[self.y_val_data == 1]  # Real normal traffic
-        intrusive_data = self.X_val_data[self.y_val_data == 0]  # Real intrusive traffic
+        # Separate validation data into normal and intrusive using boolean masking
+        normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
+        intrusive_mask = tf.equal(self.y_val, 0)  # Assuming label 0 for intrusive
+
+        # Apply masks to create separate datasets
+        normal_data = tf.boolean_mask(self.x_val, normal_mask)
+        intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
 
         # Pass real and fake data through the discriminator
         real_normal_output = self.discriminator(normal_data, training=False)
@@ -138,9 +144,13 @@ class GanClient(fl.client.NumPyClient):
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
 
-        # Split validation data into normal and intrusive traffic
-        normal_data = self.X_val_data[self.y_val_data == 1]  # Real normal traffic
-        intrusive_data = self.X_val_data[self.y_val_data == 0]  # Real intrusive traffic
+        # Separate validation data into normal and intrusive using boolean masking
+        normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
+        intrusive_mask = tf.equal(self.y_val, 0)  # Assuming label 0 for intrusive
+
+        # Apply masks to create separate datasets
+        normal_data = tf.boolean_mask(self.x_val, normal_mask)
+        intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
 
         # Step 3: Pass real and fake data through the NIDS model to get binary classification probabilities
         real_normal_output = self.nids(normal_data, training=False)  # Expected [P(normal), P(intrusive)]
@@ -181,11 +191,18 @@ class GanClient(fl.client.NumPyClient):
         self.generator.set_weights(generator_parameters)
         self.discriminator.set_weights(discriminator_parameters)
 
+        # Create a TensorFlow dataset that includes both features and labels
+        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
+
         for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Split real data into normal and intrusive traffic
-                normal_data = real_data[real_data['label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['label'] == 0]  # Real intrusive traffic
+            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
+                # Create masks for normal and intrusive traffic based on labels
+                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
+                intrusive_mask = tf.equal(real_labels, 0)  # Assuming label 0 for intrusive
+
+                # Filter data based on these masks
+                normal_data = tf.boolean_mask(real_data, normal_mask)
+                intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
 
                 # Generate fake data
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
@@ -239,11 +256,16 @@ class GanClient(fl.client.NumPyClient):
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
 
-        # Split the real test data into normal and intrusive traffic
-        normal_data = self.x_test[self.x_test['label'] == 1]  # Real normal traffic
-        intrusive_data = self.x_test[self.x_test['label'] == 0]  # Real intrusive traffic
+        # Separate test data into normal and intrusive using boolean masking
+        normal_mask = tf.equal(self.y_test, 1)  # Assuming label 1 for normal
+        intrusive_mask = tf.equal(self.y_test, 0)  # Assuming label 0 for intrusive
 
-        print(self.x_test.shape)
+        # Apply masks to create separate datasets
+        normal_data = tf.boolean_mask(self.x_test, normal_mask)
+        intrusive_data = tf.boolean_mask(self.x_test, intrusive_mask)
+
+        print(normal_data.shape)
+        print(intrusive_data.shape)
         print(generated_samples.shape)
 
         real_normal_output = self.discriminator(normal_data, training=True)
