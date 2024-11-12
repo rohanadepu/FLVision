@@ -165,7 +165,7 @@ def main():
         server_address = "192.168.129.2:8080"
 
     # Train discriminator model
-    fl.client.start_client(server_address=server_address, client=client)
+    fl.client.start_client(server_address=server_address, client=client.to_client())
 
     # --- Save the trained discriminator model ---#
     discriminator.save("discriminator_model.h5")
