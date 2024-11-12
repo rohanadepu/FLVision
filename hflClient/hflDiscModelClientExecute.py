@@ -151,8 +151,8 @@ def main():
         generator = create_generator(input_dim, noise_dim)
 
     #--- Initiate client with models, data, and parameters ---#
-    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
-                                 , noise_dim, epochs, steps_per_epoch, dataset_used)
+    client = DiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
+                                 X_test_data, y_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
     # --- Initiate Training ---#
     if fixedServer == 4:
