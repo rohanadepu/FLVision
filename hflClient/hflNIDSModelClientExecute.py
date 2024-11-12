@@ -299,8 +299,8 @@ def main():
 
     #--- Load or Create model ----#
     if pretrained_model:
-        print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        model = tf.keras.models.load_model(args.pretrained_discriminator)
+        print(f"Loading pretrained model from {pretrained_model}")
+        model = tf.keras.models.load_model(pretrained_model)
 
     elif dataset_used == "CICIOT" and pretrained_model is None:
         print("No pretrained discriminator provided. Creating a new mdoel.")
