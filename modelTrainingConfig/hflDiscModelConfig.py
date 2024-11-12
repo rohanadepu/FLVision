@@ -69,25 +69,11 @@ def create_discriminator(input_dim):
     return discriminator
 
 
-# Function for creating the generator model
-def create_generator(input_dim, noise_dim):
-    generator = tf.keras.Sequential([
-        Dense(128, activation='relu', input_shape=(noise_dim,)),
-        BatchNormalization(),
-        Dense(256, activation='relu'),
-        BatchNormalization(),
-        Dense(512, activation='relu'),
-        BatchNormalization(),
-        Dense(input_dim, activation='sigmoid')  # Generate traffic features
-    ])
-    return generator
-
-
 # --- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
-        self.generator = generator # Generator is fixed during discriminator training
+        self.generator = generator  # Generator is fixed during discriminator training
         self.x_train = x_train
         self.x_val = x_val  # Validation data
         self.y_val = y_val  # Validation labels
@@ -101,6 +87,8 @@ class DiscriminatorClient(fl.client.NumPyClient):
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
 
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
         # # Compile the discriminator
         # self.discriminator.compile(
         #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
@@ -110,13 +98,19 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
     # loss based on correct classifications between normal, intrusive, and fake traffic
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-        # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
-        real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output),
-                                                                           real_normal_output)
-        real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_intrusive_output),
-                                                                              real_intrusive_output)
-        fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.constant([-1], dtype=tf.float32), fake_output)
-        total_loss = real_normal_loss + real_intrusive_loss + fake_loss
+        # Assign labels: 0 for normal, 1 for intrusive, and 2 for fake
+        real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(
+            tf.zeros_like(real_normal_output), real_normal_output
+        )
+        real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(
+            tf.ones_like(real_intrusive_output), real_intrusive_output
+        )
+        fake_loss = tf.keras.losses.sparse_categorical_crossentropy(
+            tf.ones_like(fake_output) * 2, fake_output
+        )
+
+        # Total loss as the mean of all three losses
+        total_loss = tf.reduce_mean(real_normal_loss + real_intrusive_loss + fake_loss)
         return total_loss
 
     def get_parameters(self, config):
@@ -124,9 +118,6 @@ class DiscriminatorClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.discriminator.set_weights(parameters)
-
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
         for epoch in range(self.epochs):
             for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
@@ -154,7 +145,7 @@ class DiscriminatorClient(fl.client.NumPyClient):
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
 
                 # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+                self.optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch+1}, Step {step}, D Loss: {loss.numpy()}")

@@ -320,11 +320,12 @@ def main():
                           es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
                           metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
-    # Record initial configuration before training starts
+    #--- Record initial configuration before training starts ---#
     logName = trainingLog
     recordConfig(logName, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
                  batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
                  adv_portion, l2_alpha, model)
+
     logName1 = evaluationLog
     recordConfig(logName1, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
                  batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
@@ -341,10 +342,10 @@ def main():
         server_address = "192.168.129.8:8080"
 
     # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address=server_address, client=client)
+    fl.client.start_client(server_address=server_address, client=client)
 
     # --- Save the trained discriminator model ---#
-    model.save("discriminator_model.h5")
+    model.save("../pretrainedModels/NIDS_Base_Model.h5")
 
 
 if __name__ == "__main__":

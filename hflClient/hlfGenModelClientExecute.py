@@ -25,7 +25,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # import pickle
 # import joblib
 
-from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from modelTrainingConfig.hflGenModelConfig import GeneratorClient, create_generator
@@ -83,23 +83,24 @@ def main():
     print("Poisoned Data:", poisonedDataType, "\n")
 
     # --- Load Data ---#
+
+    # Set CICIOT to none
+    ciciot_train_data = None
+    ciciot_test_data = None
+    irrelevant_features_ciciot = None
+
+    # set iotbonet to none
+    all_attacks_train = None
+    all_attacks_test = None
+    relevant_features_iotbotnet = None
+
     # load ciciot data if selected
     if dataset_used == "CICIOT":
-        # set iotbonet to none
-        all_attacks_train = None
-        all_attacks_test = None
-        relevant_features_iotbotnet = None
-
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
     # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
-        # Set CICIOT to none
-        ciciot_train_data = None
-        ciciot_test_data = None
-        irrelevant_features_ciciot = None
-
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
@@ -109,12 +110,15 @@ def main():
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-    # Hyperparameters
+
+    # --- Hyperparameters ---#
     BATCH_SIZE = 256
     noise_dim = 100
     input_dim = X_train_data.shape[1]
-    epochs = 5
+    epochs = epochs
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
+
+    # --- Load or Create model ----#
 
     # Load or create the discriminator model
     if args.pretrained_discriminator:
@@ -136,11 +140,21 @@ def main():
     client = GeneratorClient(generator, discriminator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE,
                              noise_dim, epochs, steps_per_epoch)
 
-    # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
+    # --- Initiate Training ---#
+    if fixedServer == 4:
+        server_address = "192.168.129.8:8080"
+    elif fixedServer == 2:
+        server_address = "192.168.129.6:8080"
+    elif fixedServer == 3:
+        server_address = "192.168.129.7:8080"
+    else:
+        server_address = "192.168.129.2:8080"
 
-    # --- Save the trained discriminator model ---#
-    generator.save("generator_model.h5")
+    # Train generator model
+    fl.client.start_client(server_address=server_address, client=client)
+
+    # --- Save the trained generator model ---#
+    generator.save("generator_V1.h5")
 
 
 if __name__ == "__main__":

@@ -2,10 +2,12 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 from datetime import datetime
 import argparse
+sys.path.append(os.path.abspath('..'))
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -95,23 +97,24 @@ def main():
     print("Poisoned Data:", poisonedDataType, "\n")
 
     # --- Load Data ---#
+
+    # Initiate CICIOT to none
+    ciciot_train_data = None
+    ciciot_test_data = None
+    irrelevant_features_ciciot = None
+
+    # Initiate iotbonet to none
+    all_attacks_train = None
+    all_attacks_test = None
+    relevant_features_iotbotnet = None
+
     # load ciciot data if selected
     if dataset_used == "CICIOT":
-        # set iotbonet to none
-        all_attacks_train = None
-        all_attacks_test = None
-        relevant_features_iotbotnet = None
-
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
     # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
-        # Set CICIOT to none
-        ciciot_train_data = None
-        ciciot_test_data = None
-        irrelevant_features_ciciot = None
-
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
@@ -121,12 +124,15 @@ def main():
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-    # Hyperparameters
+
+    # --- Hyperparameters ---#
     BATCH_SIZE = 256
     input_dim = X_train_data.shape[1] - 1  # Exclude label column
     noise_dim = 100
-    epochs = 5
+    epochs = epochs
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
+
+    # --- Load or Create model ----#
 
     # Load or create the discriminator model
     if args.pretrained_discriminator:
@@ -148,11 +154,21 @@ def main():
     client = DiscriminatorIntrusionClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
                                           , noise_dim, epochs, steps_per_epoch, dataset_used)
 
-    # --- initiate federated training ---#
-    fl.client.start_numpy_client(server_address="localhost:8080", client=client)
+    # --- Initiate Training ---
+    if fixedServer == 4:
+        server_address = "192.168.129.8:8080"
+    elif fixedServer == 2:
+        server_address = "192.168.129.6:8080"
+    elif fixedServer == 3:
+        server_address = "192.168.129.7:8080"
+    else:
+        server_address = "192.168.129.2:8080"
+
+    # Train GAN model
+    fl.client.start_client(server_address=server_address, client=client)
 
     # --- Save the trained discriminator model ---#
-    discriminator.save("discriminator_model.h5")
+    discriminator.save("discriminator_Spit_v1.h5")
 
 
 if __name__ == "__main__":
