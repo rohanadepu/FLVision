@@ -88,19 +88,24 @@ class GanClient(fl.client.NumPyClient):
         self.disc_optimizer = Adam(self.learning_rate)
 
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-        # Assign labels matching the shape of the output logits
+        # Create labels matching the shape of the output logits
         real_normal_labels = tf.zeros((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
         real_intrusive_labels = tf.ones((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
         fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
 
-        # Calculate sparse categorical cross-entropy loss for each category
+        # Calculate sparse categorical cross-entropy loss for each group separately
         real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
         real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
                                                                               real_intrusive_output)
         fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
 
-        # Total loss as the mean of all three losses
-        total_loss = tf.reduce_mean(real_normal_loss + real_intrusive_loss + fake_loss)
+        # Compute the mean for each loss group independently
+        mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+        mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
+        mean_fake_loss = tf.reduce_mean(fake_loss)
+
+        # Total loss as the average of mean losses for each group
+        total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
         return total_loss
 
     def generator_loss(self, fake_output):
