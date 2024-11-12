@@ -108,10 +108,8 @@ class GanClient(fl.client.NumPyClient):
         )
 
     def get_parameters(self, config):
-        return {
-            "generator": self.generator.get_weights(),
-            "discriminator": self.discriminator.get_weights()
-        }
+        # Combine generator and discriminator weights into a single list
+        return self.generator.get_weights() + self.discriminator.get_weights()
 
     def evaluate_validation(self):
         # Generate fake samples using the generator
@@ -172,7 +170,14 @@ class GanClient(fl.client.NumPyClient):
 
         return float(nids_loss.numpy()), float(gen_loss.numpy())
 
-    def fit(self, generator_parameters, discriminator_parameters, config):
+    def fit(self, parameters, config):
+
+        # `gen_param_count` number of weight tensors
+        gen_param_count = len(self.generator.get_weights())
+        generator_parameters = parameters[:gen_param_count]
+        discriminator_parameters = parameters[gen_param_count:]
+
+        # Set the weights for both models
         self.generator.set_weights(generator_parameters)
         self.discriminator.set_weights(discriminator_parameters)
 
@@ -218,14 +223,18 @@ class GanClient(fl.client.NumPyClient):
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}, Validation G Loss: {val_gen_2_loss}')
 
             # Return parameters for both generator and discriminator
-            return {
-                "generator": self.generator.get_weights(),
-                "discriminator": self.discriminator.get_weights()
-            }, len(self.x_train), {}
+            return self.generator.get_weights() + self.discriminator.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):
-        self.generator.set_weights(parameters)
-        self.discriminator.set_weights(parameters)
+
+        # `gen_param_count` number of weight tensors
+        gen_param_count = len(self.generator.get_weights())
+        generator_parameters = parameters[:gen_param_count]
+        discriminator_parameters = parameters[gen_param_count:]
+
+        # Set the weights for both models
+        self.generator.set_weights(generator_parameters)
+        self.discriminator.set_weights(discriminator_parameters)
 
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
