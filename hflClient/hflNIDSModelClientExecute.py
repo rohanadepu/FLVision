@@ -26,6 +26,7 @@ from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import LogCosh  # Ensure LogCosh is imported
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -300,7 +301,9 @@ def main():
     #--- Load or Create model ----#
     if pretrained_model:
         print(f"Loading pretrained model from {pretrained_model}")
-        model = tf.keras.models.load_model(pretrained_model)
+        # Use custom_object_scope to load the model with LogCosh loss function
+        with tf.keras.utils.custom_object_scope({'LogCosh': LogCosh}):
+            model = tf.keras.models.load_model(pretrained_model)
 
     elif dataset_used == "CICIOT" and pretrained_model is None:
         print("No pretrained discriminator provided. Creating a new mdoel.")
