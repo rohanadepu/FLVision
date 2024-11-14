@@ -160,10 +160,12 @@ def main():
 
     # Load or create the discriminator, generator, or whole gan model
     if pretrainedGan:
-        print(f"Loading pretrained GAN from {pretrainedGan}")
+        print(f"Loading pretrained GAN Model from {pretrainedGan}")
         model = tf.keras.models.load_model(args.pretrained_discriminator)
 
     elif pretrainedGenerator and not pretrainedDiscriminator:
+
+        print(f"Pretrained Generator provided from {pretrainedGenerator}. Creating a new Discriminator model.")
         generator = tf.keras.models.load_model(args.pretrained_generator)
 
         discriminator = create_discriminator(input_dim)
@@ -171,6 +173,7 @@ def main():
         model = load_GAN_model(generator, discriminator)
 
     elif pretrainedDiscriminator and not pretrainedGenerator:
+        print(f"Pretrained Discriminator provided from {pretrainedDiscriminator}. Creating a new Generator model.")
         discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
 
         generator = create_generator(input_dim, noise_dim)
@@ -178,13 +181,14 @@ def main():
         model = load_GAN_model(generator, discriminator)
 
     elif pretrainedDiscriminator and pretrainedGenerator:
+        print(f"Pretrained Generator and Discriminator provided from {pretrainedGenerator} , {pretrainedDiscriminator}")
         discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
         generator = tf.keras.models.load_model(args.pretrained_generator)
 
         model = load_GAN_model(generator, discriminator)
 
     else:
-        print("No pretrained discriminator provided. Creating a new discriminator model.")
+        print("No pretrained GAN provided. Creating a new discriminator model.")
         model = create_model(input_dim, noise_dim)
 
     # Optionally load the pretrained nids model
