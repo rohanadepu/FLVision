@@ -41,7 +41,9 @@ from sklearn.utils import shuffle
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflGANmodelConfig import GanClient, create_model
+from modelTrainingConfig.hflGANmodelConfig import GanClient, create_model, load_GAN_model
+from modelTrainingConfig.hflDiscModelConfig import create_discriminator
+from modelTrainingConfig.hflGenModelConfig import create_generator
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -156,10 +158,31 @@ def main():
 
     # --- Load or Create model ----#
 
-    # Load or create the discriminator model
+    # Load or create the discriminator, generator, or whole gan model
     if pretrainedGan:
         print(f"Loading pretrained GAN from {pretrainedGan}")
         model = tf.keras.models.load_model(args.pretrained_discriminator)
+
+    elif pretrainedGenerator and not pretrainedDiscriminator:
+        generator = tf.keras.models.load_model(args.pretrained_generator)
+
+        discriminator = create_discriminator(input_dim)
+
+        model = load_GAN_model(generator, discriminator)
+
+    elif pretrainedDiscriminator and not pretrainedGenerator:
+        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+
+        generator = create_generator(input_dim, noise_dim)
+
+        model = load_GAN_model(generator, discriminator)
+
+    elif pretrainedDiscriminator and pretrainedGenerator:
+        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+        generator = tf.keras.models.load_model(args.pretrained_generator)
+
+        model = load_GAN_model(generator, discriminator)
+
     else:
         print("No pretrained discriminator provided. Creating a new discriminator model.")
         model = create_model(input_dim, noise_dim)
@@ -187,10 +210,16 @@ def main():
     fl.client.start_client(server_address=server_address, client=client.to_client())
 
     # --- Save the trained generator model ---#
-    generator.save("generator_GAN_V1.h5")
+    model.save("GAN_V1.h5")
 
-    # --- Save the trained discriminator model ---#
+    # Assuming `self.model` is the GAN model created with Sequential([generator, discriminator])
+    generator = model.layers[0]
+    discriminator = model.layers[1]
+
+    # Save each submodel separately
+    generator.save("generator_GAN_V1.h5")
     discriminator.save("discriminator_GAN_V1.h5")
+
 
 
 if __name__ == "__main__":

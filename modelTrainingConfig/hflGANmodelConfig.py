@@ -59,6 +59,12 @@ def create_model(input_dim, noise_dim):
     return model
 
 
+def load_GAN_model(generator, discriminator):
+    model = Sequential([generator, discriminator])
+
+    return model
+
+
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)
 
@@ -129,9 +135,12 @@ class GanClient(fl.client.NumPyClient):
         return self.model.get_weights()
 
     def evaluate_validation(self):
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
 
         # Separate validation data into normal and intrusive using boolean masking
         normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
@@ -142,9 +151,9 @@ class GanClient(fl.client.NumPyClient):
         intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
 
         # Pass real and fake data through the discriminator
-        real_normal_output = self.discriminator(normal_data, training=False)
-        real_intrusive_output = self.discriminator(intrusive_data, training=False)
-        fake_output = self.discriminator(generated_samples, training=False)
+        real_normal_output = discriminator(normal_data, training=False)
+        real_intrusive_output = discriminator(intrusive_data, training=False)
+        fake_output = discriminator(generated_samples, training=False)
 
         # Compute the discriminator loss using the real and fake outputs
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
@@ -155,9 +164,11 @@ class GanClient(fl.client.NumPyClient):
         return float(disc_loss.numpy()), float(gen_loss.numpy())
 
     def evaluate_validation_NIDS(self):
+        generator = self.model.layers[0]
+
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
 
         # Separate validation data into normal and intrusive using boolean masking
         normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
