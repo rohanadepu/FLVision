@@ -184,7 +184,7 @@ def main():
         model = load_GAN_model(generator, discriminator)
 
     else:
-        print("No pretrained GAN provided. Creating a new discriminator model.")
+        print("No pretrained GAN provided. Creating a new GAN model.")
         model = create_model(input_dim, noise_dim)
 
     # Optionally load the pretrained nids model
