@@ -86,23 +86,19 @@ def main():
     parser.add_argument('--pretrained_nids', type=str,
                         help="Path to pretrained nids model (optional)", default=None)
 
-
     # init variables to handle arguments
     args = parser.parse_args()
-
+    # argument variables
     dataset_used = args.dataset
     fixedServer = args.fixedServer
     node = args.node
     poisonedDataType = args.pData
     regularizationEnabled = args.reg
-
     epochs = args.epochs
-
     pretrainedGan = args.pretrained_GAN
     pretrainedGenerator = args.pretrained_generator
     pretrainedDiscriminator = args.pretrained_discriminator
     pretrainedNids = args.pretrained_nids
-
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
