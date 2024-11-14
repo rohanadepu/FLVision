@@ -100,8 +100,8 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
 
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
-    training_benign_size = training_dataset_size / 2
-    testing_benign_size = testing_dataset_size / 2
+    training_benign_size = training_dataset_size // 2
+    testing_benign_size = testing_dataset_size // 2
 
     benign_size_limits = {'train': training_benign_size, 'test': testing_benign_size}
 
