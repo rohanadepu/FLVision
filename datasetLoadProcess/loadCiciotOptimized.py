@@ -94,33 +94,48 @@ def reduce_attack_samples(data, attack_ratio):
 ###################################################################################
 #               Load Config for CICIOT 2023 Dataset                            #
 ###################################################################################
-def loadCICIOT(poisonedDataType=None, verbose=True):
+def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_sample_size=10,
+               training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
-    train_sample_size, test_sample_size = 25, 10
+    training_benign_size = training_dataset_size / 2
+    testing_benign_size = testing_dataset_size / 2
 
-    benign_size_limits = {'train': 110000, 'test': 44000}
+    benign_size_limits = {'train': training_benign_size, 'test': testing_benign_size}
 
-    attack_ratio = 0.1  # For reducing attacks in test data
+    attack_ratio = attack_eval_samples_ratio  # For reducing attacks in test data
+    attack_percentage = attack_ratio * 10
 
     #--- File Paths ---#
+    if verbose:
+        print("\nLoading Network Traffic Data Files...")
 
+    # List and sorts the files in the dataset directory
     csv_filepaths = sorted([filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')])
     train_files = random.sample(csv_filepaths, train_sample_size)
     test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
+
+    if verbose:
+        print("\nTraining Sets:\n", train_files, "\n")
+        print("\nTest Sets:\n", test_files, "\n")
 
     #--- Load Train Data ---#
 
     if verbose:
         print("\nLoading Training Data...")
 
-    ciciot_train_data, train_benign_count = pd.DataFrame(), 0
+    ciciot_train_data = pd.DataFrame()
+    train_benign_count = 0
 
     for file in train_files:
 
+        # break loop once limit is reached
         if train_benign_count >= benign_size_limits['train']:
             break
+
+        if verbose:
+            print(f"Training dataset sample: {file} \n")
 
         data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    train_benign_count, benign_size_limits['train'])
@@ -129,15 +144,26 @@ def loadCICIOT(poisonedDataType=None, verbose=True):
 
         train_benign_count += benign_count
 
+        if verbose:
+            print(
+                f"Benign Traffic Train Samples | Samples in File: {benign_count} | Total: {train_benign_count} | LIMIT: {benign_size_limits['train']}")
+
     #--- Load Test Data ---#
 
     if verbose:
         print("\nLoading Testing Data...")
 
-    ciciot_test_data, test_benign_count = pd.DataFrame(), 0
+    ciciot_test_data = pd.DataFrame()
+    test_benign_count = 0
+
     for file in test_files:
+
         if test_benign_count >= benign_size_limits['test']:
             break
+
+        if verbose:
+            print(f"Testing dataset sample: {file} \n")
+
         data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    test_benign_count, benign_size_limits['test'])
 
@@ -145,10 +171,19 @@ def loadCICIOT(poisonedDataType=None, verbose=True):
 
         test_benign_count += benign_count
 
-    #--- Reduce attack samples in test data  ---#
+        if verbose:
+            print(
+                f"Benign Traffic Test Samples | Samples in File: {benign_count} | Total: {test_benign_count} | LIMIT: {benign_size_limits['test']}")
+
+    # --- Reduce attack samples in test data  ---#
+    if verbose:
+        print("\nReducing Attack Samples in Testing Data to", attack_percentage, "%")
+
     ciciot_test_data = reduce_attack_samples(ciciot_test_data, attack_ratio)
 
     if verbose:
+        print("\n(CICIOT) Train & Test Attack Data Loaded (Attack Data already Combined)...")
+
         print("Training Data Sample:")
         print(ciciot_train_data.head())
 

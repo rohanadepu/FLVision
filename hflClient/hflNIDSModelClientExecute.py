@@ -10,7 +10,7 @@ from datetime import datetime
 import argparse
 sys.path.append(os.path.abspath('..'))
 
-from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
+from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig

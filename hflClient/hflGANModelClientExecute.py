@@ -38,13 +38,10 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
+from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflGANmodelConfig import GanClient
-from modelTrainingConfig.hflDiscModelConfig import create_discriminator
-from modelTrainingConfig.hflGenModelConfig import create_generator
-
+from modelTrainingConfig.hflGANmodelConfig import GanClient, create_model
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -81,6 +78,9 @@ def main():
     parser.add_argument('--pretrained_discriminator', type=str,
                         help="Path to pretrained discriminator model (optional)", default=None)
 
+    parser.add_argument('--pretrained_GAN', type=str,
+                        help="Path to pretrained discriminator model (optional)", default=None)
+
     parser.add_argument('--pretrained_nids', type=str,
                         help="Path to pretrained nids model (optional)", default=None)
 
@@ -96,6 +96,7 @@ def main():
 
     epochs = args.epochs
 
+    pretrainedGan = args.pretrained_GAN
     pretrainedGenerator = args.pretrained_generator
     pretrainedDiscriminator = args.pretrained_discriminator
     pretrainedNids = args.pretrained_nids
@@ -156,20 +157,12 @@ def main():
     # --- Load or Create model ----#
 
     # Load or create the discriminator model
-    if pretrainedDiscriminator:
-        print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+    if pretrainedGan:
+        print(f"Loading pretrained GAN from {pretrainedGan}")
+        model = tf.keras.models.load_model(args.pretrained_discriminator)
     else:
         print("No pretrained discriminator provided. Creating a new discriminator model.")
-        discriminator = create_discriminator(input_dim)
-
-    # Load or create the generator model
-    if pretrainedGenerator:
-        print(f"Loading pretrained generator from {args.pretrained_generator}")
-        generator = tf.keras.models.load_model(args.pretrained_generator)
-    else:
-        print("No pretrained generator provided. Creating a new generator.")
-        generator = create_generator(input_dim, noise_dim)
+        model = create_model(input_dim, noise_dim)
 
     # Optionally load the pretrained nids model
     nids = None
@@ -177,7 +170,7 @@ def main():
         print(f"Loading pretrained NIDS from {args.pretrained_nids}")
         nids = tf.keras.models.load_model(args.pretrained_nids)
 
-    client = GanClient(generator, discriminator, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+    client = GanClient(model, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                        noise_dim, epochs, steps_per_epoch, learning_rate)
 
     # --- Initiate Training ---
