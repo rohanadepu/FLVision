@@ -8,6 +8,10 @@ import time
 from datetime import datetime
 import argparse
 
+from modelTrainingConfig.hflDiscModelConfig import create_discriminator
+from modelTrainingConfig.hflGenModelConfig import create_generator
+
+
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
 
@@ -41,9 +45,6 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
-
-from hflDiscModelConfig import create_discriminator
-from hflGenModelConfig import create_generator
 
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
