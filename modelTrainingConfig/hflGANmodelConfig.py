@@ -228,7 +228,7 @@ class GanClient(fl.client.NumPyClient):
 
                 # Generate fake data
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-                generated_samples = self.generator(noise, training=True)
+                generated_samples = generator(noise, training=True)
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
                     # Discriminator outputs
