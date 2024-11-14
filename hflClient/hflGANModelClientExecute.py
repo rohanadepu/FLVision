@@ -221,6 +221,5 @@ def main():
     discriminator.save("discriminator_GAN_V1.h5")
 
 
-
 if __name__ == "__main__":
     main()
