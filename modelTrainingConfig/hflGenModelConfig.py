@@ -131,13 +131,25 @@ class GeneratorClient(fl.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         self.generator.set_weights(parameters)
-        loss = 0
+        total_loss = 0.0
+        num_batches = 0
+
         for _ in self.x_test_ds:
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
             generated_samples = self.generator(noise, training=False)
             fake_output = self.discriminator(generated_samples, training=False)
-            loss += self.generator_loss(fake_output)
-        return float(loss.numpy()), len(self.x_test), {}
+            batch_loss = self.generator_loss(fake_output)
+
+            # If batch_loss is not scalar, reduce it to a single value
+            if isinstance(batch_loss, tf.Tensor) and batch_loss.shape.rank > 0:
+                batch_loss = tf.reduce_mean(batch_loss)
+
+            total_loss += batch_loss
+            num_batches += 1
+
+        # Calculate the average loss over all batches
+        average_loss = total_loss / num_batches
+        return float(average_loss.numpy()), len(self.x_test), {}
 
     # Function to evaluate the generator on validation data
     def evaluate_validation(self):
@@ -150,5 +162,9 @@ class GeneratorClient(fl.client.NumPyClient):
 
         # Compute the generator loss (how well it fools the discriminator)
         gen_loss = self.generator_loss(fake_output)
+
+        # Aggregate the generator loss to a scalar if it is an array
+        if isinstance(gen_loss, tf.Tensor) and gen_loss.shape.rank > 0:
+            gen_loss = tf.reduce_mean(gen_loss)  # or tf.reduce_sum() based on your requirements
 
         return float(gen_loss.numpy())
