@@ -28,7 +28,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # import pickle
 # import joblib
 
-from datasetLoadProcess.ciciotDatasetLoad import loadCICIOT
+from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from modelTrainingConfig.hflGenModelConfig import GeneratorClient, create_generator

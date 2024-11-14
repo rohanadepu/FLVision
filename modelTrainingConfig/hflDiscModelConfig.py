@@ -220,3 +220,9 @@ class DiscriminatorClient(fl.client.NumPyClient):
             total_loss += batch_loss
 
         return float(total_loss.numpy())
+
+
+
+
+
+

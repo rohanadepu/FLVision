@@ -42,10 +42,28 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
+from hflDiscModelConfig import create_discriminator
+from hflGenModelConfig import create_generator
 
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
+
+
+def create_model(input_dim, noise_dim):
+    model = Sequential()
+
+    model.add(create_generator(input_dim, noise_dim))
+    model.add(create_discriminator(input_dim))
+
+    return model
+
+
+def load_GAN_model(generator, discriminator):
+    model = Sequential([generator, discriminator])
+
+    return model
+
 
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)
@@ -62,10 +80,9 @@ def generate_and_save_network_traffic(model, test_input):
 
 
 class GanClient(fl.client.NumPyClient):
-    def __init__(self, generator, discriminator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
-                 noise_dim, epochs,steps_per_epoch, learning_rate):
-        self.generator = generator
-        self.discriminator = discriminator
+    def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+                 noise_dim, epochs, steps_per_epoch, learning_rate):
+        self.model = model
         self.nids = nids
 
         self.x_train = x_train
@@ -115,12 +132,15 @@ class GanClient(fl.client.NumPyClient):
 
     def get_parameters(self, config):
         # Combine generator and discriminator weights into a single list
-        return self.generator.get_weights() + self.discriminator.get_weights()
+        return self.model.get_weights()
 
     def evaluate_validation(self):
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
 
         # Separate validation data into normal and intrusive using boolean masking
         normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
@@ -131,9 +151,9 @@ class GanClient(fl.client.NumPyClient):
         intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
 
         # Pass real and fake data through the discriminator
-        real_normal_output = self.discriminator(normal_data, training=False)
-        real_intrusive_output = self.discriminator(intrusive_data, training=False)
-        fake_output = self.discriminator(generated_samples, training=False)
+        real_normal_output = discriminator(normal_data, training=False)
+        real_intrusive_output = discriminator(intrusive_data, training=False)
+        fake_output = discriminator(generated_samples, training=False)
 
         # Compute the discriminator loss using the real and fake outputs
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
@@ -144,9 +164,11 @@ class GanClient(fl.client.NumPyClient):
         return float(disc_loss.numpy()), float(gen_loss.numpy())
 
     def evaluate_validation_NIDS(self):
+        generator = self.model.layers[0]
+
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
 
         # Separate validation data into normal and intrusive using boolean masking
         normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
@@ -186,14 +208,9 @@ class GanClient(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
 
-        # `gen_param_count` number of weight tensors
-        gen_param_count = len(self.generator.get_weights())
-        generator_parameters = parameters[:gen_param_count]
-        discriminator_parameters = parameters[gen_param_count:]
-
-        # Set the weights for both models
-        self.generator.set_weights(generator_parameters)
-        self.discriminator.set_weights(discriminator_parameters)
+        self.model.set_weights(parameters)
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
 
         # Create a TensorFlow dataset that includes both features and labels
         train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
@@ -214,9 +231,9 @@ class GanClient(fl.client.NumPyClient):
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
                     # Discriminator outputs
-                    real_normal_output = self.discriminator(normal_data, training=True)
-                    real_intrusive_output = self.discriminator(intrusive_data, training=True)
-                    fake_output = self.discriminator(generated_samples, training=True)
+                    real_normal_output = discriminator(normal_data, training=True)
+                    real_intrusive_output = discriminator(intrusive_data, training=True)
+                    fake_output = discriminator(generated_samples, training=True)
 
                     # Calculate losses of both models
                     disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
@@ -225,12 +242,12 @@ class GanClient(fl.client.NumPyClient):
                 # Apply gradients to both generator and discriminator (Training the models)
                 # calculating gradiants of loss respect weights
                 # (chain rule loss of model respect to outputs product of output respect to weights)
-                gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
-                gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
+                gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
+                gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
 
                 # Applying new parameters given from gradients
-                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
-                self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
+                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
+                self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
@@ -244,21 +261,15 @@ class GanClient(fl.client.NumPyClient):
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}, Validation G Loss: {val_gen_2_loss}')
 
             # Return parameters for both generator and discriminator
-            return self.generator.get_weights() + self.discriminator.get_weights(), len(self.x_train), {}
+            return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):
 
-        # `gen_param_count` number of weight tensors
-        gen_param_count = len(self.generator.get_weights())
-        generator_parameters = parameters[:gen_param_count]
-        discriminator_parameters = parameters[gen_param_count:]
-
-        # Set the weights for both models
-        self.generator.set_weights(generator_parameters)
-        self.discriminator.set_weights(discriminator_parameters)
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
 
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
 
         # Separate test data into normal and intrusive using boolean masking
         normal_mask = tf.equal(self.y_test, 1)  # Assuming label 1 for normal
@@ -272,9 +283,9 @@ class GanClient(fl.client.NumPyClient):
         print(intrusive_data.shape)
         print(generated_samples.shape)
 
-        real_normal_output = self.discriminator(normal_data, training=True)
-        real_intrusive_output = self.discriminator(intrusive_data, training=True)
-        fake_output = self.discriminator(generated_samples, training=True)
+        real_normal_output = discriminator(normal_data, training=True)
+        real_intrusive_output = discriminator(intrusive_data, training=True)
+        fake_output = discriminator(generated_samples, training=True)
 
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
