@@ -73,7 +73,8 @@ def load_and_balance_data(file_path, label_class_dict, current_benign_size, beni
     benign_samples = data[data['label'] == 'Benign']
 
     remaining_benign_quota = benign_size_limit - current_benign_size
-    benign_samples = benign_samples.sample(min(len(benign_samples), remaining_benign_quota), random_state=47)
+    if len(benign_samples) > remaining_benign_quota:
+        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
 
     min_samples = min(len(attack_samples), len(benign_samples))
     balanced_data = pd.concat([attack_samples.sample(min_samples, random_state=47),
