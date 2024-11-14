@@ -2,9 +2,12 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
+import random
 from datetime import datetime
 import argparse
+sys.path.append(os.path.abspath('..'))
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
