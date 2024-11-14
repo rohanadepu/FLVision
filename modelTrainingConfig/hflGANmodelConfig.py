@@ -226,11 +226,12 @@ class GanClient(fl.client.NumPyClient):
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
 
-                # Generate fake data
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-                generated_samples = generator(noise, training=True)
-
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+
+                    # Generate fake data
+                    noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                    generated_samples = generator(noise, training=True)
+
                     # Discriminator outputs
                     real_normal_output = discriminator(normal_data, training=True)
                     real_intrusive_output = discriminator(intrusive_data, training=True)
