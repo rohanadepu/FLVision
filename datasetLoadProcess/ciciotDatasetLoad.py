@@ -212,7 +212,7 @@ def loadCICIOT(poisonedDataType=None):
         if train_normal_traffic_total_size >= train_normal_traffic_size_limit:
             break
 
-        print(f"Training dataset sample {data_set} \n")
+        print(f"Training dataset sample: {data_set} \n")
 
         # find the path for sample
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
@@ -223,7 +223,7 @@ def loadCICIOT(poisonedDataType=None):
         train_normal_traffic_total_size += benign_count  # adding to quota count
 
         print(
-            f"Benign Traffic Train Samples: {benign_count} | {train_normal_traffic_total_size} |LIMIT| {train_normal_traffic_size_limit}")
+            f"Benign Traffic Train Samples| Samples in File: {benign_count} | Total: {train_normal_traffic_total_size} | LIMIT: {train_normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_train_data = pd.concat([ciciot_train_data, balanced_data])  # dataframe to manipulate
@@ -241,7 +241,7 @@ def loadCICIOT(poisonedDataType=None):
         if test_normal_traffic_total_size >= test_normal_traffic_size_limit:
             break
 
-        print(f"Testing dataset sample {data_set} \n")
+        print(f"Testing dataset sample: {data_set} \n")
 
         # find the path for sample
         data_path = os.path.join(DATASET_DIRECTORY, data_set)
@@ -253,7 +253,7 @@ def loadCICIOT(poisonedDataType=None):
         test_normal_traffic_total_size += benign_count  # adding to quota count
 
         print(
-            f"Benign Traffic Test Samples: {benign_count} | {test_normal_traffic_total_size} |LIMIT| {test_normal_traffic_size_limit}")
+            f"Benign Traffic Test Samples| Samples in File: {benign_count} | Total: {test_normal_traffic_total_size} | LIMIT: {test_normal_traffic_size_limit}")
 
         # add to train dataset
         ciciot_test_data = pd.concat([ciciot_test_data, balanced_data])  # dataframe to manipulate
