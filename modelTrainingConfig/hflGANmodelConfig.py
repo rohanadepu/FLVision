@@ -295,4 +295,6 @@ class GanClient(fl.client.NumPyClient):
         # Compute the generator loss: How well does the generator fool the discriminator
         gen_loss = self.generator_loss(fake_output)
 
-        return {"discriminator_loss": float(disc_loss.numpy()), "generator_loss": float(gen_loss.numpy())}, len(self.x_test), {}
+        print(f'Evaluation D Loss: {disc_loss}, Evaluation G Loss: {gen_loss}')
+
+        return float(disc_loss.numpy()), len(self.x_test), {}
