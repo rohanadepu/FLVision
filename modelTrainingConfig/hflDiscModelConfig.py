@@ -69,7 +69,7 @@ def create_discriminator(input_dim):
     return discriminator
 
 
-# --- Class to handle discriminator training ---#
+# #--- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch):

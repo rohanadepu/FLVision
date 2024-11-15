@@ -44,14 +44,15 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer
 from sklearn.utils import shuffle
 from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
+
 class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
     def __init__(self, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
                  X_train_data, y_train_data,X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
                  noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
                  metric_to_monitor_es, es_patience,restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
                  save_best_only, metric_to_monitor_mc, checkpoint_mode, **kwargs):
-        super().__init__(**kwargs)
 
+        super().__init__(**kwargs)
         self.generator = generator
 
         self.data_used = dataset_used
@@ -182,11 +183,11 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
         if self.X_train_data is not None and self.y_train_data is not None:
             print(f"Training aggregated model on server-side data for {self.epochs} epochs...")
             history = model.fit(self.X_train_data, self.y_train_data,
-                      validation_data=(self.X_val_data, self.y_val_data),
-                      epochs=self.epochs, batch_size=self.batch_size,
-                      steps_per_epoch=self.steps_per_epoch,
-                      callbacks=self.callbackFunctions,
-                      verbose=1)
+                                validation_data=(self.X_val_data, self.y_val_data),
+                                epochs=self.epochs, batch_size=self.batch_size,
+                                steps_per_epoch=self.steps_per_epoch,
+                                callbacks=self.callbackFunctions,
+                                verbose=1)
 
         # Save the fine-tuned model
         model.save("federated_model_fine_tuned.h5")
