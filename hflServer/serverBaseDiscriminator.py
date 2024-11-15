@@ -90,7 +90,7 @@ def main():
     # --- Model setup --- #
     # Hyperparameters
     BATCH_SIZE = 256
-    input_dim = X_train_data.shape[1] - 1  # Exclude label column
+    input_dim = X_train_data.shape[1]
     noise_dim = 100
     epochs = 5
     steps_per_epoch = len(X_train_data) // BATCH_SIZE

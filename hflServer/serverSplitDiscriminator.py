@@ -16,7 +16,6 @@ from modelTrainingConfig.hflGenModelConfig import create_generator
 
 def main():
 
-
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Parsing command line arguments
