@@ -29,15 +29,19 @@ def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_out
 
 
 # Custom FedAvg strategy with server-side model training and saving
-class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
+class NidsGenStrategy(fl.server.strategy.FedAvg):
+    def __init__(self, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
         self.generator = generator  # Generator is fixed during discriminator training
+
         self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
+        self.y_train = y_train
+        self.x_val = x_val  # Add validation data
+        self.y_val = y_val
         self.x_test = x_test
+        self.y_test = y_test
+
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
@@ -79,7 +83,7 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
                     fake_output = self.discriminator(generated_data, training=True)
 
                     # Loss calculation for normal, intrusive, and fake data
-                    loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+                    loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
                 # calculate the gradient based on the loss respect to the weights of the model
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
@@ -100,31 +104,6 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
 
         # Send updated weights back to clients
         return model.get_weights(), {}
-
-    def evaluate(self, parameters, config):
-        self.discriminator.set_weights(parameters)
-        loss = 0
-
-        # Create a TensorFlow dataset that includes both test features and labels
-        test_data = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
-
-        for instances, labels in test_data:
-            # Filter normal and intrusive instances
-            normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
-            intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
-            # Generate fake data
-            fake_data = self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False)
-
-            # Discriminator predictions
-            real_normal_output = self.discriminator(normal_data, training=False)
-            real_intrusive_output = self.discriminator(intrusive_data, training=False)
-            fake_output = self.discriminator(fake_data, training=False)
-
-            # Compute the loss for this batch
-            batch_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-            loss += batch_loss
-
-        return float(loss.numpy()), len(self.x_test), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):

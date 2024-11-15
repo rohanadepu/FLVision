@@ -1,9 +1,18 @@
-#########################################################
-#    Imports / Env setup                                #
-#########################################################
-
 import flwr as fl
+import sys
+import os
+import random
+from datetime import datetime
 import argparse
+sys.path.append(os.path.abspath('..'))
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+
+from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
+from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from modelTrainingConfig.hflNIDSModelServerConfig import NIDSAdvGANStrategy
+from modelTrainingConfig.hflGenModelConfig import create_generator
 
 def main():
 
@@ -158,6 +167,7 @@ def main():
     input_dim = X_train_data.shape[1]  # dependant for feature size
 
     batch_size = 64  # 32 - 128; try 64, 96, 128; maybe intervals of 16, maybe even 256
+    noise_dim = 100
 
     epochs = 5  # 1, 2 , 3 or 5 epochs
 
@@ -167,6 +177,21 @@ def main():
 
     learning_rate = 0.0001  # 0.001 or .0001
     betas = [0.9, 0.999]  # Stable
+
+    # initiate optional variables
+    l2_alpha = None
+    l2_norm_clip = None
+    noise_multiplier = None
+    num_microbatches = None
+    adv_portion = None
+    metric_to_monitor_es = None
+    es_patience = None
+    restor_best_w = None
+    metric_to_monitor_l2lr = None
+    l2lr_patience = None
+    save_best_only = None
+    metric_to_monitor_mc = None
+    checkpoint_mode = None
 
     # regularization param
     if regularizationEnabled:
@@ -248,7 +273,7 @@ def main():
     print("Betas:", betas)
     print("Learning Rate:", learning_rate)
 
-    # Load or create the generator model
+    # --- Load or Create model ----#
     if args.pretrained_generator:
         print(f"Loading pretrained generator from {args.pretrained_generator}")
         generator = tf.keras.models.load_model(args.pretrained_generator)
@@ -259,11 +284,12 @@ def main():
     # Start the federated server with custom strategy
     fl.server.start_server(
         config=fl.server.ServerConfig(num_rounds=roundInput),
-        strategy=SaveModelStrategy(
-            server_data=server_data,
-            server_labels=server_labels,
-            epochs=3,  # Set the number of server-side fine-tuning epochs
-            batch_size=32,
+        strategy=NIDSAdvGANStrategy(
+            generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
+            X_train_data, y_train_data, X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
+            noise_multiplier, num_microbatches, batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
+            metric_to_monitor_es, es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
+            save_best_only, metric_to_monitor_mc, checkpoint_mode,
             min_fit_clients=minClients,
             min_evaluate_clients=minClients,
             min_available_clients=minClients
