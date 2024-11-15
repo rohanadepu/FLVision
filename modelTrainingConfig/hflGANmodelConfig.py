@@ -281,7 +281,7 @@ class GanClient(fl.client.NumPyClient):
             val_disc_loss = self.evaluate_validation_disc()
             # val_gen_loss = self.evaluate_validation_gen()
 
-            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}, Validation G Loss: {val_gen_loss}')
+            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
 
             if self.nids is not None:
                 val_nids_loss = self.evaluate_validation_NIDS()
