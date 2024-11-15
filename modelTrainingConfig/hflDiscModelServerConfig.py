@@ -3,30 +3,46 @@ import argparse
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from hflDiscModelConfig import create_discriminator
-def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
-    # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output), real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_intrusive_output), real_intrusive_output)
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.constant([-1], dtype=tf.float32), fake_output)
-    total_loss = real_normal_loss + real_intrusive_loss + fake_loss
+
+
+# loss based on correct classifications between normal, intrusive, and fake traffic
+def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
+    # Create labels matching the shape of the output logits
+    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
+    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
+
+    # Calculate sparse categorical cross-entropy loss for each group separately
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
+    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
+                                                                          real_intrusive_output)
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
+
+    # Compute the mean for each loss group independently
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
+    mean_fake_loss = tf.reduce_mean(fake_loss)
+
+    # Total loss as the average of mean losses for each group
+    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
     return total_loss
 
-def discriminator_loss_synthetic(real_normal_output, fake_output):
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.fill(tf.shape(fake_output), 2), fake_output)  # Label 2 for fake
-    total_loss = real_normal_loss + fake_loss
-    return total_loss
 
 # Custom FedAvg strategy with server-side model training and saving
 class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
+    def __init__(self, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
         self.generator = generator  # Generator is fixed during discriminator training
+        self.discriminator = create_discriminator(self.input_dim)
+
         self.x_train = x_train
-        self.x_val = x_val  # Validation data
-        self.y_val = y_val  # Validation labels
+        self.y_train = y_train
+        self.x_val = x_val  # Add validation data
+        self.y_val = y_val
         self.x_test = x_test
+        self.y_test = y_test
+
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
@@ -36,21 +52,24 @@ class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
 
-    def on_fit_end(self, server_round, aggregated_weights, failures):
-        # Create model and set aggregated weights
-        model = create_discriminator(self.input_dim)
-        model.set_weights(aggregated_weights)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+    def on_fit_end(self, server_round, aggregated_weights, failures):
+        # set aggregated weights
+        self.discriminator.set_weights(aggregated_weights)
+
+        # Create a TensorFlow dataset that includes both features and labels
+        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
 
         for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Assume real_data contains both normal and intrusive traffic
-                # Split the real_data into normal and intrusive samples
-                normal_data = real_data[
-                    real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
+            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
+                # Create masks for normal and intrusive traffic based on labels
+                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
+                intrusive_mask = tf.equal(real_labels, 0)  # Assuming label 0 for intrusive
 
+                # Filter data based on these masks
+                normal_data = tf.boolean_mask(real_data, normal_mask)
+                intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
                 # Generate fake data using the generator
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
@@ -60,16 +79,17 @@ class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
                 with tf.GradientTape() as tape:
                     # Discriminator outputs based on its classifications from inputted data in parameters
                     real_normal_output = self.discriminator(normal_data, training=True)
+                    real_intrusive_output = self.discriminator(intrusive_data, training=True)
                     fake_output = self.discriminator(generated_data, training=True)
 
                     # Loss calculation for normal, intrusive, and fake data
-                    loss = discriminator_loss_synthetic(real_normal_output, fake_output)
+                    loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
                 # calculate the gradient based on the loss respect to the weights of the model
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
 
                 # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+                self.optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch + 1}, Step {step}, D Loss: {loss.numpy()}")
@@ -79,38 +99,34 @@ class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
             print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
 
         # Save the fine-tuned model
-        model.save("federated_model_fine_tuned.h5")
+        self.discriminator.save("disc_model_fine_tuned.h5")
         print(f"Model fine-tuned and saved after round {server_round}.")
 
         # Send updated weights back to clients
-        return model.get_weights(), {}
-
-    def evaluate(self, parameters, config):
-        self.discriminator.set_weights(parameters)
-        loss = 0
-        for instances in self.x_test_ds:
-            real_normal_output = self.discriminator(instances[instances['label'] == 1], training=False)
-            real_intrusive_output = self.discriminator(instances[instances['label'] == 0], training=False)
-            fake_output = self.discriminator(self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False), training=False)
-            loss += discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-        return float(loss.numpy()), len(self.x_test), {}
+        return self.discriminator.get_weights(), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
-        # Generate fake samples using the generator
+        # Generate fake samples
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = self.generator(noise, training=False)
 
-        # Split validation data into normal and intrusive traffic
-        normal_data = self.x_val[self.y_val == 1]  # Real normal traffic
-        intrusive_data = self.x_val[self.y_val == 0]  # Real intrusive traffic
+        # Create a TensorFlow dataset for validation data
+        val_data = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
 
-        # Pass real and fake data through the discriminator
-        real_normal_output = self.discriminator(normal_data, training=False)
-        real_intrusive_output = self.discriminator(intrusive_data, training=False)
-        fake_output = self.discriminator(generated_samples, training=False)
+        total_loss = 0
+        for instances, labels in val_data:
+            # Filter normal and intrusive instances
+            normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+            intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
 
-        # Compute the discriminator loss using the real and fake outputs
-        disc_loss = discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+            # Discriminator predictions
+            real_normal_output = self.discriminator(normal_data, training=False)
+            real_intrusive_output = self.discriminator(intrusive_data, training=False)
+            fake_output = self.discriminator(generated_samples, training=False)
 
-        return float(disc_loss.numpy())
+            # Compute the loss for this batch
+            batch_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+            total_loss += batch_loss
+
+        return float(total_loss.numpy())

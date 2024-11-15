@@ -84,30 +84,23 @@ def main():
     parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt", help="Name of the training log file")
 
     args = parser.parse_args()
-
     dataset_used = args.dataset
     fixedServer = args.fixedServer
     node = args.node
     poisonedDataType = args.pData
     regularizationEnabled = args.reg
     # epochs = args.epochs
-
     dataset_used = args.dataset
     pretrained_model = args.pretrained_model
-
     fixedServer = args.fixedServer
     node = args.node
-
     poisonedDataType = args.pData
-
     regularizationEnabled = args.reg
     DP_enabled = args.dp
     adversarialTrainingEnabled = args.adversarial
-
     earlyStopEnabled = args.eS
     lrSchedRedEnabled = args.lrSched
     modelCheckpointEnabled = args.mChkpnt
-
     evaluationLog = args.evalLog  # input into evaluation method if you want to input name
     trainingLog = args.trainLog  # input into train method if you want to input name
 

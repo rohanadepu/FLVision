@@ -69,7 +69,7 @@ def create_discriminator(input_dim):
     return discriminator
 
 
-# --- Class to handle discriminator training ---#
+# #--- Class to handle discriminator training ---#
 class DiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch):
@@ -103,8 +103,8 @@ class DiscriminatorClient(fl.client.NumPyClient):
     # loss based on correct classifications between normal, intrusive, and fake traffic
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
         # Create labels matching the shape of the output logits
-        real_normal_labels = tf.zeros((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
-        real_intrusive_labels = tf.ones((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
+        real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
+        real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
         fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
 
         # Calculate sparse categorical cross-entropy loss for each group separately

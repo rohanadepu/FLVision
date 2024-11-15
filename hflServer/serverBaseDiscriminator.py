@@ -1,13 +1,18 @@
 import flwr as fl
+import sys
+import os
+import random
+from datetime import datetime
 import argparse
+sys.path.append(os.path.abspath('..'))
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 
-from datasetLoadProcess.ciciotDatasetLoad import (loadCICIOT)
+from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from modelTrainingConfig.hflDiscModelServerConfig import DiscriminatorFullStrategy
-
+from modelTrainingConfig.hflGenModelConfig import create_generator
 
 def main():
 
@@ -56,23 +61,24 @@ def main():
     print("Poisoned Data:", poisonedDataType, "\n")
 
     # --- Load Data ---#
+
+    # Initiate CICIOT to none
+    ciciot_train_data = None
+    ciciot_test_data = None
+    irrelevant_features_ciciot = None
+
+    # Initiate iotbonet to none
+    all_attacks_train = None
+    all_attacks_test = None
+    relevant_features_iotbotnet = None
+
     # load ciciot data if selected
     if dataset_used == "CICIOT":
-        # set iotbonet to none
-        all_attacks_train = None
-        all_attacks_test = None
-        relevant_features_iotbotnet = None
-
         # Load CICIOT data
         ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT()
 
     # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
-        # Set CICIOT to none
-        ciciot_train_data = None
-        ciciot_test_data = None
-        irrelevant_features_ciciot = None
-
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
@@ -101,10 +107,8 @@ def main():
     fl.server.start_server(
         config=fl.server.ServerConfig(num_rounds=roundInput),
         strategy=DiscriminatorFullStrategy(
-            server_data=server_data,
-            server_labels=server_labels,
-            epochs=3,  # Set the number of server-side fine-tuning epochs
-            batch_size=32,
+            generator, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+            noise_dim, epochs, steps_per_epoch, dataset_used, input_dim,
             min_fit_clients=minClients,
             min_evaluate_clients=minClients,
             min_available_clients=minClients
