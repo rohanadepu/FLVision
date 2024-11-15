@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
                         help='Datasets to use: CICIOT, IOTBOTNET, CIFAR')
 
-    parser.add_argument('--pretrained_model', type=str, help="Path to pretrained discriminator model (optional)",
+    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained discriminator model (optional)",
                         default=None)
 
     parser.add_argument("--node", type=int, choices=[1, 2, 3, 4, 5, 6], default=1, help="Client node number 1-6")
@@ -66,7 +66,6 @@ def main():
     minClients = args.min_clients
 
     dataset_used = args.dataset
-    pretrained_model = args.pretrained_model
 
     fixedServer = args.fixedServer
     node = args.node
