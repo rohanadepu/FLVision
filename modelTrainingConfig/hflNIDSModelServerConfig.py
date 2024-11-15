@@ -22,6 +22,7 @@ from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
+import tensorflow_privacy as tfp
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -54,6 +55,7 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
 
         super().__init__(**kwargs)
         self.generator = generator
+        self.nids = None
 
         self.data_used = dataset_used
         self.node = node
@@ -103,59 +105,6 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
 
         self.callbackFunctions = []
 
-    def on_fit_end(self, server_round, aggregated_weights, failures):
-        # increment round count
-        self.roundCount += 1
-
-        # debug print
-        print("Round:", self.roundCount, "\n")
-
-        # Record start time
-        start_time = time.time()
-
-        # Create model and set aggregated weights
-        if self.dataset_used == "IOTBOTNET":
-            print("No pretrained discriminator provided. Creating a new model.")
-
-            model = create_IOTBOTNET_Model(self.input_dim, self.regularizationEnabled, self.l2_alpha)
-
-        else:
-            print("No pretrained discriminator provided. Creating a new mdoel.")
-
-            model = create_CICIOT_Model(self.input_dim, self.regularizationEnabled, self.DP_enabled, self.l2_alpha)
-
-        model.set_weights(aggregated_weights)
-
-        # ---         Differential Privacy Engine Model Compile              --- #
-
-        if self.DP_enabled:
-            import tensorflow_privacy as tfp
-            print("\nIncluding DP into optimizer...\n")
-
-            # Making Custom Optimizer Component with Differential Privacy
-            dp_optimizer = tfp.DPKerasAdamOptimizer(
-                l2_norm_clip=self.l2_norm_clip,
-                noise_multiplier=self.noise_multiplier,
-                num_microbatches=self.num_microbatches,
-                learning_rate=self.learning_rate
-            )
-
-            # compile model with custom dp optimizer
-            self.model.compile(optimizer=dp_optimizer,
-                               loss=tf.keras.losses.binary_crossentropy,
-                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
-
-        # ---              Normal Model Compile                        --- #
-
-        else:
-            print("\nDefault optimizer...\n")
-
-            optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
-
-            self.model.compile(optimizer=optimizer,
-                               loss=tf.keras.losses.binary_crossentropy,
-                               metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                               )
         # init callback functions based on inputs
 
         if self.earlyStopEnabled:
@@ -177,20 +126,75 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
             # add to callback functions list being added during fitting
             self.callbackFunctions.append(model_checkpoint)
 
+        # Create model
+        if self.dataset_used == "IOTBOTNET":
+            print("No pretrained discriminator provided. Creating a new model.")
+
+            self.nids = create_IOTBOTNET_Model(self.input_dim, self.regularizationEnabled, self.l2_alpha)
+
+        else:
+            print("No pretrained discriminator provided. Creating a new mdoel.")
+
+            self.nids = create_CICIOT_Model(self.input_dim, self.regularizationEnabled, self.DP_enabled, self.l2_alpha)
+
+    def on_fit_end(self, server_round, aggregated_weights, failures):
+        # increment round count
+        self.roundCount += 1
+
+        # debug print
+        print("Round:", self.roundCount, "\n")
+
+        # Record start time
+        start_time = time.time()
+
+        # set model weights
+        self.nids.set_weights(aggregated_weights)
+
+        # ---         Differential Privacy Engine Model Compile              --- #
+
+        if self.DP_enabled:
+            print("\nIncluding DP into optimizer...\n")
+
+            # Making Custom Optimizer Component with Differential Privacy
+            dp_optimizer = tfp.DPKerasAdamOptimizer(
+                l2_norm_clip=self.l2_norm_clip,
+                noise_multiplier=self.noise_multiplier,
+                num_microbatches=self.num_microbatches,
+                learning_rate=self.learning_rate
+            )
+
+            # compile model with custom dp optimizer
+            self.nids.compile(optimizer=dp_optimizer,
+                          loss=tf.keras.losses.binary_crossentropy,
+                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()])
+
+        # ---              Normal Model Compile                        --- #
+
+        else:
+            print("\nDefault optimizer...\n")
+
+            optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+
+            self.nids.compile(optimizer=optimizer,
+                          loss=tf.keras.losses.binary_crossentropy,
+                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                          )
+
         # generate new balanced data from generator to add to training dataset
+
 
         # Further train model on server-side data
         if self.X_train_data is not None and self.y_train_data is not None:
             print(f"Training aggregated model on server-side data for {self.epochs} epochs...")
-            history = model.fit(self.X_train_data, self.y_train_data,
-                                validation_data=(self.X_val_data, self.y_val_data),
-                                epochs=self.epochs, batch_size=self.batch_size,
-                                steps_per_epoch=self.steps_per_epoch,
-                                callbacks=self.callbackFunctions,
-                                verbose=1)
+            history = self.nids.fit(self.X_train_data, self.y_train_data,
+                                    validation_data=(self.X_val_data, self.y_val_data),
+                                    epochs=self.epochs, batch_size=self.batch_size,
+                                    steps_per_epoch=self.steps_per_epoch,
+                                    callbacks=self.callbackFunctions,
+                                    verbose=1)
 
         # Save the fine-tuned model
-        model.save("federated_model_fine_tuned.h5")
+        self.nids.save("federated_model_fine_tuned.h5")
         print(f"Model fine-tuned and saved after round {server_round}.")
 
         # Record end time and calculate elapsed time
@@ -209,7 +213,7 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
         self.recordTraining(logName, history, elapsed_time, self.roundCount, val_loss_tensor)
 
         # Send updated weights back to clients
-        return model.get_weights(), {}
+        return self.nids.get_weights(), {}
 
     #########################################################
     #    Metric Saving Functions                           #

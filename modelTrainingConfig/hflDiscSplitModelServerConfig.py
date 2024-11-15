@@ -85,6 +85,8 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         super().__init__(**kwargs)
         self.input_dim = input_dim
         self.generator = generator  # Generator is fixed during discriminator training
+        # create model
+        self.discriminator = create_discriminator(self.input_dim)
 
         self.x_train = x_train
         self.y_train = y_train
@@ -105,9 +107,8 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
     def on_fit_end(self, server_round, aggregated_weights, failures):
-        # Create model and set aggregated weights
-        model = create_discriminator(self.input_dim)
-        model.set_weights(aggregated_weights)
+        # set aggregated weights
+        self.discriminator.set_weights(aggregated_weights)
 
         # Create a TensorFlow dataset that includes both features and labels
         train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
@@ -147,11 +148,11 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
             print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
 
         # Save the fine-tuned model
-        model.save("disc_model_fine_tuned.h5")
+        self.discriminator.save("disc_model_fine_tuned.h5")
         print(f"Model fine-tuned and saved after round {server_round}.")
 
         # Send updated weights back to clients
-        return model.get_weights(), {}
+        return self.discriminator.get_weights(), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
