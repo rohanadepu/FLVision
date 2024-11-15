@@ -43,7 +43,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer
 from sklearn.utils import shuffle
 
 ################################################################################################################
-#                                       GAN Model Setup (Discriminator Training)                                       #
+#                                      Discriminator Model Setup                                        #
 ################################################################################################################
 
 
@@ -175,9 +175,6 @@ class DiscriminatorIntrusionClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.discriminator.set_weights(parameters)
 
-        # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-
         for epoch in range(self.epochs):
             for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
                 # Assume real_data contains both normal and intrusive traffic
@@ -197,7 +194,7 @@ class DiscriminatorIntrusionClient(fl.client.NumPyClient):
 
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
 
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+                self.optimize.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch+1}, Step {step}, D Loss: {loss.numpy()}")
