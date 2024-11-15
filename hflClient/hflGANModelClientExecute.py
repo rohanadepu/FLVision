@@ -212,7 +212,7 @@ def main():
     # --- Save the trained generator model ---#
     model.save("GAN_V1.h5")
 
-    # Assuming `self.model` is the GAN model created with Sequential([generator, discriminator])
+    # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
     generator = model.layers[0]
     discriminator = model.layers[1]
 

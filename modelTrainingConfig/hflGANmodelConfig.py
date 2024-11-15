@@ -66,6 +66,14 @@ def load_GAN_model(generator, discriminator):
     return model
 
 
+def split_GAN_model(model):
+    # Assuming `self.model` is the GAN model created with Sequential([generator, discriminator])
+    generator = model.layers[0]
+    discriminator = model.layers[1]
+
+    return generator, discriminator
+
+
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)
 
@@ -159,7 +167,6 @@ class GanClient(fl.client.NumPyClient):
         # Compute the discriminator loss using the real and fake outputs
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
-
         return float(disc_loss.numpy())
 
     def evaluate_validation_gen(self):
@@ -217,11 +224,11 @@ class GanClient(fl.client.NumPyClient):
 
         # Step 7: Combine the losses
         nids_loss = real_normal_loss + real_intrusive_loss
-        print(f'Validation GAN-NIDS Loss: {nids_loss}')
-
         gen_loss = fake_loss  # Generator loss to fool the NIDS
 
-        return float(gen_loss.numpy())
+        print(f'Validation GEN-NIDS Loss: {gen_loss}')
+
+        return float(nids_loss.numpy())
 
     def fit(self, parameters, config):
         self.model.set_weights(parameters)
@@ -272,13 +279,13 @@ class GanClient(fl.client.NumPyClient):
 
             # After each epoch, evaluate on the validation set
             val_disc_loss = self.evaluate_validation_disc()
-            val_gen_loss = self.evaluate_validation_gen()
+            # val_gen_loss = self.evaluate_validation_gen()
 
             print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}, Validation G Loss: {val_gen_loss}')
 
             if self.nids is not None:
-                val_gen_nids_loss = self.evaluate_validation_NIDS()
-                print(f'Epoch {epoch + 1}, Validation GEN-NIDS Loss: {val_gen_nids_loss}')
+                val_nids_loss = self.evaluate_validation_NIDS()
+                print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}')
 
             # Return parameters for both generator and discriminator
             return self.model.get_weights(), len(self.x_train), {}
