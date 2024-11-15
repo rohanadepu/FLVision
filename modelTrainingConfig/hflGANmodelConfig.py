@@ -135,7 +135,7 @@ class GanClient(fl.client.NumPyClient):
         # Combine generator and discriminator weights into a single list
         return self.model.get_weights()
 
-    def evaluate_validation(self):
+    def evaluate_validation_disc(self):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
@@ -159,10 +159,24 @@ class GanClient(fl.client.NumPyClient):
         # Compute the discriminator loss using the real and fake outputs
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
+
+        return float(disc_loss.numpy())
+
+    def evaluate_validation_gen(self):
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
+        # Generate fake samples using the generator
+        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+        generated_samples = generator(noise, training=False)
+
+        # fake data through the discriminator
+        fake_output = discriminator(generated_samples, training=False)
+
         # Compute the generator loss: How well does the generator fool the discriminator
         gen_loss = self.generator_loss(fake_output)
 
-        return float(disc_loss.numpy()), float(gen_loss.numpy())
+        return float(gen_loss.numpy())
 
     def evaluate_validation_NIDS(self):
         generator = self.model.layers[0]
@@ -203,12 +217,13 @@ class GanClient(fl.client.NumPyClient):
 
         # Step 7: Combine the losses
         nids_loss = real_normal_loss + real_intrusive_loss
+        print(f'Validation GAN-NIDS Loss: {nids_loss}')
+
         gen_loss = fake_loss  # Generator loss to fool the NIDS
 
-        return float(nids_loss.numpy()), float(gen_loss.numpy())
+        return float(gen_loss.numpy())
 
     def fit(self, parameters, config):
-
         self.model.set_weights(parameters)
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
@@ -256,18 +271,19 @@ class GanClient(fl.client.NumPyClient):
                     print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
 
             # After each epoch, evaluate on the validation set
-            val_disc_loss, val_gen_loss = self.evaluate_validation()
+            val_disc_loss = self.evaluate_validation_disc()
+            val_gen_loss = self.evaluate_validation_gen()
+
             print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}, Validation G Loss: {val_gen_loss}')
 
             if self.nids is not None:
-                val_nids_loss, val_gen_2_loss = self.evaluate_validation_NIDS()
-                print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}, Validation G Loss: {val_gen_2_loss}')
+                val_gen_nids_loss = self.evaluate_validation_NIDS()
+                print(f'Epoch {epoch + 1}, Validation GEN-NIDS Loss: {val_gen_nids_loss}')
 
             # Return parameters for both generator and discriminator
             return self.model.get_weights(), len(self.x_train), {}
 
     def evaluate(self, parameters, config):
-
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
