@@ -3,18 +3,78 @@ import argparse
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from hflDiscModelConfig import create_discriminator
-def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
-    # Categorical cross-entropy loss for 3 classes: Normal, Intrusive, and Fake
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_normal_output), real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_intrusive_output), real_intrusive_output)
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.constant([-1], dtype=tf.float32), fake_output)
-    total_loss = real_normal_loss + real_intrusive_loss + fake_loss
+
+
+# loss based on correct classifications between normal, intrusive, and fake traffic
+def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
+    # Create labels matching the shape of the output logits
+    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
+    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
+
+    # Calculate sparse categorical cross-entropy loss for each group separately
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
+    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
+                                                                          real_intrusive_output)
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
+
+    # Compute the mean for each loss group independently
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
+    mean_fake_loss = tf.reduce_mean(fake_loss)
+
+    # Total loss as the average of mean losses for each group
+    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
     return total_loss
 
+
+# Loss for intrusion training (normal and intrusive)
+def discriminator_loss_intrusion(real_normal_output, real_intrusive_output):
+    # Create labels matching the shape of the output logits
+    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
+
+    # Calculate sparse categorical cross-entropy loss for each group separately
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
+    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
+                                                                          real_intrusive_output)
+
+    # Compute the mean for each loss group independently
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
+
+    # Total loss as the average of mean losses for each group
+    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss) / 2
+
+    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
+    # real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_intrusive_output), real_intrusive_output)  # Label 1 for intrusive
+    # total_loss = real_normal_loss + real_intrusive_loss
+
+    return total_loss
+
+
+# Loss for synthetic training (normal and fake)
 def discriminator_loss_synthetic(real_normal_output, fake_output):
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.fill(tf.shape(fake_output), 2), fake_output)  # Label 2 for fake
-    total_loss = real_normal_loss + fake_loss
+    # Create labels matching the shape of the output logits
+    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
+    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
+
+    # Calculate sparse categorical cross-entropy loss for each group separately
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
+
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
+
+    # Compute the mean for each loss group independently
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
+    mean_fake_loss = tf.reduce_mean(fake_loss)
+
+    # Total loss as the average of mean losses for each group
+    total_loss = (mean_real_normal_loss + mean_fake_loss) / 2
+
+    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
+    # fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.fill(tf.shape(fake_output), 2), fake_output)  # Label 2 for fake
+    # total_loss = real_normal_loss + fake_loss
+
     return total_loss
 
 # Custom FedAvg strategy with server-side model training and saving
@@ -36,13 +96,14 @@ class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
         self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
 
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
     def on_fit_end(self, server_round, aggregated_weights, failures):
         # Create model and set aggregated weights
         model = create_discriminator(self.input_dim)
         model.set_weights(aggregated_weights)
 
         # initiate optimizers
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
         for epoch in range(self.epochs):
             for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
@@ -69,7 +130,7 @@ class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
 
                 # Update the model based on the gradient of the loss respect to the weights of the model
-                optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+                self.optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch + 1}, Step {step}, D Loss: {loss.numpy()}")
