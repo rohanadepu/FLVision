@@ -29,7 +29,7 @@ def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_out
 
 
 # Custom FedAvg strategy with server-side model training and saving
-class NidsGenStrategy(fl.server.strategy.FedAvg):
+class DiscriminatorFullStrategy(fl.server.strategy.FedAvg):
     def __init__(self, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
