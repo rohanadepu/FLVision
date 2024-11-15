@@ -68,18 +68,6 @@ def create_discriminator(input_dim):
     return discriminator
 
 
-# Function for creating the generator model
-def create_generator(input_dim, noise_dim):
-    generator = tf.keras.Sequential([
-        Dense(128, activation='relu', input_shape=(noise_dim,)),
-        BatchNormalization(),
-        Dense(256, activation='relu'),
-        BatchNormalization(),
-        Dense(512, activation='relu'),
-        BatchNormalization(),
-        Dense(input_dim, activation='sigmoid')  # Generate traffic features
-    ])
-    return generator
 
 # loss based on correct classifications between normal, intrusive, and fake traffic
 def discriminator_loss(real_normal_output, real_intrusive_output, fake_output):
@@ -109,7 +97,7 @@ def discriminator_loss_synthetic(real_normal_output, fake_output):
 class DiscriminatorIntrusionClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_val, x_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch, dataset_used):
         self.discriminator = discriminator
-        self.generator = generator # Generator is fixed during discriminator training
+        self.generator = generator  # Generator is fixed during discriminator training
         self.x_train = x_train
         self.x_val = x_val  # Validation data
         self.y_val = y_val  # Validation labels
@@ -172,28 +160,47 @@ class DiscriminatorIntrusionClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.discriminator.set_weights(parameters)
         loss = 0
-        for instances in self.x_test_ds:
-            real_normal_output = self.discriminator(instances[instances['label'] == 1], training=False)
-            real_intrusive_output = self.discriminator(instances[instances['label'] == 0], training=False)
 
-            loss += discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
+        # Create a TensorFlow dataset that includes both test features and labels
+        test_data = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
+
+        for instances, labels in test_data:
+            # Filter normal and intrusive instances
+            normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+            intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
+
+            # Discriminator predictions
+            real_normal_output = self.discriminator(normal_data, training=False)
+            real_intrusive_output = self.discriminator(intrusive_data, training=False)
+
+            # Compute the loss for this batch
+            batch_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
+            loss += batch_loss
+
         return float(loss.numpy()), len(self.x_test), {}
+
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
 
-        # Split validation data into normal and intrusive traffic
-        normal_data = self.x_val[self.y_val == 1]  # Real normal traffic
-        intrusive_data = self.x_val[self.y_val == 0]  # Real intrusive traffic
+        # Create a TensorFlow dataset for validation data
+        val_data = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
 
-        # Pass real and fake data through the discriminator
-        real_normal_output = self.discriminator(normal_data, training=False)
-        real_intrusive_output = self.discriminator(intrusive_data, training=False)
+        total_loss = 0
+        for instances, labels in val_data:
+            # Filter normal and intrusive instances
+            normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+            intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
 
-        # Compute the discriminator loss using the real and fake outputs
-        disc_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output, )
+            # Discriminator predictions
+            real_normal_output = self.discriminator(normal_data, training=False)
+            real_intrusive_output = self.discriminator(intrusive_data, training=False)
 
-        return float(disc_loss.numpy())
+            # Compute the loss for this batch
+            batch_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
+            total_loss += batch_loss
+
+        return float(total_loss.numpy())
 
 
 class DiscriminatorSyntheticTrainingClient(fl.client.NumPyClient):
