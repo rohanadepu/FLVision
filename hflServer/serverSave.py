@@ -12,6 +12,8 @@ sys.path.append(os.path.abspath('..'))
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 
+from modelTrainingConfig.hflSavingModelServerConfig import ModelSavingStrategy
+
 
 #########################################################
 #    Config Server                                      #
@@ -35,7 +37,7 @@ def main():
     #########################################################
 
     fl.server.start_server(
-        config=fl.server.ServerConfig(num_rounds=roundInput),
+        config=ModelSavingStrategy(num_rounds=roundInput),
         strategy=fl.server.strategy.FedAvg(
             min_fit_clients=minClients,
             min_evaluate_clients=minClients,
