@@ -1,49 +1,81 @@
 # HFL-DNN-GAN-NIDS
 
-Faculty Advisors:
+## Faculty Advisors:
 
-Graduate Mentors:
+**Dr. Qu, Chenqi**
 
-Undergraduate Researchers:
+**Dr. Prasad, Calyam**
 
-* Kevin Kostage
+**Dr. Reshmi Mitra**
 
-* Sean Peppers
 
+## Graduate Mentors:
+
+* **Mogollon, Juan:** Computer Vision Specialist, AI Engineer
+
+* **Haughton, Trevontae:** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+
+
+## Undergraduate Researchers:
+
+* **Kevin Kostage:** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+
+* **Paulo Drefahl:** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+
+* **Sean Peppers:** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
+
+* **Rohan Adepu:** Cyber-Attack Specialist, Experiment Tech.
+
+* **Jenaya Monroe:** Drone Hardware Specialist, Test-Bed Manager
+
+
+
+## Previous Works
+_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ https://ieeexplore.ieee.org/document/10678662
+
+**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** https://ieeexplore.ieee.org/document/10620812
 
 ## Steps to Run
 
+* **Clone the repo**
 
-* Clone the repo
-
-* Run with Docker: 
-  * Open terminal in the DockerSetup directory
-  * docker-compose up
+* **Run Test Demo with Docker:** 
+  * Open terminal in the _DockerSetup_ directory
+    *       docker-compose up
   
-* If there was an error, run:
-  * docker build -t flwr-server -f Dockerfile.server.
-  * docker build -t flwr-client -f Dockerfile.client.
-  * docker-compose build
-  * docker-compose up
+  * If there was an error, run:
+    *       docker build -t flwr-server -f Dockerfile.server.
+    
+            docker build -t flwr-client -f Dockerfile.client.
+    
+            docker-compose build
+    
+            docker-compose up
 
-* Run with AERPAW:
-  * Ensure all files are downloaded and files are configured.
-    * Use Scp AERPAW_setup_Scrpit and run it in root to properly set up node for experiments.
-  * in clients use 'python3 clientExperiment.py'
-    * use "--dataset IOTBOTNET" after that statement to use the iotbotnet dataset
-  * in server use 'python3 server.py'
+    
+* **Run with AERPAW:**
+  * Connect to TestBed:
+  
+  * Once Connected to the Portable-Server Client Nodes: Go to _FLVision/hflClient_ directory run any of the Client files to initiate the devices to connect to the host server to initiate training 
+    *       python3 [name of program]
+      * use "--dataset IOTBOTNET" after that statement to use the iotbotnet dataset, if not the script will use the CICIOT Dataset.
+  
+
+* Once Connected to the Fixed-Server Host nodes: Go to _FLVision/hflServer/_ to run the various server scripts.
+  * To Run the basic server script with no server-side saving.
+    *     python3 serverBase.py
 
 
-## Client File Summary:
-  * Imports / ENV set up
-  * Script Arguments parsing
-  * Data Load / Processing CICIOT
-  * * Loading Settings
+## Client File Process Summary:
+  * **Imports / ENV set up**
+  * **Script Arguments parsing**
+  * **Data Load / Processing CICIOT**
+  * * Loading Arguments
     * Feature and Label Mappings
     * Loading
-      * Functions
+      * Helper Functions
       * Sampling Files & Train/Test Split
-      * Extracting to Data from Sampled Files into Dataframe 
+      * Extracting to Data from Sampled Files into respective Dataframes
     * Processing
       * Feature Selection
       * Encoding
@@ -51,11 +83,11 @@ Undergraduate Researchers:
       * X y Split & assigned to model
 
 
-  * Data Load / Processing IOTBOTNET
+  * **Data Load / Processing IOTBOTNET**
     * Feature Mappings
     * Loading
-    * * Loading Settings 
-      * Functions
+    * * Loading Arguments 
+      * Helper Functions
       * Loading Specific Attack Data into Dataframes
       * Combine Specific Attacks into a Single Dataframe & Make it Binary Labels
     * Processing
@@ -67,22 +99,46 @@ Undergraduate Researchers:
       * X y Split & assigned to model
   
 
-  * Model Setup
-    * Main Hyperparameters
-    * CICIOT MODEL Layer structures
-    * IOTBOTNET MODEL Layer Structures
-    * Custom Optimizer for Differential Privacy
+  * **NIDS Model Setup**
+    * Main Hyperparameter defined
+    * CICIOT MODEL Layer structure defined
+    * IOTBOTN MODEL Layer Structure defined
     * Default Optimizer & Compile Model
-    * Callback Components
     * Model Analysis
 
 
-  * Federated Learning Setup
-    * Setting weights Def
+  * **Discriminator Model Setup**
+    * Main Hyperparameters defined
+    * MODEL Layer Structure defined
+    * Default Optimizer & Compile Model
+    * Model Analysis
+
+
+  * **Generator Model Setup**
+    * Main Hyperparameters defined
+    * MODEL Layer structure defined
+    * Default Optimizer & Compile Model
+    * Model Analysis
+
+
+  * **GAN Model Setup**
+    * Main Hyperparameters defined
+    * Combine defined DISC. & GEN. MODEL Layer structures
+    * Default Optimizer & Compile Model
+    * Model Analysis
+    
+    
+  * **Initiate Client**
+
+
+  * **Federated Learning Setup**
+    * Client connects to host server to start training process
+    * Setting param Def
     * Fitting Model Def
     * Evaluating Model Def
+    * Distributes Aggregated Model Back to Clients
 
 
-  * Start Client
+  
 
   
