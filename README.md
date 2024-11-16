@@ -30,9 +30,17 @@
 
 
 ## Previous Works
-_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ https://ieeexplore.ieee.org/document/10678662
 
-**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** https://ieeexplore.ieee.org/document/10620812
+**_Federated Learning-enabled Network Incident Anomaly Detection Optimization for Drone Swarms**_
+* **Github Repo (Forked Repo)**: https://github.com/rohanadepu/FLVision
+* **Under Peer Review**: https://aerpaw.org/publications/
+
+_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ 
+* **Paper:** https://ieeexplore.ieee.org/document/10678662 
+* **Github Repo:** https://github.com/Keko787/Generating-a-Balanced-IoT-Cyber-Attack-Dataset-with-GAN-COIL-Collaboration-
+
+**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** 
+* **Paper:** https://ieeexplore.ieee.org/document/10620812
 
 ## Purpose
 * To develop lightweight Network Intrusion Detection System for Private Networks and IoT Clusters
