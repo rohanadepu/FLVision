@@ -40,9 +40,9 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * To utilize Cloud Networking/Computing **_(Chameleon, HiperGator, AERPAW Cloud TestBeds)_** to computationally offload and decentralize training DNN models
 
 ## Models 
-* Deep Neural Network Binary-Classifier for detecting Network Traffic Intrusions
-* Deep Neural Network Multi-Categorical-Classifier for detecting Network Traffic Intrusions & Synthetic Traffic
-* Generative Deep Neural Network Model for generating synthetic Network Traffic & Intrusions
+* Deep Neural Network Binary-Classifier for detecting Network Traffic Intrusions - **Network Intrusion Detection Model/System (NIDM/NIDS)**
+* Deep Neural Network Multi-Categorical-Classifier for detecting Network Traffic Intrusions & Synthetic Traffic - **Discriminator (Disc.)**
+* Generative Deep Neural Network Model for generating synthetic Network Traffic & Intrusions - **Generator (Gen.)**
 * Combined Adversarial Deep Neural Network Generative & Classification Model - **Generative Adversarial Network (GAN)**
 
 ## Hierarchal-Federated-Training Pipelines
