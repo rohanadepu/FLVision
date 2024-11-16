@@ -122,7 +122,8 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 ## Cyber Attack Pipeline
 
 ### Network Attacks
-    TBD
+* Intercepting certain packets transmitted between certain clients and edge resources hosting the training process.
+
 
 ### Adversarial Attacks
 * Data Poisoning: Feature Noise Attack on Training Data
