@@ -85,8 +85,6 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 Figure: Overview of The Hierarchical Federated Learning (HFL) Framework for Smart Home Data Collection, Analysis and Interpretation Using CHI@Edge and Chameleon Cloud Infrastructure
 
 ## Propose Network Topology
-![img_4.png](NetworkTopology.png)
-Figure: Topology of Network with Physical Devices and Cloud Nodes
 
 * The Edge Device is connected to the router to read the network traffic feed of the whole private network.
 
@@ -99,6 +97,11 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 * The Edge Servers act as the host for the Edge Device Client Models, while the Remote Server act as the host for the Edge Server Client Models
 
 * To perform Federated Training, it takes a minimum of two Edge Devices or Servers as clients or connecting to the host server
+
+
+![img_4.png](NetworkTopology.png)
+Figure: Topology of Network with Physical Devices and Cloud Nodes
+
 
 ## Experiment Trials
 * Experiment 1:
