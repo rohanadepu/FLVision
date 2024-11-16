@@ -125,10 +125,16 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 ## Cyber Attack Pipeline
 
 ### Network Attacks
-    TBD
+* MITM:
+  * Intercepting certain packets transmitted between certain clients and edge resources hosting the training process.
+  * DDOS & other detectable attack for the system
+  * Attacks that the system is limited to.
+
 
 ### Adversarial Attacks
-* Data Poisoning: Feature Noise Attack on Training Data
+* Data Poisoning: 
+  * Feature Noise Attack on Training Data.
+  * Feature Noise Attack on Real Data.
 
 
 ![img.png](DataPoisoningPipeline.png)
