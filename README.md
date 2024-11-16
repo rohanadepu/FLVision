@@ -2,37 +2,45 @@
 
 ## Faculty Advisors:
 
-**Dr. Qu, Chenqi**
+* **Dr. Qu, Chenqi (2023-2025)**
 
-**Dr. Prasad, Calyam**
+* **Dr. Prasad, Calyam (2023-2025)**
 
-**Dr. Reshmi Mitra**
+* **Dr. Reshmi Mitra (2024-2025)**
 
 
 ## Graduate Mentors:
 
-* **Mogollon, Juan:** Computer Vision Specialist, AI Engineer
+* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer
 
-* **Haughton, Trevontae:** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
 
 
 ## Undergraduate Researchers:
 
-* **Kevin Kostage:** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+* **Kevin Kostage (2023-2025):** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
 
-* **Paulo Drefahl:** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+* **Paulo Drefahl (2024-2025):** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
 
-* **Sean Peppers:** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
+* **Sean Peppers (2024-2025):** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
 
-* **Rohan Adepu:** Cyber-Attack Specialist, Experiment Tech.
+* **Rohan Adepu (2024):** Cyber-Attack Specialist, Experiment Tech.
 
-* **Jenaya Monroe:** Drone Hardware Specialist, Test-Bed Manager
+* **Jenaya Monroe (2024):** Drone Hardware Specialist, Test-Bed Manager
 
 
 ## Previous Works
-_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ https://ieeexplore.ieee.org/document/10678662
 
-**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** https://ieeexplore.ieee.org/document/10620812
+_**Federated Learning-enabled Network Incident Anomaly Detection Optimization for Drone Swarms**_
+* **Github Repo (Forked Repo)**: https://github.com/rohanadepu/FLVision
+* **Under Peer Review**: https://aerpaw.org/publications/
+
+_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ 
+* **Paper:** https://ieeexplore.ieee.org/document/10678662 
+* **Github Repo:** https://github.com/Keko787/Generating-a-Balanced-IoT-Cyber-Attack-Dataset-with-GAN-COIL-Collaboration-
+
+**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** 
+* **Paper:** https://ieeexplore.ieee.org/document/10620812
 
 ## Purpose
 * To develop lightweight Network Intrusion Detection System for Private Networks and IoT Clusters
@@ -40,9 +48,9 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * To utilize Cloud Networking/Computing **_(Chameleon, HiperGator, AERPAW Cloud TestBeds)_** to computationally offload and decentralize training DNN models
 
 ## Models 
-* Deep Neural Network Binary-Classifier for detecting Network Traffic Intrusions
-* Deep Neural Network Multi-Categorical-Classifier for detecting Network Traffic Intrusions & Synthetic Traffic
-* Generative Deep Neural Network Model for generating synthetic Network Traffic & Intrusions
+* Deep Neural Network Binary-Classifier for detecting Network Traffic Intrusions - **Network Intrusion Detection Model/System (NIDM/NIDS)**
+* Deep Neural Network Multi-Categorical-Classifier for detecting Network Traffic Intrusions & Synthetic Traffic - **Discriminator (Disc.)**
+* Generative Deep Neural Network Model for generating synthetic Network Traffic & Intrusions - **Generator (Gen.)**
 * Combined Adversarial Deep Neural Network Generative & Classification Model - **Generative Adversarial Network (GAN)**
 
 ## Hierarchal-Federated-Training Pipelines
@@ -85,8 +93,6 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 Figure: Overview of The Hierarchical Federated Learning (HFL) Framework for Smart Home Data Collection, Analysis and Interpretation Using CHI@Edge and Chameleon Cloud Infrastructure
 
 ## Propose Network Topology
-![img_4.png](NetworkTopology.png)
-Figure: Topology of Network with Physical Devices and Cloud Nodes
 
 * The Edge Device is connected to the router to read the network traffic feed of the whole private network.
 
@@ -99,6 +105,11 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 * The Edge Servers act as the host for the Edge Device Client Models, while the Remote Server act as the host for the Edge Server Client Models
 
 * To perform Federated Training, it takes a minimum of two Edge Devices or Servers as clients or connecting to the host server
+
+
+![img_4.png](NetworkTopology.png)
+Figure: Topology of Network with Physical Devices and Cloud Nodes
+
 
 ## Experiment Trials
 * Experiment 1:
@@ -122,11 +133,18 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 ## Cyber Attack Pipeline
 
 ### Network Attacks
-* Intercepting certain packets transmitted between certain clients and edge resources hosting the training process.
+
+* MITM:
+  * Intercepting certain packets transmitted between certain clients and edge resources hosting the training process.
+  * DDOS & other detectable attack for the system
+  * Attacks that the system is limited to.
+
 
 
 ### Adversarial Attacks
-* Data Poisoning: Feature Noise Attack on Training Data
+* Data Poisoning: 
+  * Feature Noise Attack on Training Data.
+  * Feature Noise Attack on Real Data.
 
 
 ![img.png](DataPoisoningPipeline.png)
