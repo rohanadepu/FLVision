@@ -2,31 +2,31 @@
 
 ## Faculty Advisors:
 
-**Dr. Qu, Chenqi**
+* **Dr. Qu, Chenqi (2023-2025)**
 
-**Dr. Prasad, Calyam**
+* **Dr. Prasad, Calyam (2023-2025)**
 
-**Dr. Reshmi Mitra**
+* **Dr. Reshmi Mitra (2024-2025)**
 
 
 ## Graduate Mentors:
 
-* **Mogollon, Juan:** Computer Vision Specialist, AI Engineer
+* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer
 
-* **Haughton, Trevontae:** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
 
 
 ## Undergraduate Researchers:
 
-* **Kevin Kostage:** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+* **Kevin Kostage (2023-2025):** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
 
-* **Paulo Drefahl:** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+* **Paulo Drefahl (2024-2025):** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
 
-* **Sean Peppers:** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
+* **Sean Peppers (2024-2025):** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
 
-* **Rohan Adepu:** Cyber-Attack Specialist, Experiment Tech.
+* **Rohan Adepu (2024):** Cyber-Attack Specialist, Experiment Tech.
 
-* **Jenaya Monroe:** Drone Hardware Specialist, Test-Bed Manager
+* **Jenaya Monroe (2024):** Drone Hardware Specialist, Test-Bed Manager
 
 
 ## Previous Works
