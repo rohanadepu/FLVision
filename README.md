@@ -31,7 +31,7 @@
 
 ## Previous Works
 
-**_Federated Learning-enabled Network Incident Anomaly Detection Optimization for Drone Swarms**_
+_**Federated Learning-enabled Network Incident Anomaly Detection Optimization for Drone Swarms**_
 * **Github Repo (Forked Repo)**: https://github.com/rohanadepu/FLVision
 * **Under Peer Review**: https://aerpaw.org/publications/
 
