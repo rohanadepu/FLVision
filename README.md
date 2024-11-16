@@ -100,6 +100,37 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
 
 * To perform Federated Training, it takes a minimum of two Edge Devices or Servers as clients or connecting to the host server
 
+## Experiment Trials
+* Experiment 1:
+  * Testing deep learning model strategies & hierarchal federated learning training pipelines to determine most efficient computational load and best security.
+    * Trial set 1:  HFL Pipeline with dedicated IDS model & Non-Partitioned GAN model
+    * Trial set 2: HFL Pipeline with a Partitioned GAN model
+    * Trial set 3: HFL Pipeline with a Partitioned GAN model & Partitioned Training Strategy for Discriminator.
+
+* Experiment 2:
+  * Testing Cyberattack scenarios with various defense strategies, utility enhancements, & hyperparameter tuning to improve models used in the system.
+    * Trial set 1: Defense Strategies
+    * Trial set 2: Utility Enhancements & Hyperparameter Tuning
+    * Trail set 3: All
+
+* Key Measurements:
+  * Hardware Performance Metrics: CPU/GPU Utilization, RAM & VRAM usage, Power/Battery Drain, Bandwidth, Latency
+  * Model Performance Metrics: Accuracy, Precision, Recall, AUC-ROC, Log-Cosh
+  * System Security: Detection, Detection-Latency, Resilience Against Interception & Adversarial Attacks
+
+
+## Cyber Attack Pipeline
+
+### Network Attacks
+    TBD
+
+### Adversarial Attacks
+* Data Poisoning: Feature Noise Attack on Training Data
+
+
+![img.png](DataPoisoningPipeline.png)
+Figure: Data Poisoning Injection Pipeline on AERPAW Server Nodes
+
 ## Steps to Run
 
 * **Clone the repo**
