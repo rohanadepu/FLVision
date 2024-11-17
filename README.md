@@ -40,7 +40,14 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * **Github Repo:** https://github.com/Keko787/Generating-a-Balanced-IoT-Cyber-Attack-Dataset-with-GAN-COIL-Collaboration-
 
 **_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** 
-* **Paper:** https://ieeexplore.ieee.org/document/10620812
+* **Paper:** https://ieeexplore.ieee.org/document/1062081rs
+
+## Posters
+* [ZT and GAN poster .pdf](https://github.com/user-attachments/files/17789404/ZT.and.GAN.poster.pdf)
+* [Generating_a_Balanced_IoT_Cyber_Attack_Dataset_with_Generative_Adversarial_Networks_1.pdf](https://github.com/user-attachments/files/17789408/Generating_a_Balanced_IoT_Cyber_Attack_Dataset_with_Generative_Adversarial_Networks_1.1.pdf)
+* [Poster Presentation.pdf](https://github.com/user-attachments/files/17789409/Poster.Presentation.pdf)
+
+
 
 ## Purpose
 * To develop lightweight Network Intrusion Detection System for Private Networks and IoT Clusters
