@@ -43,9 +43,10 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * **Paper:** https://ieeexplore.ieee.org/document/1062081rs
 
 ## Posters
-* [ZT and GAN poster .pdf](https://github.com/user-attachments/files/17789404/ZT.and.GAN.poster.pdf)
-* [Generating_a_Balanced_IoT_Cyber_Attack_Dataset_with_Generative_Adversarial_Networks_1.pdf](https://github.com/user-attachments/files/17789408/Generating_a_Balanced_IoT_Cyber_Attack_Dataset_with_Generative_Adversarial_Networks_1.1.pdf)
-* [Poster Presentation.pdf](https://github.com/user-attachments/files/17789409/Poster.Presentation.pdf)
+![image](https://github.com/user-attachments/assets/4d3ac9f2-0273-419a-9fe5-89205500a48e)
+![image](https://github.com/user-attachments/assets/e08d74a9-5690-4275-a28f-f3aa049a95d0)
+<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0">
+
 
 
 
