@@ -340,8 +340,8 @@ def main():
     # --- initiate federated training ---#
     fl.client.start_client(server_address=server_address, client=client.to_client())
 
-    # --- Save the trained discriminator model ---#
-    model.save("../pretrainedModels/NIDS_Base_Model.h5")
+    # --- Save the trained NIDS model ---#
+    model.save("../pretrainedModels/NIDS_Base_Model_V2.h5")
 
 
 if __name__ == "__main__":
