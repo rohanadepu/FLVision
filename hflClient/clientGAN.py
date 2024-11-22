@@ -15,8 +15,15 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-
+from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.losses import LogCosh
+from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from numpy import expand_dims
 
 # import math
 # import glob
@@ -28,19 +35,22 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # import pickle
 # import joblib
 
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
+
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflGenModelConfig import GeneratorClient, create_generator
-from modelTrainingConfig.hflDiscModelConfig import create_discriminator
-################################################################################################################
-#                                       Abstract                                       #
-################################################################################################################
+from clientModelTrainingConfig.GANmodelClientConfig import GanClient, create_model, load_GAN_model
+from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
+from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
-
+################################################################################################################
+#                                                   Execute                                                   #
+################################################################################################################
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Generator Client Training:", "\n")
+    print("Federated Learning Training Demo:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -64,21 +74,34 @@ def main():
                         help="Name of the training log file")
 
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
-    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
-    parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
+    parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
+                        default=None)
+    parser.add_argument('--pretrained_discriminator', type=str,
+                        help="Path to pretrained discriminator model (optional)", default=None)
+
+    parser.add_argument('--pretrained_GAN', type=str,
+                        help="Path to pretrained discriminator model (optional)", default=None)
+
+    parser.add_argument('--pretrained_nids', type=str,
+                        help="Path to pretrained nids model (optional)", default=None)
+
+    # init variables to handle arguments
     args = parser.parse_args()
-
+    # argument variables
     dataset_used = args.dataset
     fixedServer = args.fixedServer
     node = args.node
     poisonedDataType = args.pData
     regularizationEnabled = args.reg
     epochs = args.epochs
+    pretrainedGan = args.pretrained_GAN
+    pretrainedGenerator = args.pretrained_generator
+    pretrainedDiscriminator = args.pretrained_discriminator
+    pretrainedNids = args.pretrained_nids
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
-
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
@@ -87,12 +110,12 @@ def main():
 
     # --- Load Data ---#
 
-    # Set CICIOT to none
+    # Initiate CICIOT to none
     ciciot_train_data = None
     ciciot_test_data = None
     irrelevant_features_ciciot = None
 
-    # set iotbonet to none
+    # Initiate iotbonet to none
     all_attacks_train = None
     all_attacks_test = None
     relevant_features_iotbotnet = None
@@ -117,33 +140,63 @@ def main():
     # --- Hyperparameters ---#
     BATCH_SIZE = 256
     noise_dim = 100
-    input_dim = X_train_data.shape[1]
-    epochs = epochs
+
+    if regularizationEnabled:
+        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+
+    betas = [0.9, 0.999]  # Stable
+
+    learning_rate = 0.0001
+
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
+
+    input_dim = X_train_data.shape[1]
 
     # --- Load or Create model ----#
 
-    # Load or create the discriminator model
-    if args.pretrained_discriminator:
-        print(f"Loading pretrained discriminator from {args.pretrained_discriminator}")
-        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
-    else:
-        print("No pretrained discriminator provided. Creating a new discriminator model.")
+    # Load or create the discriminator, generator, or whole ganLegacy model
+    if pretrainedGan:
+        print(f"Loading pretrained GAN Model from {pretrainedGan}")
+        model = tf.keras.models.load_model(args.pretrained_discriminator)
+
+    elif pretrainedGenerator and not pretrainedDiscriminator:
+
+        print(f"Pretrained Generator provided from {pretrainedGenerator}. Creating a new Discriminator model.")
+        generator = tf.keras.models.load_model(args.pretrained_generator)
+
         discriminator = create_discriminator(input_dim)
 
-    # Load or create the generator model
-    if args.pretrained_generator:
-        print(f"Loading pretrained generator from {args.pretrained_generator}")
-        generator = tf.keras.models.load_model(args.pretrained_generator)
-    else:
-        print("No pretrained generator provided. Creating a new generator.")
+        model = load_GAN_model(generator, discriminator)
+
+    elif pretrainedDiscriminator and not pretrainedGenerator:
+        print(f"Pretrained Discriminator provided from {pretrainedDiscriminator}. Creating a new Generator model.")
+        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+
         generator = create_generator(input_dim, noise_dim)
 
-    # initiate client with models, data, and parameters
-    client = GeneratorClient(generator, discriminator, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
-                             noise_dim, epochs, steps_per_epoch)
+        model = load_GAN_model(generator, discriminator)
 
-    # --- Initiate Training ---#
+    elif pretrainedDiscriminator and pretrainedGenerator:
+        print(f"Pretrained Generator and Discriminator provided from {pretrainedGenerator} , {pretrainedDiscriminator}")
+        discriminator = tf.keras.models.load_model(args.pretrained_discriminator)
+        generator = tf.keras.models.load_model(args.pretrained_generator)
+
+        model = load_GAN_model(generator, discriminator)
+
+    else:
+        print("No pretrained GAN provided. Creating a new GAN model.")
+        model = create_model(input_dim, noise_dim)
+
+    # Optionally load the pretrained nids model
+    nids = None
+    if pretrainedNids:
+        print(f"Loading pretrained NIDS from {args.pretrained_nids}")
+        nids = tf.keras.models.load_model(args.pretrained_nids)
+
+    client = GanClient(model, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+                       noise_dim, epochs, steps_per_epoch, learning_rate)
+
+    # --- Initiate Training ---
     if fixedServer == 4:
         server_address = "192.168.129.8:8080"
     elif fixedServer == 2:
@@ -153,11 +206,19 @@ def main():
     else:
         server_address = "192.168.129.2:8080"
 
-    # Train generator model
+    # Train GAN model
     fl.client.start_client(server_address=server_address, client=client.to_client())
 
     # --- Save the trained generator model ---#
-    generator.save("generator_V1.h5")
+    model.save("GAN_V1.h5")
+
+    # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
+    generator = model.layers[0]
+    discriminator = model.layers[1]
+
+    # Save each submodel separately
+    generator.save("generator_GAN_V1.h5")
+    discriminator.save("discriminator_GAN_V1.h5")
 
 
 if __name__ == "__main__":

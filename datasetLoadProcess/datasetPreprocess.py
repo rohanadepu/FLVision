@@ -113,6 +113,7 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     print("\nNormalizing...")
 
     # initiate scaler and colums to scale
+    # review this part
     scaler = MinMaxScaler(feature_range=(0, 1))
     relevant_num_cols = train_data.columns.difference(['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
@@ -149,3 +150,60 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
 
     print("Data Assigned...")
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
+
+
+# Time-series transformation using sliding window
+def create_sliding_window(X, y, time_steps):
+    X_windowed, y_windowed = [], []
+    for i in range(len(X) - time_steps):
+        X_windowed.append(X.iloc[i:i + time_steps].values)
+        y_windowed.append(y.iloc[i + time_steps])
+    return np.array(X_windowed), np.array(y_windowed)
+
+
+def preprocess_timeseries_dataset(X, y, time_steps=10, test_size=0.2, val_size=0.1, random_state=42):
+    """
+    Preprocesses a dataset for time-series analysis, including train, validation, and test splits.
+
+    Parameters:
+    - X (pd.DataFrame): Features dataframe.
+    - y (pd.Series or pd.DataFrame): Target dataframe or series.
+    - time_steps (int): Number of time steps for sliding window transformation.
+    - test_size (float): Proportion of the dataset to include in the test split.
+    - val_size (float): Proportion of the training data to include in the validation split.
+    - random_state (int): Random seed for reproducibility.
+
+    Returns:
+    - X_train, X_val, X_test (np.array): Preprocessed train, validation, and test features.
+    - y_train, y_val, y_test (np.array): Preprocessed train, validation, and test labels.
+    """
+    # Check for missing values and impute (mean for numerical columns)
+    if X.isnull().sum().sum() > 0:
+        X.fillna(X.mean(), inplace=True)
+    if y.isnull().sum() > 0:
+        y.fillna(y.mode()[0], inplace=True)  # Replace with mode for categorical
+
+    # Encode categorical target labels (if needed)
+    if y.dtypes == 'object' or isinstance(y.iloc[0], str):
+        le = LabelEncoder()
+        y = le.fit_transform(y)
+
+    # Normalize features
+    scaler = MinMaxScaler()
+    X_normalized = scaler.fit_transform(X)
+    X_normalized = pd.DataFrame(X_normalized, columns=X.columns)
+
+    # Time-series transformation using sliding window
+    X_ts, y_ts = create_sliding_window(X_normalized, pd.Series(y), time_steps)
+
+    # Split into training + validation and test sets
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        X_ts, y_ts, test_size=test_size, random_state=random_state
+    )
+
+    # Split training + validation into training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=val_size, random_state=random_state
+    )
+
+    return X_train, X_val, X_test, y_train, y_val, y_test

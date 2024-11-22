@@ -1,18 +1,16 @@
 import flwr as fl
 import sys
 import os
-import random
 from datetime import datetime
 import argparse
 sys.path.append(os.path.abspath('..'))
 import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
 
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflNIDSModelServerConfig import NIDSAdvGANStrategy
-from modelTrainingConfig.hflGenModelConfig import create_generator
+from globalModelTrainingConfig.NIDSModelServerConfig import NIDSAdvGANStrategy
+from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 def main():
 

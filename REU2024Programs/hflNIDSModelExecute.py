@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 import argparse
 
-from gan import ciciotDatasetLoad
+from ganLegacy import ciciotDatasetLoad
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -44,9 +44,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
-from gan.ciciotDatasetLoad import (loadCICIOT)
-from gan.iotbotnetDatasetLoad import loadIOTBOTNET
-from gan.datasetPreprocess import preprocess_dataset
+from ganLegacy.ciciotDatasetLoad import (loadCICIOT)
+from ganLegacy.iotbotnetDatasetLoad import loadIOTBOTNET
+from ganLegacy.datasetPreprocess import preprocess_dataset
 from hflNIDSModelTrain import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
 ################################################################################################################
 #                                       Abstract                                       #

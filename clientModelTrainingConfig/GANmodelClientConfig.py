@@ -8,8 +8,8 @@ import time
 from datetime import datetime
 import argparse
 
-from modelTrainingConfig.hflDiscModelConfig import create_discriminator
-from modelTrainingConfig.hflGenModelConfig import create_generator
+from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
+from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:

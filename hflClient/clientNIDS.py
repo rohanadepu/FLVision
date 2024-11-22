@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath('..'))
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflNIDSModelConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
+from clientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
 
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
