@@ -47,13 +47,14 @@ from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
 
 class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
+    def __init__(self, discriminator, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
                  X_train_data, y_train_data,X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
-                 noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, adv_portion,
+                 noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, synth_portion, adv_portion,
                  metric_to_monitor_es, es_patience,restor_best_w, metric_to_monitor_l2lr, l2lr_patience,
                  save_best_only, metric_to_monitor_mc, checkpoint_mode, **kwargs):
 
         super().__init__(**kwargs)
+        self.discriminator = discriminator
         self.generator = generator
         self.nids = None
 
@@ -176,12 +177,26 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
             optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
 
             self.nids.compile(optimizer=optimizer,
-                          loss=tf.keras.losses.binary_crossentropy,
-                          metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
-                          )
+                              loss=tf.keras.losses.binary_crossentropy,
+                              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                              )
 
         # generate new balanced data from generator to add to training dataset
+        if self.generator is not None and self.discriminator is not None:
+            print("\nGenerating balanced data using generator...\n")
 
+            # Generate balanced examples using the generator
+            generated_data_size = int(self.synth_portion * len(self.X_train_data))
+            X_generated = self.generator.predict(
+                np.random.normal(size=(generated_data_size, self.X_train_data.shape[1])))
+
+            # Use the pre-trained discriminator to generate realistic labels for synthetic data
+            y_generated_probs = self.discriminator.predict(X_generated)
+            y_generated = (y_generated_probs > 0.5).astype(int)  # Assign label 1 if probability > 0.5, else label 0
+
+            # Concatenate original training data with generated balanced data
+            self.X_train_data = np.vstack((self.X_train_data, X_generated))
+            self.y_train_data = np.vstack((self.y_train_data, y_generated))
 
         # Further train model on server-side data
         if self.X_train_data is not None and self.y_train_data is not None:
@@ -192,6 +207,15 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
                                     steps_per_epoch=self.steps_per_epoch,
                                     callbacks=self.callbackFunctions,
                                     verbose=1)
+
+        # Cross-validate the NIDS model using the discriminator
+        if self.discriminator is not None:
+            print("\nCross-validating the NIDS model using the discriminator...\n")
+            # Use the discriminator to evaluate the NIDS model on validation data
+            y_val_pred_probs = self.discriminator.predict(self.X_val_data)
+            y_val_pred_labels = (y_val_pred_probs > 0.5).astype(int)
+            validation_accuracy = np.mean(y_val_pred_labels == self.y_val_data)
+            print(f"Validation accuracy based on discriminator: {validation_accuracy:.2f}")
 
         # Save the fine-tuned model
         self.nids.save("federated_model_fine_tuned.h5")

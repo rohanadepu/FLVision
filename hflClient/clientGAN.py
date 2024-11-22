@@ -41,9 +41,9 @@ from sklearn.utils import shuffle
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflGANmodelConfig import GanClient, create_model, load_GAN_model
-from modelTrainingConfig.hflDiscModelConfig import create_discriminator
-from modelTrainingConfig.hflGenModelConfig import create_generator
+from clientModelTrainingConfig.GANmodelClientConfig import GanClient, create_model, load_GAN_model
+from clientModelTrainingConfig.discModelClientConfig import create_discriminator
+from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -154,7 +154,7 @@ def main():
 
     # --- Load or Create model ----#
 
-    # Load or create the discriminator, generator, or whole gan model
+    # Load or create the discriminator, generator, or whole ganLegacy model
     if pretrainedGan:
         print(f"Loading pretrained GAN Model from {pretrainedGan}")
         model = tf.keras.models.load_model(args.pretrained_discriminator)

@@ -36,7 +36,7 @@ _**Federated Learning-enabled Network Incident Anomaly Detection Optimization fo
 * **Under Peer Review**: https://aerpaw.org/publications/
 
 _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ 
-* **Paper:** https://ieeexplore.ieee.org/document/10678662 
+* **Paper:** [https://www.researchgate.net/publication/384221099_Enhancing_Autonomous_Intrusion_Detection_System_with_Generative_Adversarial_Networks](https://ieeexplore.ieee.org/document/10678662) 
 * **Github Repo:** https://github.com/Keko787/Generating-a-Balanced-IoT-Cyber-Attack-Dataset-with-GAN-COIL-Collaboration-
 
 **_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** 

@@ -31,8 +31,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from modelTrainingConfig.hflGenModelConfig import GeneratorClient, create_generator
-from modelTrainingConfig.hflDiscModelConfig import create_discriminator
+from clientModelTrainingConfig.GenModelClientConfig import GeneratorClient, create_generator
+from clientModelTrainingConfig.discModelClientConfig import create_discriminator
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################

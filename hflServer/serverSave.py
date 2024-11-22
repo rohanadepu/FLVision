@@ -5,14 +5,10 @@
 import flwr as fl
 import sys
 import os
-import random
-from datetime import datetime
 import argparse
 sys.path.append(os.path.abspath('..'))
-import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
 
-from modelTrainingConfig.hflSavingModelServerConfig import ModelSavingStrategy
+from globalModelTrainingConfig.hflSavingModelServerConfig import ModelSavingStrategy
 
 
 #########################################################
