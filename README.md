@@ -97,7 +97,7 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
   * The remote cloud servers will be responsible for pretraining the models and distributing them across the edge servers.
   * The remote nodes will be the high-level host server and manage the overall fine-tuning process.
 
-![img_2.png](SystemArchitecture.png)
+![img_2.png](diagrams/SystemArchitecture.png)
 Figure: Overview of The Hierarchical Federated Learning (HFL) Framework for Smart Home Data Collection, Analysis and Interpretation Using CHI@Edge and Chameleon Cloud Infrastructure
 
 ## Propose Network Topology
@@ -115,7 +115,7 @@ Figure: Overview of The Hierarchical Federated Learning (HFL) Framework for Smar
 * To perform Federated Training, it takes a minimum of two Edge Devices or Servers as clients or connecting to the host server
 
 
-![img_4.png](NetworkTopology.png)
+![img_4.png](diagrams/NetworkTopology.png)
 Figure: Topology of Network with Physical Devices and Cloud Nodes
 
 
@@ -155,7 +155,7 @@ Figure: Topology of Network with Physical Devices and Cloud Nodes
   * Feature Noise Attack on Real Data.
 
 
-![img.png](DataPoisoningPipeline.png)
+![img.png](diagrams/DataPoisoningPipeline.png)
 Figure: Data Poisoning Injection Pipeline on AERPAW Server Nodes
 
 ## Steps to Run
