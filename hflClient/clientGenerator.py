@@ -32,7 +32,7 @@ from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from clientModelTrainingConfig.GenModelClientConfig import GeneratorClient, create_generator
-from clientModelTrainingConfig.discModelClientConfig import create_discriminator
+from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################

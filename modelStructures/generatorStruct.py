@@ -1,27 +1,15 @@
-def create_discriminator(input_dim):
-    # Discriminator to classify three classes: Normal, Intrusive, Fake
-    discriminator = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input
-
-        # GRU to capture temporal dependencies
-        GRU(50, return_sequences=False, activation='tanh'),
-
-        Dense(512, activation='relu'),
+# Function for creating the generator model
+def create_generator(input_dim, noise_dim):
+    generator = tf.keras.Sequential([
+        Dense(128, activation='relu', input_shape=(noise_dim,)),
         BatchNormalization(),
-        Dropout(0.3),
-
         Dense(256, activation='relu'),
         BatchNormalization(),
-        Dropout(0.3),
-
-        Dense(128, activation='relu'),
+        Dense(512, activation='relu'),
         BatchNormalization(),
-        Dropout(0.3),
-
-        # Output layer for three classes
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
+        Dense(input_dim, activation='sigmoid')  # Generate traffic features
     ])
-    return discriminator
+    return generator
 
 
 def create_generator(input_dim, noise_dim):

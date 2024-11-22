@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 import argparse
 
-from clientModelTrainingConfig.discModelClientConfig import create_discriminator
+from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
 from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 

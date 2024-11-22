@@ -42,7 +42,7 @@ from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from clientModelTrainingConfig.GANmodelClientConfig import GanClient, create_model, load_GAN_model
-from clientModelTrainingConfig.discModelClientConfig import create_discriminator
+from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
 from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 ################################################################################################################
