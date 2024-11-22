@@ -8,7 +8,7 @@ import os
 import argparse
 sys.path.append(os.path.abspath('..'))
 
-from globalModelTrainingConfig.hflSavingModelServerConfig import ModelSavingStrategy
+from globalModelTrainingConfig.SavingModelServerConfig import ModelSavingStrategy
 
 
 #########################################################
