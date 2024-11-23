@@ -99,18 +99,23 @@ def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
             Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.4),  # Dropout layer with 50% dropout rate
+
             Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.4),
+
             Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.4),
+
             Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.4),
+
             Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
             BatchNormalization(),
             Dropout(0.4),
+
             Dense(1, activation='sigmoid')
         ])
 
