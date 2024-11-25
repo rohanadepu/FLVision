@@ -46,6 +46,60 @@ CAT_COLS = [
         'TCP', 'UDP', 'DHCP', 'ARP', 'ICMP', 'IPv', 'LLC'
     ]
 
+# Categorical Features
+categorical_features = [
+    "Protocol type",
+    "fin_flag_number",
+    "syn_flag_number",
+    "rst_flag_number",
+    "psh_flag_number",
+    "ack_flag_number",
+    "ece_flag_number",
+    "cwr_flag_number",
+    "TCP",
+    "UDP",
+    "HTTP",
+    "HTTPS",
+    "DNS",
+    "Telnet",
+    "SMTP",
+    "SSH",
+    "IRC",
+    "DHCP",
+    "ARP",
+    "ICMP",
+    "IPv",
+    "LLC"
+]
+
+# Numerical Features
+numerical_features = [
+    "flow_duration",
+    "Header_Length",
+    "Duration",
+    "Rate",
+    "Srate",
+    "Drate",
+    "ack_count",
+    "syn_count",
+    "fin_count",
+    "urg_count",
+    "rst_count",
+    "Tot sum",
+    "Min",
+    "Max",
+    "AVG",
+    "Std",
+    "Tot size",
+    "IAT",
+    "Number",
+    "Magnitue",
+    "Radius",
+    "Covariance",
+    "Variance",
+    "Weight"
+]
+
 IRRELEVANT_FEATURES = ['Srate', 'ece_flag_number', 'rst_flag_number', 'ack_flag_number', 'cwr_flag_number',
                        'ack_count', 'syn_count', 'fin_count', 'rst_count', 'LLC', 'Min', 'Max', 'AVG', 'Std',
                        'Tot size', 'Number', 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight',

@@ -2,6 +2,7 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 import time
@@ -45,29 +46,6 @@ from sklearn.utils import shuffle
 ################################################################################################################
 #                                      Discriminator Model Setup                                        #
 ################################################################################################################
-
-
-# Function for creating the discriminator model
-def create_discriminator(input_dim):
-    # Discriminator is designed to classify three classes:
-    # - Normal (Benign) traffic
-    # - Intrusive (Malicious) traffic
-    # - Generated (Fake) traffic from the generator
-    discriminator = tf.keras.Sequential([
-        Dense(512, activation='relu', input_shape=(input_dim,)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(256, activation='relu'),
-        Dropout(0.3),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
-    return discriminator
-
 
 # loss based on correct classifications between normal, intrusive, and fake traffic
 def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):

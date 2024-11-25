@@ -1,3 +1,29 @@
+#########################################################
+#    Imports / Env setup                                #
+#########################################################
+
+import os
+import random
+import time
+from datetime import datetime
+import argparse
+
+if 'TF_USE_LEGACY_KERAS' in os.environ:
+    del os.environ['TF_USE_LEGACY_KERAS']
+
+import flwr as fl
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.losses import LogCosh
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
 # Function for creating the discriminator model
 def create_discriminator(input_dim):
     # Discriminator is designed to classify three classes:
@@ -19,7 +45,8 @@ def create_discriminator(input_dim):
     ])
     return discriminator
 
-def create_discriminator(input_dim):
+
+def create_discriminator_realtime_GRU(input_dim):
     # Discriminator to classify three classes: Normal, Intrusive, Fake
     discriminator = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input

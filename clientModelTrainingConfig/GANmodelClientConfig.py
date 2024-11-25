@@ -2,14 +2,15 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 import time
 from datetime import datetime
 import argparse
 
-from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
+from modelStructures.discriminatorStruct import create_discriminator
+from modelStructures.generatorStruct import create_generator
 
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
@@ -49,30 +50,6 @@ from sklearn.utils import shuffle
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
-
-
-def create_model(input_dim, noise_dim):
-    model = Sequential()
-
-    model.add(create_generator(input_dim, noise_dim))
-    model.add(create_discriminator(input_dim))
-
-    return model
-
-
-def load_GAN_model(generator, discriminator):
-    model = Sequential([generator, discriminator])
-
-    return model
-
-
-def split_GAN_model(model):
-    # Assuming `self.model` is the GAN model created with Sequential([generator, discriminator])
-    generator = model.layers[0]
-    discriminator = model.layers[1]
-
-    return generator, discriminator
-
 
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)

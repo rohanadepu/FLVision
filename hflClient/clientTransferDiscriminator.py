@@ -39,8 +39,9 @@ from sklearn.utils import shuffle
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.DiscSplitModelClientConfig import DiscriminatorIntrusionClient, create_discriminator
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
+from clientModelTrainingConfig.DiscSplitModelClientConfig import DiscriminatorIntrusionClient
+from modelStructures.discriminatorStruct import create_discriminator
+from modelStructures.generatorStruct import create_generator
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################
@@ -48,7 +49,7 @@ from clientModelTrainingConfig.GenModelClientConfig import create_generator
 
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Discriminator Client Training:", "\n")
+    print("Federated Learning Transfer Discriminator Client Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -151,8 +152,8 @@ def main():
         generator = create_generator(input_dim, noise_dim)
 
     # initiate client with models, data, and parameters
-    client = DiscriminatorIntrusionClient(discriminator, generator, X_train_data, X_val_data, y_val_data, X_test_data, BATCH_SIZE
-                                          , noise_dim, epochs, steps_per_epoch, dataset_used)
+    client = DiscriminatorIntrusionClient(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
+                                          X_test_data, y_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
     # --- Initiate Training ---
     if fixedServer == 4:

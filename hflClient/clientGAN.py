@@ -41,16 +41,17 @@ from sklearn.utils import shuffle
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.GANmodelClientConfig import GanClient, create_model, load_GAN_model
-from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
+from clientModelTrainingConfig.GANmodelClientConfig import GanClient
+from modelStructures.discriminatorStruct import create_discriminator
+from modelStructures.generatorStruct import create_generator
+from modelStructures.ganStruct import create_model, load_GAN_model
 
 ################################################################################################################
 #                                                   Execute                                                   #
 ################################################################################################################
 def main():
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Training Demo:", "\n")
+    print("Federated Learning GAN Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

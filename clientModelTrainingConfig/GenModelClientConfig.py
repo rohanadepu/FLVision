@@ -2,6 +2,7 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 import time
@@ -44,22 +45,8 @@ from sklearn.utils import shuffle
 
 
 ################################################################################################################
-#                                       GAN Model Setup (Generator Training)                                      #
+#                                       Generator Training                                     #
 ################################################################################################################
-
-# Function for creating the generator model
-def create_generator(input_dim, noise_dim):
-    generator = tf.keras.Sequential([
-        Dense(128, activation='relu', input_shape=(noise_dim,)),
-        BatchNormalization(),
-        Dense(256, activation='relu'),
-        BatchNormalization(),
-        Dense(512, activation='relu'),
-        BatchNormalization(),
-        Dense(input_dim, activation='sigmoid')  # Generate traffic features
-    ])
-    return generator
-
 
 # --- Class to handle generator training ---#
 class GeneratorClient(fl.client.NumPyClient):

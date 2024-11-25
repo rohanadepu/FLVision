@@ -1,3 +1,34 @@
+#########################################################
+#    Imports / Env setup                                #
+#########################################################
+
+import sys
+import os
+sys.path.append(os.path.abspath('..'))
+import random
+import time
+from datetime import datetime
+import argparse
+
+from modelStructures.discriminatorStruct import create_discriminator
+from modelStructures.generatorStruct import create_generator
+
+if 'TF_USE_LEGACY_KERAS' in os.environ:
+    del os.environ['TF_USE_LEGACY_KERAS']
+
+import flwr as fl
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.losses import LogCosh
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
 def create_model(input_dim, noise_dim):
     model = Sequential()
 

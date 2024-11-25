@@ -39,8 +39,9 @@ from sklearn.utils import shuffle
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.DiscModelClientConfig import DiscriminatorClient, create_discriminator
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
+from clientModelTrainingConfig.DiscModelClientConfig import DiscriminatorClient
+from modelStructures.discriminatorStruct import create_discriminator
+from modelStructures.generatorStruct import create_generator
 ################################################################################################################
 #                                       Abstract                                       #
 ################################################################################################################

@@ -2,11 +2,13 @@
 #    Imports / Env setup                                #
 #########################################################
 
+import sys
 import os
 import random
 import time
 from datetime import datetime
 import argparse
+
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -43,144 +45,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 ################################################################################################################
-#                                       GAN Model Setup (Discriminator Training)                                       #
+#                                       NIDS Training                                       #
 ################################################################################################################
-
-
-# ---                   CICIOT Models                   --- #
-def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
-
-    # --- Model Definition --- #
-    if regularizationEnabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(1, activation='sigmoid')
-        ])
-
-    elif regularizationEnabled and DP_enabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.4),
-            Dense(1, activation='sigmoid')
-        ])
-
-    elif DP_enabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(32, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(1, activation='sigmoid')
-        ])
-
-    else:
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(64, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),  # Dropout layer with 50% dropout rate
-            Dense(32, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.5),
-            Dense(1, activation='sigmoid')
-        ])
-
-    return model
-
-
-# ---                   IOTBOTNET Models                  --- #
-
-def create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha):
-
-    # --- Model Definition --- #
-    if regularizationEnabled:
-        # with regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.3),  # Dropout layer with 30% dropout rate
-            Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(2, activation='relu', kernel_regularizer=l2(l2_alpha)),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(1, activation='sigmoid')
-        ])
-
-    else:
-        # without regularization
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(input_dim,)),
-            Dense(16, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),  # Dropout layer with 50% dropout rate
-            Dense(8, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(4, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(2, activation='relu'),
-            BatchNormalization(),
-            Dropout(0.3),
-            Dense(1, activation='sigmoid')
-        ])
-
-    return model
-
 
 #########################################################
     #    Adversarial Training Function                   #
@@ -233,15 +99,15 @@ class FlNidsClient(fl.client.NumPyClient):
                  X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches, batch_size, epochs,
                  steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es, es_patience, restor_best_w,
                  metric_to_monitor_l2lr, l2lr_patience, save_best_only, metric_to_monitor_mc, checkpoint_mode,
-                 evaluationLog, trainingLog):
+                 evaluationLog, trainingLog, modelname = "nids"):
 
         # ---         Variable init              --- #
-
         # model
         self.model = model_used
 
         # type of model
         self.data_used = dataset_used
+        self.model_name = modelname
         self.node = node
 
         # flags

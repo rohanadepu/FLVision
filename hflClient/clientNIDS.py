@@ -13,8 +13,8 @@ sys.path.append(os.path.abspath('..'))
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient, create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
-
+from clientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient, recordConfig
+from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -54,7 +54,7 @@ def main():
 
     # --- Script Arguments and Start up ---#
     print("\n ////////////////////////////// \n")
-    print("Federated Learning Discriminator Client Training:", "\n")
+    print("Federated Learning NIDS Client Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
