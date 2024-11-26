@@ -29,7 +29,7 @@ def create_folder_structure(base_dir):
         print(f"Error creating folder structure: {e}")
 
 
-# Function to install dependencies from requirements.txt
+# Function to install dependencies from requirements_edge.txt
 def install_dependencies(requirements_file):
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_file])
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # --- Settings --- #
 
     base_directory = "/root"  # Replace with your base directory path
-    requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements.txt"  # Replace with the path to your requirements.txt
+    requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements_edge.txt"  # Replace with the path to your requirements_edge.txt
     git_repo_url = "https://github.com/rohanadepu/FLVision.git"  # Replace with your Git repository URL
     clone_dir = "/root/FLVision"
 
