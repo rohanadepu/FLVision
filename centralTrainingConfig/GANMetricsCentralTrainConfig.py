@@ -2,12 +2,12 @@
 #    Imports / Env setup                                #
 #########################################################
 
-import sys
 import os
 import random
 import time
 from datetime import datetime
 import argparse
+
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -18,7 +18,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.metrics import AUC, Precision, Recall, Accuracy
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
@@ -46,6 +46,49 @@ from sklearn.utils import shuffle
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
+# Function for creating the discriminator model
+def create_discriminator(input_dim):
+    # Discriminator is designed to classify three classes:
+    # - Normal (Benign) traffic
+    # - Intrusive (Malicious) traffic
+    # - Generated (Fake) traffic from the generator
+    discriminator = tf.keras.Sequential([
+        Dense(512, activation='relu', input_shape=(input_dim,)),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(256, activation='relu'),
+        Dropout(0.3),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(128, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
+    ])
+    return discriminator
+
+# Function for creating the generator model
+def create_generator(input_dim, noise_dim):
+    generator = tf.keras.Sequential([
+        Dense(128, activation='relu', input_shape=(noise_dim,)),
+        BatchNormalization(),
+        Dense(256, activation='relu'),
+        BatchNormalization(),
+        Dense(512, activation='relu'),
+        BatchNormalization(),
+        Dense(input_dim, activation='sigmoid')  # Generate traffic features
+    ])
+    return generator
+
+
+def create_model(input_dim, noise_dim):
+    model = Sequential()
+
+    model.add(create_generator(input_dim, noise_dim))
+    model.add(create_discriminator(input_dim))
+
+    return model
+
 
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)
@@ -61,7 +104,47 @@ def generate_and_save_network_traffic(model, test_input):
     plt.show()
 
 
-class GanClient(fl.client.NumPyClient):
+def discriminator_loss2(y_true, y_pred):
+    """
+    Custom loss function for discriminator.
+    Args:
+        y_true: Ground truth labels (shape: batch_size,).
+        y_pred: Predicted logits/probabilities from the discriminator (shape: batch_size, num_classes).
+
+    Returns:
+        Total loss as a scalar tensor.
+    """
+    # Assume labels: 0 (intrusive), 1 (normal), 2 (fake)
+    real_normal_mask = tf.equal(y_true, 1)  # Mask for normal traffic
+    real_intrusive_mask = tf.equal(y_true, 0)  # Mask for intrusive traffic
+    fake_mask = tf.equal(y_true, 2)  # Mask for fake traffic
+
+    # Select predictions corresponding to each type
+    real_normal_pred = tf.boolean_mask(y_pred, real_normal_mask)
+    real_intrusive_pred = tf.boolean_mask(y_pred, real_intrusive_mask)
+    fake_pred = tf.boolean_mask(y_pred, fake_mask)
+
+    # Define corresponding labels
+    real_normal_labels = tf.ones((tf.shape(real_normal_pred)[0],), dtype=tf.int32)
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_pred)[0],), dtype=tf.int32)
+    fake_labels = tf.fill([tf.shape(fake_pred)[0]], 2)
+
+    # Calculate sparse categorical cross-entropy loss for each group
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_pred)
+    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels, real_intrusive_pred)
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_pred)
+
+    # Compute the mean for each group
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss) if tf.size(real_normal_loss) > 0 else 0.0
+    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss) if tf.size(real_intrusive_loss) > 0 else 0.0
+    mean_fake_loss = tf.reduce_mean(fake_loss) if tf.size(fake_loss) > 0 else 0.0
+
+    # Average the losses
+    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
+    return total_loss
+
+
+class CentralGan:
     def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
         self.model = model
@@ -111,10 +194,6 @@ class GanClient(fl.client.NumPyClient):
         # Generator aims to fool the discriminator by making fake samples appear as class 0 (normal)
         fake_labels = tf.zeros((tf.shape(fake_output)[0],), dtype=tf.int32)  # Shape (batch_size,)
         return tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    def get_parameters(self, config):
-        # Combine generator and discriminator weights into a single list
-        return self.model.get_weights()
 
     def evaluate_validation_disc(self):
         generator = self.model.layers[0]
@@ -203,10 +282,19 @@ class GanClient(fl.client.NumPyClient):
 
         return float(nids_loss.numpy())
 
-    def fit(self, parameters, config):
-        self.model.set_weights(parameters)
+    def fit(self):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
+
+        # Initialize metrics for tracking during training
+        auc_metric = AUC(name='auc')
+        precision_metric_all = Precision(name='precision_all')
+        recall_metric_all = Recall(name='recall_all')
+        accuracy_metric_all = Accuracy(name='accuracy_all')
+
+        precision_metric_DvG = Precision(name='precision_DvG')
+        recall_metric_DvG = Recall(name='recall_DvG')
+        accuracy_metric_DvG = Accuracy(name='accuracy_DvG')
 
         # Create a TensorFlow dataset that includes both features and labels
         train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
@@ -220,13 +308,14 @@ class GanClient(fl.client.NumPyClient):
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
-                # Generate fake data
+                # Generate noise for generator to shift through to create synthetic data
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
 
                     # synthetic outputs generated by generator
                     generated_samples = generator(noise, training=True)
+                    fake_labels = tf.fill([tf.shape(generated_samples)[0]], 2)  # Label "2" for fake traffic
 
                     # Discriminator outputs
                     real_normal_output = discriminator(normal_data, training=True)
@@ -247,8 +336,70 @@ class GanClient(fl.client.NumPyClient):
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
                 self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
 
+                # Update metrics with real and fake data
+                real_normal_labels = tf.ones((normal_data.shape[0],), dtype=tf.int32)
+                real_intrusive_labels = tf.zeros((intrusive_data.shape[0],), dtype=tf.int32)
+                fake_labels = tf.fill([tf.shape(generated_samples)[0]], 2)  # Label 2 for fake traffic
+
+                # Create one-hot encoded labels for all three classes
+                true_labels = tf.concat([
+                    tf.one_hot(real_normal_labels, depth=3),  # Normal class
+                    tf.one_hot(real_intrusive_labels, depth=3),  # Intrusive class
+                    tf.one_hot(fake_labels, depth=3)  # Fake class
+                ], axis=0)
+
+                # Concatenate all predictions
+                predictions = tf.concat([real_normal_output, real_intrusive_output, fake_output], axis=0)
+
+                # auc data prep only
+                # Extract probabilities for the "Fake" class (index 2)
+                predicted_fake_probabilities = predictions[:, 2]
+                # Create binary labels: 1 for "Fake", 0 for "Normal" and "Intrusive"
+                binary_labels = tf.where(tf.equal(tf.argmax(true_labels, axis=1), 2), 1, 0)
+
+                # print("Predictions:", predictions[:5])
+                # print("True Labels:", true_labels[:5])
+                # print("Binary Labels:", binary_labels[:5])
+                # print("Predicted Fake Probabilities:", predicted_fake_probabilities[:5])
+                #
+                # print("Discriminator Outputs (Real Normal):", real_normal_output[:5])
+                # print("Discriminator Outputs (Real Intrusive):", real_intrusive_output[:5])
+                # print("Discriminator Outputs (Fake):", fake_output[:5])
+
+                # Update metrics using combined labels and predictions
+                # Update the AUC metric for "Fake vs All"
+                auc_metric.update_state(binary_labels, predicted_fake_probabilities)
+
+                # Metrics for normal vs intrusive vs fake
+                precision_metric_all.update_state(true_labels, predictions)
+                recall_metric_all.update_state(true_labels, predictions)
+                accuracy_metric_all.update_state(true_labels, predictions)
+
+                # Metrics for real vs fake
+                precision_metric_DvG.update_state(binary_labels, predicted_fake_probabilities)
+                recall_metric_DvG.update_state(binary_labels, predicted_fake_probabilities)
+                accuracy_metric_DvG.update_state(binary_labels, predicted_fake_probabilities)
+
+                # Log metrics every 100 steps
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+                    print(f'Epoch {epoch + 1}, Step {step}, '
+                          f'D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}, '
+                          f'D AUC DvG: {auc_metric.result().numpy()}, '
+                          f'D Precision all: {precision_metric_all.result().numpy()}, '
+                          f'D Recall all: {recall_metric_all.result().numpy()}'
+                          f'D Accuracy all: {accuracy_metric_all.result().numpy()}'
+                          f'D Precision DvG: {precision_metric_DvG.result().numpy()}, '
+                          f'D Recall DvG: {recall_metric_DvG.result().numpy()}, '
+                          f'D Accuracy DvG: {accuracy_metric_DvG.result().numpy()}, ')
+
+            # Reset metrics for the next epoch
+            auc_metric.reset_states()
+            precision_metric_all.reset_states()
+            recall_metric_all.reset_states()
+            accuracy_metric_all.reset_states()
+            precision_metric_DvG.reset_states()
+            recall_metric_DvG.reset_states()
+            accuracy_metric_DvG.reset_states()
 
             # After each epoch, evaluate on the validation set
             val_disc_loss = self.evaluate_validation_disc()
@@ -263,7 +414,7 @@ class GanClient(fl.client.NumPyClient):
             # Return parameters for both generator and discriminator
             return self.model.get_weights(), len(self.x_train), {}
 
-    def evaluate(self, parameters, config):
+    def evaluate(self):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 

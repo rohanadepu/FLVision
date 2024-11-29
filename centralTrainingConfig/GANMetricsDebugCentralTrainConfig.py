@@ -8,9 +8,6 @@ import time
 from datetime import datetime
 import argparse
 
-from clientModelTrainingConfig.DiscModelClientConfig import create_discriminator
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
-
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -21,7 +18,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.metrics import AUC, Precision, Recall
+from tensorflow.keras.metrics import AUC, Precision, Recall, Accuracy
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
@@ -49,6 +46,49 @@ from sklearn.utils import shuffle
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
+# Function for creating the discriminator model
+def create_discriminator(input_dim):
+    # Discriminator is designed to classify three classes:
+    # - Normal (Benign) traffic
+    # - Intrusive (Malicious) traffic
+    # - Generated (Fake) traffic from the generator
+    discriminator = tf.keras.Sequential([
+        Dense(512, activation='relu', input_shape=(input_dim,)),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(256, activation='relu'),
+        Dropout(0.3),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(128, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
+    ])
+    return discriminator
+
+# Function for creating the generator model
+def create_generator(input_dim, noise_dim):
+    generator = tf.keras.Sequential([
+        Dense(128, activation='relu', input_shape=(noise_dim,)),
+        BatchNormalization(),
+        Dense(256, activation='relu'),
+        BatchNormalization(),
+        Dense(512, activation='relu'),
+        BatchNormalization(),
+        Dense(input_dim, activation='sigmoid')  # Generate traffic features
+    ])
+    return generator
+
+
+def create_model(input_dim, noise_dim):
+    model = Sequential()
+
+    model.add(create_generator(input_dim, noise_dim))
+    model.add(create_discriminator(input_dim))
+
+    return model
+
 
 def generate_and_save_network_traffic(model, test_input):
     predictions = model(test_input, training=False)
@@ -62,6 +102,46 @@ def generate_and_save_network_traffic(model, test_input):
 
     plt.savefig('image.png')
     plt.show()
+
+
+def discriminator_loss2(y_true, y_pred):
+    """
+    Custom loss function for discriminator.
+    Args:
+        y_true: Ground truth labels (shape: batch_size,).
+        y_pred: Predicted logits/probabilities from the discriminator (shape: batch_size, num_classes).
+
+    Returns:
+        Total loss as a scalar tensor.
+    """
+    # Assume labels: 0 (intrusive), 1 (normal), 2 (fake)
+    real_normal_mask = tf.equal(y_true, 1)  # Mask for normal traffic
+    real_intrusive_mask = tf.equal(y_true, 0)  # Mask for intrusive traffic
+    fake_mask = tf.equal(y_true, 2)  # Mask for fake traffic
+
+    # Select predictions corresponding to each type
+    real_normal_pred = tf.boolean_mask(y_pred, real_normal_mask)
+    real_intrusive_pred = tf.boolean_mask(y_pred, real_intrusive_mask)
+    fake_pred = tf.boolean_mask(y_pred, fake_mask)
+
+    # Define corresponding labels
+    real_normal_labels = tf.ones((tf.shape(real_normal_pred)[0],), dtype=tf.int32)
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_pred)[0],), dtype=tf.int32)
+    fake_labels = tf.fill([tf.shape(fake_pred)[0]], 2)
+
+    # Calculate sparse categorical cross-entropy loss for each group
+    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_pred)
+    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels, real_intrusive_pred)
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_pred)
+
+    # Compute the mean for each group
+    mean_real_normal_loss = tf.reduce_mean(real_normal_loss) if tf.size(real_normal_loss) > 0 else 0.0
+    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss) if tf.size(real_intrusive_loss) > 0 else 0.0
+    mean_fake_loss = tf.reduce_mean(fake_loss) if tf.size(fake_loss) > 0 else 0.0
+
+    # Average the losses
+    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
+    return total_loss
 
 
 class CentralGan:
@@ -88,6 +168,13 @@ class CentralGan:
 
         self.gen_optimizer = Adam(self.learning_rate)
         self.disc_optimizer = Adam(self.learning_rate)
+
+        discriminator = self.model.layers[1]
+
+        discriminator.compile(optimizer=self.disc_optimizer,
+                              loss=discriminator_loss2,
+                              metrics=['accuracy', Precision(), Recall(), AUC(), LogCosh()]
+                              )
 
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
         # Create labels matching the shape of the output logits
@@ -210,6 +297,11 @@ class CentralGan:
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
+        # Initialize metrics for tracking during training
+        auc_metric = AUC(name='auc')
+        precision_metric = Precision(name='precision')
+        recall_metric = Recall(name='recall')
+
         # Create a TensorFlow dataset that includes both features and labels
         train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
 
@@ -222,13 +314,14 @@ class CentralGan:
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
-                # Generate fake data
+                # Generate noise for generator to shift through to create synthetic data
                 noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
 
                     # synthetic outputs generated by generator
                     generated_samples = generator(noise, training=True)
+                    fake_labels = tf.fill([tf.shape(generated_samples)[0]], 2)  # Label "2" for fake traffic
 
                     # Discriminator outputs
                     real_normal_output = discriminator(normal_data, training=True)
@@ -263,10 +356,9 @@ class CentralGan:
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}')
 
             # Return parameters for both generator and discriminator
-            return self.model.get_weights(), len(self.x_train), {}
+            return len(self.x_train), {}
 
     def evaluate(self):
-
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 

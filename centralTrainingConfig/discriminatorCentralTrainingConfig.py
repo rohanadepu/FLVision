@@ -99,7 +99,6 @@ class CentralDiscriminator:
         total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
         return total_loss
 
-
     def fit(self):
 
         # Create a TensorFlow dataset that includes both features and labels

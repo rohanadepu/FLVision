@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt",
                         help="Name of the training log file")
 
-    parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train the model")
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)", default=None)
     parser.add_argument('--pretrained_discriminator', type=str, help="Path to pretrained discriminator model (optional)", default=None)
 
@@ -143,13 +143,13 @@ def main():
 
     # initiate client with models, data, and parameters
     client = CentralGenerator(generator, discriminator, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
-                             noise_dim, epochs, steps_per_epoch)
+                              noise_dim, epochs, steps_per_epoch)
 
     client.fit()
     client.evaluate()
 
     # --- Save the trained generator model ---#
-    generator.save("generator_V1.h5")
+    generator.save("../pretrainedModels/generator_V1.h5")
 
 
 if __name__ == "__main__":

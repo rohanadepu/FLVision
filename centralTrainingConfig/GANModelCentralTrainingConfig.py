@@ -2,12 +2,12 @@
 #    Imports / Env setup                                #
 #########################################################
 
-import sys
 import os
 import random
 import time
 from datetime import datetime
 import argparse
+
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -61,7 +61,7 @@ def generate_and_save_network_traffic(model, test_input):
     plt.show()
 
 
-class GanClient(fl.client.NumPyClient):
+class CentralGan:
     def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
         self.model = model
@@ -111,10 +111,6 @@ class GanClient(fl.client.NumPyClient):
         # Generator aims to fool the discriminator by making fake samples appear as class 0 (normal)
         fake_labels = tf.zeros((tf.shape(fake_output)[0],), dtype=tf.int32)  # Shape (batch_size,)
         return tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    def get_parameters(self, config):
-        # Combine generator and discriminator weights into a single list
-        return self.model.get_weights()
 
     def evaluate_validation_disc(self):
         generator = self.model.layers[0]
@@ -203,8 +199,7 @@ class GanClient(fl.client.NumPyClient):
 
         return float(nids_loss.numpy())
 
-    def fit(self, parameters, config):
-        self.model.set_weights(parameters)
+    def fit(self):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
@@ -261,9 +256,9 @@ class GanClient(fl.client.NumPyClient):
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}')
 
             # Return parameters for both generator and discriminator
-            return self.model.get_weights(), len(self.x_train), {}
+            return len(self.x_train), {}
 
-    def evaluate(self, parameters, config):
+    def evaluate(self):
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 

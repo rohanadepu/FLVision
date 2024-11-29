@@ -158,7 +158,7 @@ def main():
     # Load or create the discriminator, generator, or whole ganLegacy model
     if pretrainedGan:
         print(f"Loading pretrained GAN Model from {pretrainedGan}")
-        model = tf.keras.models.load_model(args.pretrained_discriminator)
+        model = tf.keras.models.load_model(pretrainedGan)
 
     elif pretrainedGenerator and not pretrainedDiscriminator:
 

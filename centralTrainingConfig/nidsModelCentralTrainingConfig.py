@@ -21,7 +21,6 @@ from sklearn.model_selection import train_test_split
 from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.NIDSModelClientConfig import create_CICIOT_Model, create_IOTBOTNET_Model, recordConfig
 import tensorflow_privacy as tfp
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 

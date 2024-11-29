@@ -46,6 +46,26 @@ def create_discriminator(input_dim):
     return discriminator
 
 
+def create_discriminator_binary(input_dim):
+    # Discriminator to classify two classes:
+    # - Real (Benign & Malicious) traffic
+    # - Generated (Fake) traffic from the generator
+    discriminator = tf.keras.Sequential([
+        Dense(512, activation='relu', input_shape=(input_dim,)),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(256, activation='relu'),
+        Dropout(0.3),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(128, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+        Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
+    ])
+    return discriminator
+
+
 def create_discriminator_realtime_GRU(input_dim):
     # Discriminator to classify three classes: Normal, Intrusive, Fake
     discriminator = tf.keras.Sequential([
@@ -68,5 +88,30 @@ def create_discriminator_realtime_GRU(input_dim):
 
         # Output layer for three classes
         Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
+    ])
+    return discriminator
+
+def create_discriminator_realtime_GRU_binary(input_dim):
+    # Discriminator to classify two classes: Real, Fake
+    discriminator = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input
+
+        # GRU to capture temporal dependencies
+        GRU(50, return_sequences=False, activation='tanh'),
+
+        Dense(512, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(256, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(128, activation='relu'),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        # Output layer for two classes
+        Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
     ])
     return discriminator

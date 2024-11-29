@@ -152,7 +152,7 @@ class DiscriminatorIntrusionTraining:
         self.generator = generator
         self.discriminator = discriminator
 
-        self.dataset_used= dataset_used
+        self.dataset_used = dataset_used
 
         self.x_train = x_train
         self.y_train = y_train
@@ -195,11 +195,11 @@ class DiscriminatorIntrusionTraining:
                 self.optimize.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
-                    print(f"Epoch {epoch+1}, Step {step}, D Loss: {loss.numpy()}")
+                    print(f"Epoch {epoch+1}, Step {step}, D Intrusion Loss: {loss.numpy()}")
 
             # After each epoch, evaluate on the validation set
             val_disc_loss = self.evaluate_validation()
-            print(f'Epoch {epoch+1}, Validation D Loss: {val_disc_loss}')
+            print(f'Epoch {epoch+1}, Validation D Intrusion Loss: {val_disc_loss}')
 
     def evaluate(self):
         loss = 0
