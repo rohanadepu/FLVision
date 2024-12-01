@@ -258,7 +258,6 @@ class CentralNidsClient:
         # Record start time
         start_time = time.time()
 
-
         # Test the model
         loss, accuracy, precision, recall, auc, logcosh = self.model.evaluate(self.X_test_data, self.y_test_data)
 

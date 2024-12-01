@@ -282,9 +282,9 @@ class GanClient(fl.client.NumPyClient):
         print(intrusive_data.shape)
         print(generated_samples.shape)
 
-        real_normal_output = discriminator(normal_data, training=True)
-        real_intrusive_output = discriminator(intrusive_data, training=True)
-        fake_output = discriminator(generated_samples, training=True)
+        real_normal_output = discriminator(normal_data, training=False)
+        real_intrusive_output = discriminator(intrusive_data, training=False)
+        fake_output = discriminator(generated_samples, training=False)
 
         disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
 
