@@ -216,35 +216,51 @@ class CentralBinaryGan:
         generator = self.model.layers[0]
         discriminator = self.model.layers[1]
 
-        # Generate fake samples
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = generator(noise, training=False)
+        # Create a TensorFlow dataset for testing
+        test_data = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
 
-        # Binary masks for separating normal and intrusive test data
-        normal_mask = tf.equal(self.y_test, 1)  # Label 1 for normal
-        intrusive_mask = tf.equal(self.y_test, 0)  # Label 0 for intrusive
+        total_disc_loss = 0.0
+        total_gen_loss = 0.0
+        num_batches = 0
 
-        # Apply masks to create separate datasets
-        normal_data = tf.boolean_mask(self.x_test, normal_mask)
-        intrusive_data = tf.boolean_mask(self.x_test, intrusive_mask)
+        for step, (test_data_batch, test_labels_batch) in enumerate(test_data):
+            # Generate fake samples
+            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            generated_samples = generator(noise, training=False)
 
-        print(f"Total test data shape: {self.x_test.shape}")
-        print(f"Normal data shape: {normal_data.shape}")
-        print(f"Intrusive data shape: {intrusive_data.shape}")
-        print(f"Generated samples shape: {generated_samples.shape}")
+            # Binary masks for separating normal and intrusive test data
+            normal_mask = tf.equal(test_labels_batch, 1)  # Label 1 for normal
+            intrusive_mask = tf.equal(test_labels_batch, 0)  # Label 0 for intrusive
 
-        # Discriminator predictions
-        real_output = discriminator(self.x_test, training=False)  # Real test data
-        fake_output = discriminator(generated_samples, training=False)  # Generated samples
+            # Apply masks to create separate datasets
+            normal_data = tf.boolean_mask(test_data_batch, normal_mask)
+            intrusive_data = tf.boolean_mask(test_data_batch, intrusive_mask)
 
-        # Binary cross-entropy loss for discriminator
-        disc_loss = self.discriminator_loss(real_output, fake_output)
+            print(f"Batch {step + 1}:")
+            print(f"Normal data shape: {normal_data.shape}")
+            print(f"Intrusive data shape: {intrusive_data.shape}")
+            print(f"Generated samples shape: {generated_samples.shape}")
 
-        # Binary cross-entropy loss for generator
-        gen_loss = self.generator_loss(fake_output)
+            # Discriminator predictions
+            real_output = discriminator(test_data_batch, training=False)  # Real test data
+            fake_output = discriminator(generated_samples, training=False)  # Generated samples
 
-        print(f"Evaluation Discriminator Loss: {disc_loss}")
-        print(f"Evaluation Generator Loss: {gen_loss}")
+            # Binary cross-entropy loss for discriminator
+            disc_loss = self.discriminator_loss(real_output, fake_output)
+            total_disc_loss += disc_loss.numpy()
 
-        # Return discriminator loss, number of test samples, and an empty dictionary (optional outputs)
-        return float(disc_loss.numpy()), len(self.x_test), {}
+            # Binary cross-entropy loss for generator
+            gen_loss = self.generator_loss(fake_output)
+            total_gen_loss += gen_loss.numpy()
+
+            num_batches += 1
+
+        # Average losses over all test batches
+        avg_disc_loss = total_disc_loss / num_batches
+        avg_gen_loss = total_gen_loss / num_batches
+
+        print(f"Final Evaluation Discriminator Loss: {avg_disc_loss}")
+        print(f"Final Evaluation Generator Loss: {avg_gen_loss}")
+
+        # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
+        return avg_disc_loss, len(self.x_test), {}
