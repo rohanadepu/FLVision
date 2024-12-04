@@ -19,9 +19,9 @@
 
 ## Undergraduate Researchers:
 
-* **Kevin Kostage (2023-2025):** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+* **Kevin Kostage (2023-2025):** Machine Learning/Deep Learning Engineer, End-to-End Engineer, Network Specialist, Federated Learning Specialist
 
-* **Paulo Drefahl (2024-2025):** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+* **Paulo Drefahl (2024-2025):** Network Specialist, Cyber-Security Specialist, Full-Stack Developer, End-to-End Engineer
 
 * **Sean Peppers (2024-2025):** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
 
