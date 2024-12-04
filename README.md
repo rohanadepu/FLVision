@@ -15,6 +15,7 @@
 
 * **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
 
+* **Saketh, Podovu (2024):** Cyberattack Specialist, Federated-Learning Specialist
 
 ## Undergraduate Researchers:
 
