@@ -11,9 +11,9 @@
 
 ## Graduate Mentors:
 
-* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer
+* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer, Federated Learning Specialist
 
-* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer, Federated Learning Specialist
 
 * **Saketh, Poduvu (2024):** Cyberattack Specialist, Federated-Learning Specialist
 
