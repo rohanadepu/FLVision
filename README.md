@@ -44,10 +44,10 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * **Paper:** [https://ieeexplore.ieee.org/document/10620812](https://ieeexplore.ieee.org/document/10620812)
 
 ## Posters
-<img width="788" alt="image" src="https://github.com/user-attachments/assets/d0f5418f-a101-497d-bb9e-33b845035582" />
+<img width="788" alt="image" src="https://github.com/user-attachments/assets/d0f5418f-a101-497d-bb9e-33b845035582"/>
 ![image](https://github.com/user-attachments/assets/4d3ac9f2-0273-419a-9fe5-89205500a48e)
 ![image](https://github.com/user-attachments/assets/e08d74a9-5690-4275-a28f-f3aa049a95d0)
-<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0">
+<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0"/>
 
 
 
