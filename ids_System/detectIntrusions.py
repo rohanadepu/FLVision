@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     # Argument Parsing
     parser = argparse.ArgumentParser(description='Detect intrusions using a trained NIDS model.')
-    parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
+    parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "Live"], default="CICIOT",
                         help='Dataset to use: CICIOT or IOTBOTNET')
     parser.add_argument('--pretrained_model', type=str, required=True, help="Path to the trained model.")
     parser.add_argument('--threshold', type=float, default=0.5, help="Threshold for classifying intrusions.")
@@ -159,8 +159,10 @@ if __name__ == "__main__":
     print(f"📡 Loading {args.dataset} dataset...")
     if args.dataset == "CICIOT":
         train_data, test_data, irrelevant_features = loadCICIOT()
-    else:
+    if args.dataset == "IOTBOTNET":
         train_data, test_data, irrelevant_features = loadIOTBOTNET()
+    # else: # for live data packet captures
+    #      train_data, test_data, irrelevant_features = liveData()
 
     # Preprocess Dataset
     print("🔄 Preprocessing dataset...")
