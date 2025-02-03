@@ -11,16 +11,17 @@
 
 ## Graduate Mentors:
 
-* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer
+* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer, Federated Learning Specialist
 
-* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer, Federated Learning Specialist
 
+* **Saketh, Poduvu (2024):** Cyberattack Specialist, Federated-Learning Specialist
 
 ## Undergraduate Researchers:
 
-* **Kevin Kostage (2023-2025):** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+* **Kevin Kostage (2023-2025):** Machine Learning/Deep Learning Engineer, End-to-End Engineer, Network Specialist, Federated Learning Specialist, Cyber-Security Specialist
 
-* **Paulo Drefahl (2024-2025):** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+* **Paulo Drefahl (2024-2025):** Network Specialist, Cyber-Security Specialist, Full-Stack Developer, End-to-End Engineer
 
 * **Sean Peppers (2024-2025):** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
 
@@ -43,9 +44,10 @@ _**Enhancing Autonomous Intrusion Detection System with Generative Adversarial N
 * **Paper:** [https://ieeexplore.ieee.org/document/10620812](https://ieeexplore.ieee.org/document/10620812)
 
 ## Posters
-![image](https://github.com/user-attachments/assets/4d3ac9f2-0273-419a-9fe5-89205500a48e)
-![image](https://github.com/user-attachments/assets/e08d74a9-5690-4275-a28f-f3aa049a95d0)
-<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0">
+<img width="788" alt="image" src="https://github.com/user-attachments/assets/d0f5418f-a101-497d-bb9e-33b845035582"/>
+<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0"/>
+<img width="891" alt="image" src="https://github.com/user-attachments/assets/d8621cfb-bb3b-44af-92b2-07e4dbaa9a4a" />
+<img width="874" alt="image" src="https://github.com/user-attachments/assets/afab3c97-fdd2-41ac-867a-3c34d0f82c0e" />
 
 
 
