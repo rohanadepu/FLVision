@@ -85,6 +85,40 @@ def create_auto_feature_extraction_realtime_GRU_Model(input_dim, l2_alpha, dropo
 
     return model
 
+def create_realtime_GRU_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
+
+    # with regularization
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input
+
+        # GRU to capture temporal dependencies
+        GRU(50, return_sequences=False, activation='tanh'),
+
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),  # Dropout layer with 50% dropout rate
+
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(1, activation='sigmoid')
+    ])
+
+    return model
+
 
 # ---                   CICIOT Models                   --- #
 def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):

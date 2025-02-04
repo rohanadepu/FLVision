@@ -42,9 +42,9 @@ from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGan
-from modelStructures.discriminatorStruct import create_discriminator_binary
-from modelStructures.generatorStruct import create_generator
-from modelStructures.ganStruct import create_model, load_GAN_model
+from modelStructures.discriminatorStruct import create_discriminator_binary, create_discriminator_binary_optimized, create_discriminator_binary
+from modelStructures.generatorStruct import create_generator, create_generator_optimized
+from modelStructures.ganStruct import create_model, load_GAN_model, create_model_binary
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -186,7 +186,7 @@ def main():
 
     else:
         print("No pretrained GAN provided. Creating a new GAN model.")
-        model = create_model(input_dim, noise_dim)
+        model = create_model_binary(input_dim, noise_dim)
 
     # Optionally load the pretrained nids model
     nids = None
@@ -201,15 +201,15 @@ def main():
     client.evaluate()
 
     # --- Save the trained generator model ---#
-    model.save("../pretrainedModels/GAN_B1.h5")
+    model.save("../pretrainedModels/GAN_B3.h5")
 
     # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
     generator = model.layers[0]
     discriminator = model.layers[1]
 
     # Save each submodel separately
-    generator.save("../pretrainedModels/generator_GAN_B1.h5")
-    discriminator.save("../pretrainedModels/discriminator_GAN_B1.h5")
+    generator.save("../pretrainedModels/generator_GAN_B3.h5")
+    discriminator.save("../pretrainedModels/discriminator_GAN_B3.h5")
 
 
 if __name__ == "__main__":
