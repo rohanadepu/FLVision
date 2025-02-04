@@ -129,6 +129,10 @@ class CentralBinaryGan:
                 gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
                 gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
 
+                # Apply gradient clipping
+                gradients_of_generator, _ = tf.clip_by_global_norm(gradients_of_generator, 5.0)
+                gradients_of_discriminator, _ = tf.clip_by_global_norm(gradients_of_discriminator, 5.0)
+
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
                 self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
 
@@ -186,7 +190,7 @@ class CentralBinaryGan:
         generated_samples = self.generator(noise, training=False)
 
         # Real outputs
-        real_output = self.nids(self.x_val, training=False)  # Binary classification probabilities
+        real_output = self.nids(self.x_val_ds, training=False)  # Binary classification probabilities
         fake_output = self.nids(generated_samples, training=False)
 
         # Binary cross-entropy for real and fake samples
@@ -246,4 +250,4 @@ class CentralBinaryGan:
         print(f"Final Evaluation Generator Loss: {avg_gen_loss}")
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
-        return avg_disc_loss, len(self.x_test), {}
+        return avg_disc_loss, len(self.x_test_ds), {}

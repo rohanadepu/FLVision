@@ -15,12 +15,13 @@ import flwr as fl
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU, LeakyReLU, Activation
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
+from tensorflow_addons.layers import SpectralNormalization
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
@@ -42,7 +43,7 @@ def create_discriminator(input_dim):
         BatchNormalization(),
         Dropout(0.3),
         Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
+    ])  # see if sigmoid is the issue in transfer
     return discriminator
 
 
@@ -64,6 +65,55 @@ def create_discriminator_binary(input_dim):
         Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
     ])
     return discriminator
+
+
+def create_discriminator_binary_optimized_spectral(input_dim):
+    # Discriminator to classify two classes: Real (Benign & Malicious) traffic vs. Fake traffic
+    discriminator = Sequential([
+        # First Layer
+        SpectralNormalization(Dense(512, use_bias=False, input_shape=(input_dim,))),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        # Second Layer
+        SpectralNormalization(Dense(256, use_bias=False)),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        # Third Layer
+        SpectralNormalization(Dense(128, use_bias=False)),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        # Final Layer (Output)
+        Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
+    ])
+
+    return discriminator
+
+
+def create_discriminator_binary_optimized(input_dim):
+    discriminator = Sequential([
+        # Input Layer
+        Dense(512, use_bias=False, input_shape=(input_dim,)),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        # Hidden Layers
+        Dense(256, use_bias=False),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(128, use_bias=False),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        # Final Layer (Binary Classification)
+        Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
+    ])
+    return discriminator
+
+
 
 
 def create_discriminator_realtime_GRU(input_dim):
