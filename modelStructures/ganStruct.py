@@ -41,7 +41,7 @@ def create_model_binary_optimized(input_dim, noise_dim):
     model = Sequential()
 
     model.add(create_generator_optimized(input_dim, noise_dim))
-    model.add(create_discriminator_binary_optimized_spectral(input_dim))
+    model.add(create_discriminator_binary_optimized(input_dim))
 
     return model
 

@@ -47,6 +47,8 @@ from sklearn.utils import shuffle
 #                                       Preprocessing & Assigning the dataset                                  #
 ################################################################################################################
 
+# def underfit_preprocessing():
+
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
                        all_attacks_test=None, irrelevant_features_ciciot=None, relevant_features_iotbotnet=None):
     # --- Feature Selection 1 ---#
@@ -76,6 +78,9 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
         # initiate model training and test data
         train_data = all_attacks_train
         test_data = all_attacks_test
+
+    else:
+        raise ValueError("Unsupported dataset type.")
 
     print("Features Selected...")
 
@@ -112,8 +117,16 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     # --- Normalizing 3 ---#
     print("\nNormalizing...")
 
+    # DEBUG DISPLAY Before
+    print("\nTraining Data Before Normalization:")
+    print(train_data.head())
+    print(train_data.shape)
+    print("\nTest Data Before Normalization:")
+    print(test_data.head())
+    print(test_data.shape)
+
     # initiate scaler and colums to scale
-    # review this part
+    # review this part - doesnt matter since encoded data is 0-1 already
     scaler = MinMaxScaler(feature_range=(0, 1))
     relevant_num_cols = train_data.columns.difference(['Label' if dataset_used == "IOTBOTNET" else 'label'])
 
@@ -124,9 +137,9 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(train_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
     test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet] = scaler.transform(test_data[relevant_num_cols if dataset_used=="CICIOT" else relevant_features_iotbotnet])
 
-    print("Data Normalized...")
+    print("\nData Normalized...")
 
-    # DEBUG DISPLAY
+    # DEBUG DISPLAY After
     print("\nTraining Data After Normalization:")
     print(train_data.head())
     print(train_data.shape)
@@ -147,6 +160,14 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     # Test data
     X_test_data = test_data.drop(columns=['Label' if dataset_used == "IOTBOTNET" else 'label'])
     y_test_data = test_data['Label' if dataset_used == "IOTBOTNET" else 'label']
+
+    # Print dataset distributions
+    print(f"\nTraining label distribution:")
+    print(pd.Series(y_train_data).value_counts())
+    print(f"\nValidation label distribution:")
+    print(pd.Series(y_val_data).value_counts())
+    print(f"\nTest label distribution:")
+    print(pd.Series(y_test_data).value_counts())
 
     print("Data Assigned...")
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data

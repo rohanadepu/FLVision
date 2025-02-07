@@ -15,6 +15,7 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
+from sklearn.metrics import classification_report, f1_score
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -258,8 +259,18 @@ class CentralNidsClient:
         # Record start time
         start_time = time.time()
 
+        # Get model predictions
+        y_pred_probs = self.model.predict(self.X_test_data)
+        y_pred = (y_pred_probs > 0.5).astype("int32")  # Convert probabilities to binary labels
+
         # Test the model
         loss, accuracy, precision, recall, auc, logcosh = self.model.evaluate(self.X_test_data, self.y_test_data)
+
+        # Compute F1-Score
+        f1 = f1_score(self.y_test_data, y_pred)
+
+        # Compute class-wise precision & recall
+        class_report = classification_report(self.y_test_data, y_pred, target_names=["Attack", "Benign"])
 
         # Record end time and calculate elapsed time
         end_time = time.time()
@@ -269,6 +280,10 @@ class CentralNidsClient:
         logName1 = self.evaluationLog
         #logName = f'evaluation_metrics_{dataset_used}_optimized_{l2_norm_clip}_{noise_multiplier}.txt'
         self.recordEvaluation(logName1, elapsed_time, self.evaluateCount, loss, accuracy, precision, recall, auc, logcosh)
+
+        print("\n===== Classification Report =====")
+        print(class_report)
+        print(f"F1 Score: {f1:.4f}")
 
         return loss, len(self.X_test_data), {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
                                              "LogCosh": logcosh}

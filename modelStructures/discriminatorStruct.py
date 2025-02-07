@@ -91,7 +91,7 @@ def create_discriminator_binary_optimized_spectral(input_dim):
 
     return discriminator
 
-
+# too strong, wtf
 def create_discriminator_binary_optimized(input_dim):
     discriminator = Sequential([
         # Input Layer
