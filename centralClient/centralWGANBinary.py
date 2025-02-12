@@ -38,9 +38,9 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.WGANBinaryCentralTrainingConfig import CentralBinaryWGan
 from modelStructures.discriminatorStruct import create_discriminator_binary, create_discriminator_binary_optimized, create_discriminator_binary
 from modelStructures.generatorStruct import create_generator, create_generator_optimized

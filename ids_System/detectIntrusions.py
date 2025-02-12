@@ -9,9 +9,9 @@ from sklearn.metrics import precision_score, recall_score, f1_score, classificat
 sys.path.append(os.path.abspath('..'))
 
 # Import preprocessing and dataset functions from centralNIDS.py
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 
 # Load the trained model
 def load_model(pretrained_model):

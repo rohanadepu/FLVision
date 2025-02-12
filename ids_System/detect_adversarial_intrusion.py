@@ -9,9 +9,9 @@ import logging
 sys.path.append(os.path.abspath('..'))
 
 # Import dataset loading and preprocessing
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 from detectIntrusions import predict_and_act
 
 # Import GAN structure for synthetic data detection
