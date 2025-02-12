@@ -9,8 +9,8 @@ import tensorflow as tf
 from datasetHandling.loadCiciotOptimized import loadCICIOT
 from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetHandling.datasetPreprocess import preprocess_dataset
-from globalModelTrainingConfig.NIDSModelServerConfig import NIDSAdvGANStrategy
-from clientModelTrainingConfig.GenModelClientConfig import create_generator
+from hflGlobalModelTrainingConfig.NIDSModelServerConfig import NIDSAdvGANStrategy
+from hflClientModelTrainingConfig.GenModelClientConfig import create_generator
 
 def main():
 

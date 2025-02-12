@@ -39,7 +39,7 @@ from sklearn.utils import shuffle
 from datasetHandling.loadCiciotOptimized import loadCICIOT
 from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetHandling.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.DiscModelClientConfig import DiscriminatorClient
+from hflClientModelTrainingConfig.DiscModelClientConfig import DiscriminatorClient
 from modelStructures.discriminatorStruct import create_discriminator
 from modelStructures.generatorStruct import create_generator
 ################################################################################################################

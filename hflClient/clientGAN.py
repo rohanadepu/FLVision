@@ -41,7 +41,7 @@ from sklearn.utils import shuffle
 from datasetHandling.loadCiciotOptimized import loadCICIOT
 from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetHandling.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.GANmodelClientConfig import GanClient
+from hflClientModelTrainingConfig.GANmodelClientConfig import GanClient
 from modelStructures.discriminatorStruct import create_discriminator
 from modelStructures.generatorStruct import create_generator
 from modelStructures.ganStruct import create_model, load_GAN_model
