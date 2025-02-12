@@ -14,7 +14,7 @@ from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
 from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
 from datasetLoadProcess.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.nidsModelCentralTrainingConfig import CentralNidsClient, recordConfig
-from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model
+from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model, create_optimized_model
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -52,7 +52,7 @@ from sklearn.model_selection import train_test_split
 
 def main():
 
-    # --- Script Arguments and Start up ---#
+    # --- 1 Script Arguments and Start up ---#
     print("\n ////////////////////////////// \n")
     print("Stand Alone NIDS Model Training:", "\n")
 
@@ -83,6 +83,11 @@ def main():
     parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt", help="Name of the evaluation log file")
     parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt", help="Name of the training log file")
 
+    parser.add_argument('--save_name', type=str,
+                        help="name of model files you save as", default=f"{timestamp}")
+    parser.add_argument('--o_CICIOT', action='store_true', help='Enable optimized ciciot model struct')
+
+
     args = parser.parse_args()
     dataset_used = args.dataset
     fixedServer = args.fixedServer
@@ -103,6 +108,8 @@ def main():
     modelCheckpointEnabled = args.mChkpnt
     evaluationLog = args.evalLog  # input into evaluation method if you want to input name
     trainingLog = args.trainLog  # input into train method if you want to input name
+    save_name = args.save_name
+    optimized_CICIOT = args.o_CICIOT
 
     # display selected arguments
 
@@ -149,7 +156,7 @@ def main():
     else:
         print("Model Check Point Disabled", "\n")
 
-    # --- Load Data ---#
+    # --- 2 Load Data ---#
     # Initiate CICIOT to none
     ciciot_train_data = None
     ciciot_test_data = None
@@ -170,16 +177,14 @@ def main():
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
-    # --- Preprocess Dataset ---#
+    # --- 3 Preprocess Dataset ---#
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
-    #--- Hyperparameters ---#
+    #--- 4 Model Setup ---#
+    # -- Hyperparameters
     print("\n /////////////////////////////////////////////// \n")
-
-    # base hyperparameters for most models
-    model_name = dataset_used  # name for file
 
     input_dim = X_train_data.shape[1]  # dependant for feature size
 
@@ -211,7 +216,7 @@ def main():
 
     # regularization param
     if regularizationEnabled:
-        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+        l2_alpha = 0.0001  # Increase if overfitting, decrease if underfitting
 
         if DP_enabled:
             l2_alpha = 0.001  # Increase if overfitting, decrease if underfitting
@@ -233,15 +238,7 @@ def main():
         print("Noise Multiplier:", noise_multiplier)
         print("MicroBatches", num_microbatches)
 
-    if adversarialTrainingEnabled:
-        adv_portion = 0.05  # in intervals of 0.05 until to 0.20
-        # adv_portion = 0.1
-        learning_rate = 0.0001  # will be optimized
-
-        print("\nAdversarial Training Parameter:")
-        print("Adversarial Sample %:", adv_portion * 100, "%")
-
-    # set hyperparameters for callback
+    # -- set hyperparameters for callback
 
     # early stop
     if earlyStopEnabled:
@@ -289,7 +286,7 @@ def main():
     print("Betas:", betas)
     print("Learning Rate:", learning_rate)
 
-    #--- Load or Create model ----#
+    # -- Load or Create model
     if pretrained_model:
         print(f"Loading pretrained model from {pretrained_model}")
         # Use custom_object_scope to load the model with LogCosh loss function
@@ -301,16 +298,21 @@ def main():
 
         model = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
 
+    elif dataset_used == "CICIOT" and pretrained_model is None and optimized_CICIOT:
+        print("No pretrained discriminator provided. Creating a new mdoel.")
+
+        model = create_optimized_model(input_dim)
+
     elif dataset_used == "IOTBOTNET" and pretrained_model is None:
         print("No pretrained discriminator provided. Creating a new model.")
 
         model = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
 
-    #--- initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
-    client = CentralNidsClient(model, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
+    #--- 5 initiate client with model, dataset name, dataset, hyperparameters, and flags for training model ---#
+    client = CentralNidsClient(model, dataset_used, node, earlyStopEnabled, DP_enabled,
                           lrSchedRedEnabled, modelCheckpointEnabled, X_train_data, y_train_data, X_test_data,
                           y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier, num_microbatches,
-                          batch_size, epochs, steps_per_epoch, learning_rate, adv_portion, metric_to_monitor_es,
+                          batch_size, epochs, steps_per_epoch, learning_rate, metric_to_monitor_es,
                           es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
                           metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
     client.fit()
@@ -329,8 +331,8 @@ def main():
                  adv_portion, l2_alpha, model)
 
 
-    # --- Save the trained NIDS model ---#
-    model.save("../pretrainedModels/NIDS_Base_Model_V2.h5")
+    # --- 6 Save the trained NIDS model ---#
+    model.save(f"../pretrainedModels/NIDS_{save_name}.h5")
 
 
 if __name__ == "__main__":

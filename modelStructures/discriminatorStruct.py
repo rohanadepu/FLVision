@@ -67,6 +67,59 @@ def create_discriminator_binary(input_dim):
     return discriminator
 
 
+def create_discriminator_binary_optimized(input_dim):
+    """
+    Optimized Discriminator Model
+    - Uses LeakyReLU for better gradient flow.
+    - Applies Spectral Normalization for stable training.
+    - Includes BatchNorm and Dropout for regularization.
+    """
+    discriminator = Sequential([
+        Dense(512, input_shape=(input_dim,)),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(256),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(128),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(1, activation='sigmoid')  # Output: Probability of being real
+    ])
+    return discriminator
+
+
+def create_W_discriminator_binary_optimized(input_dim):
+    """
+    Optimized Discriminator Model for WGAN-GP
+    - Uses Spectral Normalization for stable training.
+    - LeakyReLU for improved gradient flow.
+    - No activation in the output layer (Wasserstein loss).
+    """
+    model = tf.keras.Sequential([
+        SpectralNormalization(Dense(512, input_shape=(input_dim,))),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(256)),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(128)),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(1))  # No activation (raw Wasserstein score)
+    ])
+    return model
+
+
 def create_discriminator_binary_optimized_spectral(input_dim):
     # Discriminator to classify two classes: Real (Benign & Malicious) traffic vs. Fake traffic
     discriminator = Sequential([
@@ -92,7 +145,7 @@ def create_discriminator_binary_optimized_spectral(input_dim):
     return discriminator
 
 # too strong, wtf
-def create_discriminator_binary_optimized(input_dim):
+def create_discriminator_binary_optimized_2(input_dim):
     discriminator = Sequential([
         # Input Layer
         Dense(512, use_bias=False, input_shape=(input_dim,)),

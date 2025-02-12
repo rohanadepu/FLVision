@@ -10,8 +10,8 @@ import time
 from datetime import datetime
 import argparse
 
-from modelStructures.discriminatorStruct import create_discriminator, create_discriminator_binary_optimized, create_discriminator_binary, create_discriminator_binary_optimized_spectral
-from modelStructures.generatorStruct import create_generator, create_generator_optimized
+from modelStructures.discriminatorStruct import create_discriminator, create_discriminator_binary_optimized, create_discriminator_binary, create_discriminator_binary_optimized_spectral, create_W_discriminator_binary_optimized
+from modelStructures.generatorStruct import create_generator, create_generator_optimized, create_W_generator
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
@@ -48,11 +48,19 @@ def create_model_binary_optimized(input_dim, noise_dim):
 def create_model_binary(input_dim, noise_dim):
     model = Sequential()
 
-    model.add(create_generator_optimized(input_dim, noise_dim))
+    model.add(create_generator(input_dim, noise_dim))
     model.add(create_discriminator_binary(input_dim))
 
     return model
 
+
+def create_model_W_binary(input_dim, noise_dim):
+    model = Sequential()
+
+    model.add(create_W_generator(input_dim, noise_dim))
+    model.add(create_W_discriminator_binary_optimized(input_dim))
+
+    return model
 
 def load_GAN_model(generator, discriminator):
     model = Sequential([generator, discriminator])

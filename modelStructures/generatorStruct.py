@@ -15,7 +15,7 @@ import flwr as fl
 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU
+from tensorflow.keras.layers import Dense, LeakyReLU, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
@@ -40,6 +40,32 @@ def create_generator(input_dim, noise_dim):
         Dense(input_dim, activation='sigmoid')  # Generate traffic features
     ])
     return generator
+
+
+def create_W_generator(input_dim, noise_dim):
+    """
+    Optimized Generator Model for WGAN-GP
+    - Uses LeakyReLU to improve training stability.
+    - BatchNormalization to prevent mode collapse.
+    - Sigmoid activation for network traffic feature generation.
+    """
+    model = tf.keras.Sequential([
+        Dense(256, input_shape=(noise_dim,)),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(512),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(1024),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(input_dim, activation='sigmoid')  # Output layer for network traffic data
+    ])
+    return model
+
 
 def create_generator_optimized(input_dim, noise_dim):
     generator = Sequential([

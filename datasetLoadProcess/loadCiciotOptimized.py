@@ -152,6 +152,7 @@ def reduce_attack_samples(data, attack_ratio):
 def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_sample_size=10,
                training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
+    # INIT
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
     training_benign_size = training_dataset_size // 2
@@ -162,7 +163,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
     attack_ratio = attack_eval_samples_ratio  # For reducing attacks in test data
     attack_percentage = attack_ratio * 10
 
-    #--- File Paths ---#
+    #--- File Paths for samples ---#
     if verbose:
         print("\nLoading Network Traffic Data Files...")
 
@@ -175,7 +176,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
         print("\nTraining Sets:\n", train_files, "\n")
         print("\nTest Sets:\n", test_files, "\n")
 
-    #--- Load Train Data ---#
+    #--- Load Train Data Samples from files ---#
 
     if verbose:
         print("\nLoading Training Data...")
@@ -203,7 +204,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
             print(
                 f"Benign Traffic Train Samples | Samples in File: {benign_count} | Total: {train_benign_count} | LIMIT: {benign_size_limits['train']}")
 
-    #--- Load Test Data ---#
+    #--- Load Test Data Samples from files ---#
 
     if verbose:
         print("\nLoading Testing Data...")
