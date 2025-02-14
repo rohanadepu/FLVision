@@ -271,8 +271,11 @@ class DiscriminatorSyntheticTrainingClient(fl.client.NumPyClient):
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
 
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
+
                 # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
 
                 # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.

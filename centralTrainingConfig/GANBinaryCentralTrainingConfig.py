@@ -140,8 +140,9 @@ class CentralBinaryGan:
     def fit(self):
         for epoch in range(self.epochs):
             for step, (real_data, real_labels) in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Generate fake data
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
                     # Generate samples

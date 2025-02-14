@@ -36,31 +36,27 @@ class CentralBinaryWGan:
         self.accuracy = BinaryAccuracy()
 
     def discriminator_loss(self, real_output, fake_output, gradient_penalty):
-        return tf.reduce_mean(fake_output) - tf.reduce_mean(real_output) + 10.0 * gradient_penalty
+        return tf.reduce_mean(fake_output) - tf.reduce_mean(
+            real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0
 
     def generator_loss(self, fake_output):
         return -tf.reduce_mean(fake_output)
 
     def gradient_penalty(self, real_data, fake_data):
-        real_batch_size = tf.shape(real_data)[0]  # Get real_data batch size
-        fake_batch_size = tf.shape(fake_data)[0]  # Get fake_data batch size
-
-        # Find the smaller batch size to match both
-        batch_size = tf.minimum(real_batch_size, fake_batch_size)
         feature_dim = tf.shape(real_data)[1]
 
-        # Resize tensors to ensure they match
-        real_data = real_data[:batch_size]
-        fake_data = fake_data[:batch_size]
-
         # Generate alpha and broadcast it
-        alpha = tf.random.uniform([batch_size, 1], 0., 1., dtype=tf.float32)
-        alpha = tf.broadcast_to(alpha, [batch_size, feature_dim])
+        alpha = tf.random.uniform([tf.shape(real_data)[0], 1], 0., 1., dtype=tf.float32)
+        alpha = tf.broadcast_to(alpha, [tf.shape(real_data)[0], feature_dim])
 
         real_data = tf.cast(real_data, tf.float32)
         fake_data = tf.cast(fake_data, tf.float32)
 
         interpolated = alpha * real_data + (1 - alpha) * fake_data
+
+        if random.random() < 0.01:  # Log occasionally
+            print(
+                f"Interpolated Mean: {tf.reduce_mean(interpolated).numpy()}, Std: {tf.math.reduce_std(interpolated).numpy()}")
 
         with tf.GradientTape() as tape:
             tape.watch(interpolated)
@@ -69,13 +65,18 @@ class CentralBinaryWGan:
         grads = tape.gradient(pred, [interpolated])[0]
         grad_norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1]))
 
+        if random.random() < 0.01:
+            print(
+                f"Gradient Norm Mean: {tf.reduce_mean(grad_norm).numpy()}, Min: {tf.reduce_min(grad_norm).numpy()}, Max: {tf.reduce_max(grad_norm).numpy()}")
+
         return tf.reduce_mean((grad_norm - 1.0) ** 2)
 
     def fit(self):
         for epoch in range(self.epochs):
             for step, (real_data, real_labels) in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # make input for generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
 
                 # Train Discriminator
                 for _ in range(5):  # Train discriminator 5 times per generator update
