@@ -14,8 +14,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LeakyReLU, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, LeakyReLU, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU, Embedding, Concatenate, Flatten, Input, MaxPooling1D
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
@@ -23,6 +23,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+#Baseline
 
 # Function for creating the generator model
 def create_generator(input_dim, noise_dim):
@@ -41,6 +42,53 @@ def create_generator(input_dim, noise_dim):
     ])
     return generator
 
+def create_generator_optimized(input_dim, noise_dim):
+    generator = Sequential([
+        # Input layer (Noise to feature transformation)
+        Dense(128, use_bias=False, input_shape=(noise_dim,)),
+        BatchNormalization(),
+        ELU(alpha=1.0),
+
+        # Increasing non-linearity
+        Dense(256, use_bias=False),
+        BatchNormalization(),
+        ELU(alpha=1.0),
+
+        Dense(512, use_bias=False),
+        BatchNormalization(),
+        ELU(alpha=1.0),
+
+        # Reshape for structured output
+        Dense(input_dim, activation='sigmoid')  # Generate traffic features
+    ])
+
+    return generator
+
+def build_AC_generator(latent_dim, num_classes, input_dim):
+    noise_input = Input(shape=(latent_dim,))
+    label_input = Input(shape=(1,), dtype='int32')
+
+    # Embedding layer to process labels
+    label_embedding = Embedding(num_classes, latent_dim)(label_input)
+    label_embedding = Flatten()(label_embedding)
+
+    # Concatenate noise and label embedding
+    merged_input = Concatenate()([noise_input, label_embedding])
+
+    # Fully connected layers
+    x = Dense(128)(merged_input)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(256)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(512)(x)
+    x = LeakyReLU(0.2)(x)
+    output = Dense(input_dim, activation='tanh')(x)  # Output size should match dataset features
+
+    return Model([noise_input, label_input], output, name="Generator")
+
+
+
+# WGAN
 
 def create_W_generator(input_dim, noise_dim):
     """
@@ -66,28 +114,7 @@ def create_W_generator(input_dim, noise_dim):
     ])
     return model
 
-
-def create_generator_optimized(input_dim, noise_dim):
-    generator = Sequential([
-        # Input layer (Noise to feature transformation)
-        Dense(128, use_bias=False, input_shape=(noise_dim,)),
-        BatchNormalization(),
-        ELU(alpha=1.0),
-
-        # Increasing non-linearity
-        Dense(256, use_bias=False),
-        BatchNormalization(),
-        ELU(alpha=1.0),
-
-        Dense(512, use_bias=False),
-        BatchNormalization(),
-        ELU(alpha=1.0),
-
-        # Reshape for structured output
-        Dense(input_dim, activation='sigmoid')  # Generate traffic features
-    ])
-
-    return generator
+# Real Time
 
 def create_generator_optimized_conv(input_dim, noise_dim):
     generator = Sequential([

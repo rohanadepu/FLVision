@@ -14,8 +14,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU, LeakyReLU, Activation
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU, LeakyReLU, Activation, Input, Flatten
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
@@ -94,6 +94,27 @@ def create_discriminator_binary_optimized(input_dim):
     ])
     return discriminator
 
+# ACGAN
+
+def build_AC_discriminator(input_dim, num_classes):
+    data_input = Input(shape=(input_dim,))
+
+    x = Dense(512)(data_input)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(256)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(128)(x)
+    x = LeakyReLU(0.2)(x)
+
+    # Output layers
+    validity = Dense(1, activation='sigmoid', name="validity")(x)  # Real/Fake classification
+    label_output = Dense(num_classes, activation='softmax', name="class")(x)  # Class prediction
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+
+# WGAN
 
 def create_W_discriminator_binary_optimized(input_dim):
     """
@@ -119,6 +140,8 @@ def create_W_discriminator_binary_optimized(input_dim):
     ])
     return model
 
+
+# Real Time
 
 def create_discriminator_binary_optimized_spectral(input_dim):
     # Discriminator to classify two classes: Real (Benign & Malicious) traffic vs. Fake traffic
@@ -165,8 +188,6 @@ def create_discriminator_binary_optimized_2(input_dim):
         Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
     ])
     return discriminator
-
-
 
 
 def create_discriminator_realtime_GRU(input_dim):

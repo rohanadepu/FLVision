@@ -165,7 +165,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
 
     #--- File Paths for samples ---#
     if verbose:
-        print("\nLoading Network Traffic Data Files...")
+        print("\n === Loading Network Traffic Data Files ===\n")
 
     # List and sorts the files in the dataset directory
     csv_filepaths = sorted([filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')])
@@ -179,7 +179,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
     #--- Load Train Data Samples from files ---#
 
     if verbose:
-        print("\nLoading Training Data...")
+        print("\n-- Loading Training Data --\n")
 
     ciciot_train_data = pd.DataFrame()
     train_benign_count = 0
@@ -191,7 +191,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
             break
 
         if verbose:
-            print(f"Training dataset sample: {file} \n")
+            print(f"\nTraining dataset sample: {file}")
 
         data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    train_benign_count, benign_size_limits['train'])
@@ -207,7 +207,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
     #--- Load Test Data Samples from files ---#
 
     if verbose:
-        print("\nLoading Testing Data...")
+        print("\n-- Loading Testing Data --\n")
 
     ciciot_test_data = pd.DataFrame()
     test_benign_count = 0
@@ -218,7 +218,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
             break
 
         if verbose:
-            print(f"Testing dataset sample: {file} \n")
+            print(f"\nTesting dataset sample: {file}")
 
         data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    test_benign_count, benign_size_limits['test'])
@@ -233,12 +233,12 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
 
     # --- Reduce attack samples in test data  ---#
     if verbose:
-        print("\nReducing Attack Samples in Testing Data to", attack_percentage, "%")
+        print("\nReducing Attack Samples in Testing Data to", attack_percentage, "%\n")
 
     ciciot_test_data = reduce_attack_samples(ciciot_test_data, attack_ratio)
 
     if verbose:
-        print("\n(CICIOT) Train & Test Attack Data Loaded (Attack Data already Combined)...")
+        print("\n=== (CICIOT) Train & Test Attack Data Loaded (Attack Data already Combined) ===\n")
 
         print("Training Data Sample:")
         print(ciciot_train_data.head())
