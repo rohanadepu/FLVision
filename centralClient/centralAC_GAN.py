@@ -5,6 +5,7 @@
 import sys
 import os
 import random
+import logging
 from datetime import datetime
 import argparse
 sys.path.append(os.path.abspath('..'))
@@ -51,7 +52,7 @@ from modelStructures.ganStruct import create_model, load_GAN_model
 ################################################################################################################
 def main():
     print("\n ////////////////////////////// \n")
-    print("GAN Training:", "\n")
+    print("ACGAN Training:", "\n")
 
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -86,6 +87,8 @@ def main():
 
     parser.add_argument('--pretrained_nids', type=str,
                         help="Path to pretrained nids model (optional)", default=None)
+    parser.add_argument('--save_name', type=str,
+                        help="name of model files you save as", default=f"{timestamp}")
 
     # init variables to handle arguments
     args = parser.parse_args()
@@ -100,9 +103,10 @@ def main():
     pretrainedGenerator = args.pretrained_generator
     pretrainedDiscriminator = args.pretrained_discriminator
     pretrainedNids = args.pretrained_nids
+    save_name = args.save_name
 
     # display selected arguments
-    print("|MAIN CONFIG|", "\n")
+    print("|Training CONFIG|", "\n")
     # main experiment config
     print("Selected Fixed Server:", fixedServer, "\n")
     print("Selected Node:", node, "\n")
@@ -110,6 +114,7 @@ def main():
     print("Poisoned Data:", poisonedDataType, "\n")
 
     # --- Load Data ---#
+    print("\n === Load Data Samples === \n")
 
     # Initiate CICIOT to none
     ciciot_train_data = None
@@ -132,21 +137,20 @@ def main():
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
     # --- Preprocess Dataset ---#
+    print("\n === Process Data Samples === \n")
+
     X_train_data, X_val_data, y_train_categorical, y_val_categorical, X_test_data, y_test_categorical = preprocess_AC_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
     # --- Model setup --- #
-
+    print("\n === MODEL SETUP === \n")
     # --- Hyperparameters ---#
     BATCH_SIZE = 256
     noise_dim = 100
     latent_dim = 100
-
     steps_per_epoch = len(X_train_data) // BATCH_SIZE
-
     input_dim = X_train_data.shape[1]
-
     # num_classes = len(np.unique(y_train_categorical))
     num_classes = 3
 
@@ -154,21 +158,15 @@ def main():
         l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
 
     betas = [0.9, 0.999]  # Stable
-
     learning_rate = 0.0001
 
     # --- Load or Create model ----#
+    print("\n -- Load or create Discriminator and/or Generator MODELs -- \n")
     ACGAN = None
     generator = None
     discriminator = None
 
-    # Load or create the discriminator, generator, or whole gan model
-    if pretrainedGan:
-        print(f"Loading pretrained GAN Model from {pretrainedGan}")
-        ACGAN = tf.keras.models.load_model(pretrainedGan)
-
-    elif pretrainedGenerator and not pretrainedDiscriminator:
-
+    if pretrainedGenerator and not pretrainedDiscriminator:
         print(f"Pretrained Generator provided from {pretrainedGenerator}. Creating a new Discriminator model.")
         generator = tf.keras.models.load_model(args.pretrained_generator)
 
@@ -195,16 +193,28 @@ def main():
     # Optionally load the pretrained nids model
     nids = None
     if pretrainedNids:
-        print(f"Loading pretrained NIDS from {args.pretrained_nids}")
-        nids = tf.keras.models.load_model(args.pretrained_nids)
+        print(f"Loading pretrained NIDS from {pretrainedNids}")
+        with tf.keras.utils.custom_object_scope({'LogCosh': LogCosh}):
+            nids = tf.keras.models.load_model(pretrainedNids)
 
-    client = CentralACGan(discriminator, generator, ACGAN, nids, X_train_data, X_val_data, y_train_categorical, y_val_categorical, X_test_data, y_test_categorical, BATCH_SIZE,
+    # --- Train the Model ----#
+    print("\n === TRAINING MODEL === \n")
+    client = CentralACGan(discriminator, generator, nids, X_train_data, X_val_data, y_train_categorical, y_val_categorical, X_test_data, y_test_categorical, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
 
-    print("\n === TRAINING MODEL === \n")
+    # train model
     client.train()
 
+    # evaluate model
+    print("\n === EVALUATING MODEL === \n")
+    client.evaluate()
 
+    # --- Load or Create model ----#
+    print("\n === Saving MODELS === \n")
+
+    # Save each submodel separately
+    generator.save(f"../pretrainedModels/ACGAN_generator_{save_name}.h5")
+    discriminator.save(f"../pretrainedModels/ACGAN_discriminator_{save_name}.h5")
 
 if __name__ == "__main__":
     main()
