@@ -49,12 +49,15 @@ from sklearn.utils import shuffle
 ################################################################################################################
 
 def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
-                       all_attacks_test=None, irrelevant_features_ciciot=None, relevant_features_iotbotnet=None):
+                       all_attacks_test=None, irrelevant_features_ciciot=None, relevant_features_iotbotnet=None,
+                       dataset_processing="Default"):
+
     # --- 1 Feature Selection ---#
     print(f"\n=== Selecting Features for {dataset_used} ===\n")
 
     if dataset_used == "CICIOT":
         # Drop the irrelevant features (Feature selection)
+        print(irrelevant_features_ciciot)
         ciciot_train_data = ciciot_train_data.drop(columns=irrelevant_features_ciciot)
         ciciot_test_data = ciciot_test_data.drop(columns=irrelevant_features_ciciot)
 
@@ -134,8 +137,10 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     print(test_data.shape)
 
     # initiate scaler and colums to scale
-    # review this part - doesnt matter since encoded data is 0-1 already
-    scaler = MinMaxScaler(feature_range=(0, 1))
+    if dataset_processing == "MM[-1,1]":
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+    else:
+        scaler = MinMaxScaler(feature_range=(0, 1))
 
     relevant_num_cols = train_data.columns.difference([label_column])
     relevantFeatures = relevant_num_cols if dataset_used == "CICIOT" else relevant_features_iotbotnet
