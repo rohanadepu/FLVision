@@ -153,7 +153,9 @@ class CentralBinaryDiscriminator:
         return avg_disc_loss
 
     # -- Evaluate -- #
-    def evaluate(self):
+    def evaluate(self, parameters, config):
+        self.discriminator.set_weights(parameters)
+
         total_disc_loss = 0.0
         total_gen_loss = 0.0
         num_batches = 0
@@ -181,4 +183,4 @@ class CentralBinaryDiscriminator:
         print(f"Final Evaluation Generator Loss: {avg_gen_loss}")
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
-        return avg_disc_loss, len(self.x_test_ds), {}
+        return avg_disc_loss, len(self.x_test), {}

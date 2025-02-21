@@ -26,7 +26,6 @@ class CentralBinaryWGan:
         self.x_test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(self.BATCH_SIZE)
 
         self.gen_optimizer = Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.9)
-        self.disc_optimizer = Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.9)
 
         self.generator = self.model.layers[0]
         self.discriminator = self.model.layers[1]
@@ -78,25 +77,6 @@ class CentralBinaryWGan:
                 real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
                 noise = tf.random.normal([real_batch_size, self.noise_dim])
 
-                # Train Discriminator
-                for _ in range(5):  # Train discriminator 5 times per generator update
-                    with tf.GradientTape() as disc_tape:
-                        # generate samples
-                        generated_samples = self.generator(noise, training=True)
-
-                        # predict data
-                        real_output = self.discriminator(real_data, training=True)  # take real samples
-                        fake_output = self.discriminator(generated_samples, training=True)  # take fake smaples
-
-                        # compute loss functions
-                        gp_loss = self.gradient_penalty(real_data, generated_samples)
-                        disc_loss = self.discriminator_loss(real_output, fake_output, gp_loss)
-
-                    # update the gradiants and discriminator weights from gradiants
-                    gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
-                    self.disc_optimizer.apply_gradients(
-                        zip(gradients_of_discriminator, self.discriminator.trainable_variables))
-
                 # Train Generator
                 with tf.GradientTape() as gen_tape:
                     # generate samples
@@ -113,20 +93,11 @@ class CentralBinaryWGan:
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
 
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
-
-            # Evaluate Discriminator (Critic) on Validation Set
-            val_disc_loss = self.evaluate_validation_disc()
-            print(f'Epoch {epoch + 1}, Validation Critic Loss: {val_disc_loss:.4f}')
+                    print(f'Epoch {epoch + 1}, Step {step}, G Loss: {gen_loss.numpy()}')
 
             # Evaluate Generator Performance (Optional)
             val_gen_loss = self.evaluate_validation_gen()
             print(f'Epoch {epoch + 1}, Validation Generator Loss: {val_gen_loss:.4f}')
-
-            # Evaluate NIDS if Available
-            if self.nids is not None:
-                val_nids_loss = self.evaluate_validation_NIDS()
-                print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss:.4f}')
 
     def evaluate_validation_disc(self):
         total_disc_loss = 0.0

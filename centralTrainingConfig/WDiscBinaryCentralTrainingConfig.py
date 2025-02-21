@@ -12,9 +12,9 @@ from tensorflow.keras.metrics import Precision, Recall, BinaryAccuracy
 
 
 class CentralBinaryWGan:
-    def __init__(self, gan, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+    def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
-        self.model = gan
+        self.model = model
         self.nids = nids
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
@@ -97,31 +97,13 @@ class CentralBinaryWGan:
                     self.disc_optimizer.apply_gradients(
                         zip(gradients_of_discriminator, self.discriminator.trainable_variables))
 
-                # Train Generator
-                with tf.GradientTape() as gen_tape:
-                    # generate samples
-                    generated_samples = self.generator(noise, training=True)
-
-                    # take generated samples
-                    fake_output = self.discriminator(generated_samples, training=True)
-
-                    # generator loss function
-                    gen_loss = self.generator_loss(fake_output)
-
-                # update the gradiants and generator weights from gradiants
-                gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
-                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
 
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}')
 
             # Evaluate Discriminator (Critic) on Validation Set
             val_disc_loss = self.evaluate_validation_disc()
             print(f'Epoch {epoch + 1}, Validation Critic Loss: {val_disc_loss:.4f}')
-
-            # Evaluate Generator Performance (Optional)
-            val_gen_loss = self.evaluate_validation_gen()
-            print(f'Epoch {epoch + 1}, Validation Generator Loss: {val_gen_loss:.4f}')
 
             # Evaluate NIDS if Available
             if self.nids is not None:

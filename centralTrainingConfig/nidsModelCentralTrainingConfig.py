@@ -67,7 +67,6 @@ class CentralNidsClient:
         self.l2_norm_clip = l2_norm_clip
         self.noise_multiplier = noise_multiplier
 
-
         # callback params
         # early stop
         self.metric_to_monitor_es = metric_to_monitor_es
@@ -256,13 +255,11 @@ class CentralNidsClient:
             f.write("\n")
 
 
-def recordConfig(name, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
-                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
-                 adv_portion, l2_alpha, model):
+def recordConfig(name, dataset_used, DP_enabled, regularizationEnabled, input_dim, epochs,
+                 batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches
+                 , l2_alpha, model):
     with open(name, 'a') as f:
         f.write(f"Dataset Used: {dataset_used}\n")
-        f.write(
-            f"Defenses Enabled: DP - {DP_enabled}, Adversarial Training - {adversarialTrainingEnabled}, Regularization - {regularizationEnabled}\n")
         f.write(f"Hyperparameters:\n")
         f.write(f"Input Dim (Feature Size): {input_dim}\n")
         f.write(f"Epochs: {epochs}\n")
@@ -274,8 +271,6 @@ def recordConfig(name, dataset_used, DP_enabled, adversarialTrainingEnabled, reg
             f.write(f"L2 Norm Clip: {l2_norm_clip}\n")
             f.write(f"Noise Multiplier: {noise_multiplier}\n")
             f.write(f"MicroBatches: {num_microbatches}\n")
-        if adversarialTrainingEnabled:
-            f.write(f"Adversarial Sample %: {adv_portion * 100}%\n")
         if regularizationEnabled:
             f.write(f"L2 Alpha: {l2_alpha}\n")
         f.write(f"Model Layer Structure:\n")
