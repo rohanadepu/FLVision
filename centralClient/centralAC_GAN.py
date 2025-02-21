@@ -203,7 +203,7 @@ def main():
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
 
     # train model
-    client.train()
+    client.fit()
 
     # evaluate model
     print("\n === EVALUATING MODEL === \n")

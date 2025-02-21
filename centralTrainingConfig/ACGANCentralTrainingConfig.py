@@ -130,7 +130,12 @@ class CentralACGan:
             }
         )
 
+    # Saving function for ACGAN
+    def setACGAN(self):
+        return self.ACGAN
+
     # -- logging Functions -- #
+
 
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
@@ -221,7 +226,7 @@ class CentralACGan:
         self.logger.info("=" * 50)
 
     # -- Train -- #
-    def train(self, X_train=None, y_train=None):
+    def fit(self, X_train=None, y_train=None):
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train

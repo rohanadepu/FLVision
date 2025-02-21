@@ -204,7 +204,6 @@ def main():
     l2_norm_clip = None
     noise_multiplier = None
     num_microbatches = None
-    adv_portion = None
     metric_to_monitor_es = None
     es_patience = None
     restor_best_w = None
@@ -213,6 +212,7 @@ def main():
     save_best_only = None
     metric_to_monitor_mc = None
     checkpoint_mode = None
+
 
     # regularization param
     if regularizationEnabled:
@@ -238,7 +238,7 @@ def main():
         print("Noise Multiplier:", noise_multiplier)
         print("MicroBatches", num_microbatches)
 
-    # -- set hyperparameters for callback
+    # -- set hyperparameters for callback -- #
 
     # early stop
     if earlyStopEnabled:
@@ -321,14 +321,14 @@ def main():
 
     #--- Record initial configuration before training starts ---#
     logName = trainingLog
-    recordConfig(logName, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+    recordConfig(logName, dataset_used, DP_enabled, regularizationEnabled, input_dim, epochs,
                  batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
-                 adv_portion, l2_alpha, model)
+                l2_alpha, model)
 
     logName1 = evaluationLog
-    recordConfig(logName1, dataset_used, DP_enabled, adversarialTrainingEnabled, regularizationEnabled, input_dim, epochs,
+    recordConfig(logName1, dataset_used, DP_enabled, regularizationEnabled, input_dim, epochs,
                  batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches,
-                 adv_portion, l2_alpha, model)
+                  l2_alpha, model)
 
 
     # --- 6 Save the trained NIDS model ---#

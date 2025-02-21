@@ -33,11 +33,9 @@ from sklearn.utils import shuffle
 
 from datasetHandling.datasetLoadProcess import datasetLoadProcess
 
-from centralTrainingConfig.hyperparameterLoading import hyperparameterLoading
-from centralTrainingConfig.modelCreateLoad import modelCreateLoad
-from centralTrainingConfig.modelCentralTrainingConfigLoad import modelCentralTrainingConfigLoad
-
-
+from Client.overheadConfig.hyperparameterLoading import hyperparameterLoading
+from Client.overheadConfig.modelCreateLoad import modelCreateLoad
+from Client.overheadConfig.modelCentralTrainingConfigLoad import modelCentralTrainingConfigLoad
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -60,6 +58,12 @@ def main():
                         help='Datasets to use: Default, MM[-1,1], AC-GAN')
 
     # -- Training / Model Parameters -- #
+    parser.add_argument('--trainingArea', type=str, choices=["Central", "Federated"], default="Central",
+                        help='Please select Central, Federated as the place to train the model')
+    parser.add_argument("--host", type=int, choices=[1, 2, 3, 4], default=1, help="Fixed Server node number 1-4")
+    parser.add_argument('--serverBased', action='store_true',
+                        help='Only load the model structure and get the weights from the server')
+
     parser.add_argument('--model_type', type=str, choices=["NIDS", "GAN", "WGAN-GP", "AC-GAN"],
                         help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
 
@@ -91,6 +95,9 @@ def main():
     dataset_processing = args.dataset_processing
 
     # Model Spec
+    host = args.host
+    server_based = args.serverBased
+    TrainingArea = args.trainingArea
     model_type = args.model_type
     train_type = args.model_training
     if model_type == "AC-GAN":
@@ -150,10 +157,31 @@ def main():
     nids, discriminator, generator, GAN = modelCreateLoad(model_type, train_type, pretrainedNids, pretrainedGan,
                                                           pretrainedGenerator, pretrainedDiscriminator, dataset_used,
                                                           input_dim, noise_dim, regularizationEnabled, DP_enabled,
-                                                          l2_alpha, latent_dim, num_classes)
+                                                         l2_alpha, latent_dim, num_classes)
+    # --- 5A Load Training Config ---#
+    if TrainingArea == "Federated":
+        if server_based is True:  # Receive the global model weights initially to train with
+            client = modelServerFedTrainingConfigLoad()
+        else:  # Use a pretrained model or receive model from peers.
+            client = modelFederatedTrainingConfigLoad()
 
-    # --- 5 Load Training Config ---#
-    client = modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
+        # -- Federated TRAINING -- #
+        if host == 4:
+            server_address = "192.168.129.8:8080"
+        elif host == 2:
+            server_address = "192.168.129.6:8080"
+        elif host == 3:
+            server_address = "192.168.129.7:8080"
+        else:
+            server_address = "192.168.129.2:8080"
+
+        # --- 6/7A Train & Evaluate Model ---#
+        fl.client.start_client(server_address=server_address, client=client.to_client())
+        # -- EOF Federated TRAINING -- #
+
+        # --- 5B Load Training Config ---#
+    else:
+        client = modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                             earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled,
                                             X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data,
                                             node, BATCH_SIZE, epochs, noise_dim, steps_per_epoch, input_dim, num_classes,
@@ -162,11 +190,11 @@ def main():
                                             restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
                                             metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
-    # --- 6 Train Model ---#
-    client.fit()
+        # --- 6A Centrally Train Model ---#
+        client.fit()
 
-    # --- 7 Evaluate Model ---#
-    client.evaluate()
+        # --- 7A Centrally Evaluate Model ---#
+        client.evaluate()
 
 if __name__ == "__main__":
     main()

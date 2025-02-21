@@ -66,7 +66,7 @@ class CentralBinaryGan:
     def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
 
-        self.model = model
+        self.gan = model
         self.nids = nids
 
         self.BATCH_SIZE = BATCH_SIZE
@@ -74,8 +74,12 @@ class CentralBinaryGan:
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
 
+        self.x_train = x_train
+        self.y_train = y_train
         self.x_val = x_val
         self.y_val = y_val
+        self.x_test = x_test
+        self.y_test = y_test
         self.x_train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(self.BATCH_SIZE)
         self.x_val_ds = tf.data.Dataset.from_tensor_slices((x_val, y_val)).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(self.BATCH_SIZE)
@@ -89,14 +93,13 @@ class CentralBinaryGan:
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
-        self.generator = self.model.layers[0]
-        self.discriminator = self.model.layers[1]
+        self.generator = self.gan.layers[0]
+        self.discriminator = self.gan.layers[1]
 
-    # -- Loss Calculation -- #
     def discriminator_loss(self, real_output, fake_output):
-        # Create binary labels: 1 for real, 0 for fake
-        real_labels = tf.ones_like(real_output)
-        fake_labels = tf.zeros_like(fake_output)
+        # Create binary labels: 0 for real, 1 for fake
+        real_labels = tf.zeros_like(real_output)
+        fake_labels = tf.ones_like(fake_output)
 
         # Compute binary cross-entropy loss
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
@@ -106,8 +109,8 @@ class CentralBinaryGan:
         return real_loss + fake_loss
 
     def generator_loss(self, fake_output):
-        # Generator tries to make fake samples be classified as real (1)
-        fake_labels = tf.ones_like(fake_output)  # Label 1 for fake samples
+        # Generator tries to make fake samples be classified as real (0)
+        fake_labels = tf.zeros_like(fake_output)  # Label 0 for fake samples
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
         return bce(fake_labels, fake_output)
 
@@ -122,9 +125,9 @@ class CentralBinaryGan:
             Total NIDS loss (real + fake loss).
         """
 
-        # Binary labels: 1 for real samples, 0 for fake samples
-        real_labels = tf.ones_like(real_output)
-        fake_labels = tf.zeros_like(fake_output)
+        # Binary labels: 0 for real samples, 1 for fake samples
+        real_labels = tf.zeros_like(real_output)
+        fake_labels = tf.ones_like(fake_output)
 
         # Compute binary cross-entropy loss
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
@@ -316,19 +319,6 @@ class CentralBinaryGan:
             # Generate fake samples
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
             generated_samples = self.generator(noise, training=False)
-
-            # Binary masks for separating normal and intrusive test data
-            normal_mask = tf.equal(test_labels_batch, 1)  # Label 1 for normal
-            intrusive_mask = tf.equal(test_labels_batch, 0)  # Label 0 for intrusive
-
-            # Apply masks to create separate datasets
-            normal_data = tf.boolean_mask(test_data_batch, normal_mask)
-            intrusive_data = tf.boolean_mask(test_data_batch, intrusive_mask)
-
-            # print(f"Batch {step + 1}:")
-            # print(f"Normal data shape: {normal_data.shape}")
-            # print(f"Intrusive data shape: {intrusive_data.shape}")
-            # print(f"Generated samples shape: {generated_samples.shape}")
 
             # Discriminator predictions
             real_output = self.discriminator(test_data_batch, training=False)  # Real test data

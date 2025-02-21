@@ -22,6 +22,7 @@ from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import f1_score, classification_report
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -47,105 +48,161 @@ from sklearn.utils import shuffle
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
 
-def generate_and_save_network_traffic(model, test_input):
-    predictions = model(test_input, training=False)
 
-    fig = plt.figure(figsize=(4, 4))
-
-    for i in range(predictions.shape[0]):
-        plt.subplot(4, 4, i + 1)
-        plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
-        plt.axis('off')
-
-    plt.savefig('image.png')
-    plt.show()
-
-
-class GanClient(fl.client.NumPyClient):
-    def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+class GanBinaryClient(fl.client.NumPyClient):
+    def __init__(self, gan, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
-        self.model = model
-        self.nids = nids
 
-        self.x_train = x_train
-        self.y_train = y_train
-        self.x_val = x_val  # Add validation data
-        self.y_val = y_val
-        self.x_test = x_test
-        self.y_test = y_test
+        self.gan = gan
+        self.nids = nids
 
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.learning_rate = learning_rate
 
-        self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
-        self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_val = x_val
+        self.y_val = y_val
+        self.x_test = x_test
+        self.y_test = y_test
+        self.x_train_ds = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).shuffle(10000).batch(self.BATCH_SIZE)
+        self.x_val_ds = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
+        self.x_test_ds = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
 
-        self.gen_optimizer = Adam(self.learning_rate)
-        self.disc_optimizer = Adam(self.learning_rate)
+        lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.98, staircase=True)
 
-    def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-        # Create labels matching the shape of the output logits
-        real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-        real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
-        fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
+        lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
 
-        # Calculate sparse categorical cross-entropy loss for each group separately
-        real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-        real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
-                                                                              real_intrusive_output)
-        fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-        # Compute the mean for each loss group independently
-        mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-        mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
-        mean_fake_loss = tf.reduce_mean(fake_loss)
-
-        # Total loss as the average of mean losses for each group
-        total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
-        return total_loss
-
-    def generator_loss(self, fake_output):
-        # Generator aims to fool the discriminator by making fake samples appear as class 0 (normal)
-        fake_labels = tf.zeros((tf.shape(fake_output)[0],), dtype=tf.int32)  # Shape (batch_size,)
-        return tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
+        self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
+        self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
     def get_parameters(self, config):
         # Combine generator and discriminator weights into a single list
-        return self.model.get_weights()
+        return self.gan.get_weights()
 
-    def evaluate_validation_disc(self):
-        generator = self.model.layers[0]
-        discriminator = self.model.layers[1]
+    # -- Loss Calculation -- #
+    def discriminator_loss(self, real_output, fake_output):
+        # Create binary labels: 0 for real, 1 for fake
+        real_labels = tf.zeros_like(real_output)
+        fake_labels = tf.ones_like(fake_output)
 
-        # Generate fake samples using the generator
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = generator(noise, training=False)
+        # Compute binary cross-entropy loss
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+        real_loss = bce(real_labels, real_output)
+        fake_loss = bce(fake_labels, fake_output)
 
-        # Separate validation data into normal and intrusive using boolean masking
-        normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
-        intrusive_mask = tf.equal(self.y_val, 0)  # Assuming label 0 for intrusive
+        return real_loss + fake_loss
 
-        # Apply masks to create separate datasets
-        normal_data = tf.boolean_mask(self.x_val, normal_mask)
-        intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
+    def generator_loss(self, fake_output):
+        # Generator tries to make fake samples be classified as real (0)
+        fake_labels = tf.zeros_like(fake_output)  # Label 0 for fake samples
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+        return bce(fake_labels, fake_output)
 
-        # Pass real and fake data through the discriminator
-        real_normal_output = discriminator(normal_data, training=False)
-        real_intrusive_output = discriminator(intrusive_data, training=False)
-        fake_output = discriminator(generated_samples, training=False)
+    def nids_loss(self, real_output, fake_output):
+        """
+        Compute loss for the NIDS model based on real and fake samples.
 
-        # Compute the discriminator loss using the real and fake outputs
-        disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+        real_output: Predictions from NIDS for real validation data.
+        fake_output: Predictions from NIDS for generated (fake) data.
 
-        return float(disc_loss.numpy())
+        Returns:
+            Total NIDS loss (real + fake loss).
+        """
 
-    def evaluate_validation_gen(self):
-        generator = self.model.layers[0]
-        discriminator = self.model.layers[1]
+        # Binary labels: 0 for real samples, 1 for fake samples
+        real_labels = tf.zeros_like(real_output)
+        fake_labels = tf.ones_like(fake_output)
 
+        # Compute binary cross-entropy loss
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+        real_loss = bce(real_labels, real_output)  # Loss for real samples
+        fake_loss = bce(fake_labels, fake_output)  # Loss for fake samples
+
+        # Optional: Print per-batch losses
+        print(f'Real Loss = {real_loss.numpy()}, Fake Loss = {fake_loss.numpy()}')
+
+        return real_loss + fake_loss
+
+    # -- Train -- #
+    def fit(self, parameters, config):
+
+        self.gan.set_weights(parameters)
+        generator = self.gan.layers[0]
+        discriminator = self.gan.layers[1]
+
+        for epoch in range(self.epochs):
+            for step, (real_data, real_labels) in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
+
+                with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+                    # Generate samples
+                    generated_samples = generator(noise, training=True)
+
+                    # Discriminator predictions
+                    real_output = discriminator(real_data, training=True)
+                    fake_output = discriminator(generated_samples, training=True)
+
+                    # Compute losses
+                    disc_loss = self.discriminator_loss(real_output, fake_output)
+                    gen_loss = self.generator_loss(fake_output)
+
+                # Compute gradients and apply updates
+                gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
+                gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+
+                # Apply gradient clipping
+                gradients_of_generator, _ = tf.clip_by_global_norm(gradients_of_generator, 5.0)
+                gradients_of_discriminator, _ = tf.clip_by_global_norm(gradients_of_discriminator, 5.0)
+
+                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
+                self.disc_optimizer.apply_gradients(
+                    zip(gradients_of_discriminator, discriminator.trainable_variables))
+
+                if step % 100 == 0:
+                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+
+            # Validation after each epoch
+            val_disc_loss = self.evaluate_validation_disc(generator, discriminator)
+            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
+
+            if self.nids is not None:
+                val_nids_loss = self.evaluate_validation_NIDS(generator)
+                print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}')
+
+            # Return parameters for both generator and discriminator
+            return self.gan.get_weights(), len(self.x_train), {}
+
+    # -- Validate -- #
+    def evaluate_validation_disc(self, generator, discriminator):
+        total_disc_loss = 0.0
+        num_batches = 0
+
+        for step, (real_data, real_labels) in enumerate(self.x_val_ds):
+            # Generate fake samples using the generator
+            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            generated_samples = generator(noise, training=False)
+
+            # Pass real and fake data through the discriminator
+            real_output = discriminator(real_data, training=False)
+            fake_output = discriminator(generated_samples, training=False)
+
+            # Compute the discriminator loss using the real and fake outputs
+            disc_loss = self.discriminator_loss(real_output, fake_output)
+            total_disc_loss += disc_loss.numpy()
+            num_batches += 1
+
+        # Average discriminator loss over all validation batches
+        avg_disc_loss = total_disc_loss / num_batches
+        return avg_disc_loss
+
+    def evaluate_validation_gen(self, generator, discriminator):
         # Generate fake samples using the generator
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
         generated_samples = generator(noise, training=False)
@@ -158,141 +215,146 @@ class GanClient(fl.client.NumPyClient):
 
         return float(gen_loss.numpy())
 
-    def evaluate_validation_NIDS(self):
-        generator = self.model.layers[0]
+    def evaluate_validation_NIDS(self, generator):
+        total_nids_loss = 0.0
+        num_batches = 0
 
-        # Generate fake samples using the generator
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = generator(noise, training=False)
+        y_true_list = []
+        y_pred_list = []
 
-        # Separate validation data into normal and intrusive using boolean masking
-        normal_mask = tf.equal(self.y_val, 1)  # Assuming label 1 for normal
-        intrusive_mask = tf.equal(self.y_val, 0)  # Assuming label 0 for intrusive
+        all_real_data = []
+        all_fake_data = []
+        all_real_labels = []
 
-        # Apply masks to create separate datasets
-        normal_data = tf.boolean_mask(self.x_val, normal_mask)
-        intrusive_data = tf.boolean_mask(self.x_val, intrusive_mask)
+        for step, (real_data, real_labels) in enumerate(self.x_val_ds):
+            # Generate fake samples (same batch size as real)
+            noise = tf.random.normal([real_data.shape[0], self.noise_dim])  # Match batch size
+            generated_samples = generator(noise, training=False)
 
-        # Step 3: Pass real and fake data through the NIDS model to get binary classification probabilities
-        real_normal_output = self.nids(normal_data, training=False)  # Expected [P(normal), P(intrusive)]
-        real_intrusive_output = self.nids(intrusive_data, training=False)  # Expected [P(normal), P(intrusive)]
-        fake_output = self.nids(generated_samples, training=False)  # Expected [P(normal), P(intrusive)]
+            # Get predictions from the NIDS model
+            real_output = self.nids(real_data, training=False)
+            fake_output = self.nids(generated_samples, training=False)
 
-        # Step 5: Define target labels for binary cross-entropy loss
-        # Real normal traffic should have high probability in the normal class
-        real_normal_labels = tf.ones((real_normal_output.shape[0],),
-                                     dtype=tf.int32)  # Shape matches the number of samples
-        # Real intrusive traffic should have high probability in the intrusive class
-        real_intrusive_labels = tf.zeros((real_intrusive_output.shape[0],),
-                                         dtype=tf.int32)  # Shape matches the number of samples
-        # Fake traffic (generated samples) should be labeled as normal (to fool the NIDS)
-        fake_labels = tf.ones((fake_output.shape[0],), dtype=tf.int32)  # Shape matches the number of generated samples
+            # Compute NIDS loss using the custom function
+            batch_nids_loss = self.nids_loss(real_output, fake_output).numpy()
+            total_nids_loss += batch_nids_loss
+            num_batches += 1
 
-        # Step 6: Calculate binary cross-entropy loss for each category
-        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-        real_normal_loss = bce(real_normal_labels, real_normal_output[:, 0])  # Compare with "normal" class probability
-        real_intrusive_loss = bce(real_intrusive_labels,
-                                  real_intrusive_output[:, 1])  # Compare with "intrusive" class probability
-        fake_loss = bce(fake_labels, fake_output[:, 0])  # Compare with "normal" class probability for generated samples
+            # Convert real_output to binary predictions (threshold = 0.5)
+            real_pred = (real_output.numpy() > 0.5).astype("int32")
+            real_labels = real_labels.numpy().astype("int32")
 
-        # Step 7: Combine the losses
-        nids_loss = real_normal_loss + real_intrusive_loss
-        gen_loss = fake_loss  # Generator loss to fool the NIDS
+            # Store real predictions and labels
+            y_true_list.extend(real_labels)
+            y_pred_list.extend(real_pred)
 
-        print(f'Validation GEN-NIDS Loss: {gen_loss}')
+            # Store real & fake data for final evaluation
+            all_real_data.append(real_data.numpy())
+            all_fake_data.append(generated_samples.numpy())
+            all_real_labels.append(real_labels)
 
-        return float(nids_loss.numpy())
+            # Optional: Print per-batch losses
+            print(f'Batch {step + 1}: NIDS Loss = {batch_nids_loss}')
 
-    def fit(self, parameters, config):
-        self.model.set_weights(parameters)
-        generator = self.model.layers[0]
-        discriminator = self.model.layers[1]
+        # Compute average loss
+        avg_nids_loss = total_nids_loss / num_batches if num_batches > 0 else 0.0
 
-        # Create a TensorFlow dataset that includes both features and labels
-        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
+        # Convert stored data into NumPy arrays
+        X_real = np.vstack(all_real_data)
+        X_fake = np.vstack(all_fake_data)
+        y_real = np.hstack(all_real_labels)
 
-        for epoch in range(self.epochs):
-            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
-                # Create masks for normal and intrusive traffic based on labels
-                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
-                intrusive_mask = tf.equal(real_labels, 0)  # Assuming label 0 for intrusive
+        # Create fake labels (0 for generated samples)
+        y_fake = np.zeros(X_fake.shape[0], dtype="int32")
 
-                # Filter data based on these masks
-                normal_data = tf.boolean_mask(real_data, normal_mask)
-                intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
+        # Merge real and fake data for final evaluation
+        X_combined = np.vstack((X_real, X_fake))  # Merge real and fake features
+        y_combined = np.hstack((y_real, y_fake))  # Merge real and fake labels
 
-                # generate noise for generator to use.
-                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
-                noise = tf.random.normal([real_batch_size, self.noise_dim])
+        # Compute final evaluation with both real & fake data
+        loss, accuracy, precision, recall, auc, logcosh = self.nids.evaluate(X_combined, y_combined, verbose=0)
 
-                with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        # Compare evaluation with only real data
+        loss_real, accuracy_real, precision_real, recall_real, auc_real, logcosh_real = self.nids.evaluate(self.x_val,
+                                                                                                           self.y_val,
+                                                                                                           verbose=0)
 
-                    # synthetic outputs generated by generator
-                    generated_samples = generator(noise, training=True)
+        # Get final predictions
+        y_pred_probs = self.nids.predict(X_combined)
+        y_pred = (y_pred_probs > 0.5).astype("int32")
 
-                    # Discriminator outputs
-                    real_normal_output = discriminator(normal_data, training=True)
-                    real_intrusive_output = discriminator(intrusive_data, training=True)
-                    fake_output = discriminator(generated_samples, training=True)
+        # Compute additional metrics
+        f1 = f1_score(y_combined, y_pred)
+        class_report = classification_report(y_combined, y_pred, target_names=["Attack (Fake)", "Benign (Real)"])
 
-                    # Calculate losses of both models
-                    disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
-                    gen_loss = self.generator_loss(fake_output)
+        print("\n===== Validation Classification Report =====")
+        print(class_report)
+        print(f"\nValidation NIDS with Augmented Data F1 Score: {f1:.4f}")
+        print("\n===== Validation Augmented Data  =====")
+        print(f"Validation NIDS with Augmented Data Loss: {loss:.4f}")
+        print(f"Validation NIDS with Augmented Data Accuracy: {accuracy:.4f}")
+        print(f"Validation NIDS with Augmented Data Precision: {precision:.4f}")
+        print(f"Validation NIDS with Augmented Data Recall: {recall:.4f}")
+        print(f"Validation NIDS with Augmented Data AUC: {auc:.4f}")
+        print(f"Validation NIDS with Augmented Data LogCosh: {logcosh:.4f}")
+        print("\n===== Validation Real Data  =====")
+        print(f"Validation NIDS with Real Data Loss: {loss_real:.4f}")
+        print(f"Validation NIDS with Real Data Accuracy: {accuracy_real:.4f}")
+        print(f"Validation NIDS with Real Data Precision: {precision_real:.4f}")
+        print(f"Validation NIDS with Real Data Recall: {recall_real:.4f}")
+        print(f"Validation NIDS with Real Data AUC: {auc_real:.4f}")
+        print(f"Validation NIDS with Real Data LogCosh: {logcosh_real:.4f}")
 
-                # Apply gradients to both generator and discriminator (Training the models)
-                # calculating gradiants of loss respect weights
-                # (chain rule loss of model respect to outputs product of output respect to weights)
-                gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
-                gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+        return avg_nids_loss, {"accuracy": accuracy, "precision": precision, "recall": recall, "auc": auc,
+                               "F1-Score": f1}
 
-                # Applying new parameters given from gradients
-                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
-                self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
-
-                if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
-
-            # After each epoch, evaluate on the validation set
-            val_disc_loss = self.evaluate_validation_disc()
-            # val_gen_loss = self.evaluate_validation_gen()
-
-            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
-
-            if self.nids is not None:
-                val_nids_loss = self.evaluate_validation_NIDS()
-                print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss}')
-
-            # Return parameters for both generator and discriminator
-            return self.model.get_weights(), len(self.x_train), {}
-
+    # -- Evaluate -- #
     def evaluate(self, parameters, config):
-        generator = self.model.layers[0]
-        discriminator = self.model.layers[1]
+        total_disc_loss = 0.0
+        total_gen_loss = 0.0
+        num_batches = 0
 
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = generator(noise, training=False)
+        generator = self.gan.layers[0]
+        discriminator = self.gan.layers[1]
 
-        # Separate test data into normal and intrusive using boolean masking
-        normal_mask = tf.equal(self.y_test, 1)  # Assuming label 1 for normal
-        intrusive_mask = tf.equal(self.y_test, 0)  # Assuming label 0 for intrusive
+        for step, (test_data_batch, test_labels_batch) in enumerate(self.x_test_ds):
+            # Generate fake samples
+            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            generated_samples = generator(noise, training=False)
 
-        # Apply masks to create separate datasets
-        normal_data = tf.boolean_mask(self.x_test, normal_mask)
-        intrusive_data = tf.boolean_mask(self.x_test, intrusive_mask)
+            # Binary masks for separating normal and intrusive test data
+            normal_mask = tf.equal(test_labels_batch, 1)  # Label 1 for normal
+            intrusive_mask = tf.equal(test_labels_batch, 0)  # Label 0 for intrusive
 
-        print(normal_data.shape)
-        print(intrusive_data.shape)
-        print(generated_samples.shape)
+            # Apply masks to create separate datasets
+            normal_data = tf.boolean_mask(test_data_batch, normal_mask)
+            intrusive_data = tf.boolean_mask(test_data_batch, intrusive_mask)
 
-        real_normal_output = discriminator(normal_data, training=False)
-        real_intrusive_output = discriminator(intrusive_data, training=False)
-        fake_output = discriminator(generated_samples, training=False)
+            # print(f"Batch {step + 1}:")
+            # print(f"Normal data shape: {normal_data.shape}")
+            # print(f"Intrusive data shape: {intrusive_data.shape}")
+            # print(f"Generated samples shape: {generated_samples.shape}")
 
-        disc_loss = self.discriminator_loss(real_normal_output, real_intrusive_output, fake_output)
+            # Discriminator predictions
+            real_output = discriminator(test_data_batch, training=False)  # Real test data
+            fake_output = discriminator(generated_samples, training=False)  # Generated samples
 
-        # Compute the generator loss: How well does the generator fool the discriminator
-        gen_loss = self.generator_loss(fake_output)
+            # Binary cross-entropy loss for discriminator
+            disc_loss = self.discriminator_loss(real_output, fake_output)
+            total_disc_loss += disc_loss.numpy()
 
-        print(f'Evaluation D Loss: {disc_loss}, Evaluation G Loss: {gen_loss}')
+            # Binary cross-entropy loss for generator
+            gen_loss = self.generator_loss(fake_output)
+            total_gen_loss += gen_loss.numpy()
 
-        return float(disc_loss.numpy()), len(self.x_test), {}
+            num_batches += 1
+
+        # Average losses over all test batches
+        avg_disc_loss = total_disc_loss / num_batches
+        avg_gen_loss = total_gen_loss / num_batches
+
+        print(f"Final Evaluation Discriminator Loss: {avg_disc_loss}")
+        print(f"Final Evaluation Generator Loss: {avg_gen_loss}")
+
+        # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
+        return avg_disc_loss, len(self.x_test_ds), {}

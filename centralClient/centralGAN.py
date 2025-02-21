@@ -197,8 +197,11 @@ def main():
     client = CentralGan(model, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                        noise_dim, epochs, steps_per_epoch, learning_rate)
 
+    # -- Central TRAINING -- #
     client.fit()
     client.evaluate()
+
+    # -- EOF Central TRAINING -- #
 
     # --- Save the trained generator model ---#
     model.save("../pretrainedModels/GAN_V1.h5")
