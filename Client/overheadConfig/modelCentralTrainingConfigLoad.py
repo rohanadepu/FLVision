@@ -69,7 +69,7 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                                       noise_dim, epochs, steps_per_epoch)
 
         elif train_type == "Discriminator":
-            client = CentralDiscriminator(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
+            client = CentralBinaryDiscriminator(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
                                           X_test_data, y_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
 
