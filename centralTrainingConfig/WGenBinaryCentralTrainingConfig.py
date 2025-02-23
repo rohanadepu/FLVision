@@ -11,7 +11,7 @@ from tensorflow_addons.layers import SpectralNormalization
 from tensorflow.keras.metrics import Precision, Recall, BinaryAccuracy
 
 
-class CentralBinaryWGan:
+class CentralBinaryWGen:
     def __init__(self, gan, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
         self.model = gan

@@ -31,11 +31,13 @@ from sklearn.utils import shuffle
 # import pickle
 # import joblib
 
-from centralTrainingConfig.discriminatorCentralTrainingConfig import CentralDiscriminator
-from centralTrainingConfig.generatorModelCentralTrainingConfig import CentralGenerator
 from centralTrainingConfig.nidsModelCentralTrainingConfig import CentralNidsClient, recordConfig
+from centralTrainingConfig.generatorModelCentralTrainingConfig import CentralGenerator
+from centralTrainingConfig.discriminatorBinaryModelCentralTrainingConfig import CentralBinaryDiscriminator
 from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGan
 from centralTrainingConfig.WGANBinaryCentralTrainingConfig import CentralBinaryWGan
+from centralTrainingConfig.WGenBinaryCentralTrainingConfig import CentralBinaryWGen
+from centralTrainingConfig.WDiscBinaryCentralTrainingConfig import CentralBinaryWDisc
 from centralTrainingConfig.ACGANCentralTrainingConfig import CentralACGan
 
 def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
@@ -79,9 +81,13 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                                    y_test_data, BATCH_SIZE,
                                    noise_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
-            client = None
+            client = CentralBinaryWGen(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
+                                   y_test_data, BATCH_SIZE,
+                                   noise_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Discriminator":
-            client = None
+            client = CentralBinaryWDisc(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
+                                   y_test_data, BATCH_SIZE,
+                                   noise_dim, epochs, steps_per_epoch, learning_rate)
 
     elif model_type == 'AC-GAN':
         if train_type == "Both":
