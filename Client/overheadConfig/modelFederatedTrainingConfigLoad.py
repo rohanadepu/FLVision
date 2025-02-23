@@ -31,12 +31,15 @@ from sklearn.utils import shuffle
 # import pickle
 # import joblib
 
-from centralTrainingConfig.discriminatorCentralTrainingConfig import CentralDiscriminator
-from centralTrainingConfig.generatorModelCentralTrainingConfig import CentralGenerator
-from centralTrainingConfig.nidsModelCentralTrainingConfig import CentralNidsClient, recordConfig
-from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGan
-from centralTrainingConfig.WGANBinaryCentralTrainingConfig import CentralBinaryWGan
-from centralTrainingConfig.ACGANCentralTrainingConfig import CentralACGan
+from hflClientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient
+from hflClientModelTrainingConfig.GANBinaryModelClientConfig import GanBinaryClient
+from hflClientModelTrainingConfig.DiscBinaryModelClient import BinaryDiscriminatorClient
+from hflClientModelTrainingConfig.GenModelClientConfig import GeneratorClient
+from hflClientModelTrainingConfig.WGANBinaryClientTrainingConfig import BinaryWGanClient
+from hflClientModelTrainingConfig.WGAN_DiscriminatorBinaryClientTrainingConfig import BinaryWDiscriminatorClient
+from hflClientModelTrainingConfig.WGAN_GeneratorBinaryClientTrainingConfig import BinaryWGeneratorClient
+# from hflClientModelTrainingConfig.ACGANClientTrainingConfig import CentralACGan
+# from hflClientModelTrainingConfig.ACGANClientTrainingConfig
 
 def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                    earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled, X_train_data,
@@ -50,7 +53,7 @@ def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, datase
     client = None
 
     if model_type == 'NIDS':
-        client = CentralNidsClient(nids, dataset_used, node, earlyStopEnabled, DP_enabled,
+        client = FlNidsClient(nids, dataset_used, node, earlyStopEnabled, DP_enabled,
                                    lrSchedRedEnabled, modelCheckpointEnabled, X_train_data, y_train_data, X_test_data,
                                    y_test_data, X_val_data, y_val_data, l2_norm_clip, noise_multiplier,
                                    num_microbatches,
@@ -69,25 +72,30 @@ def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, datase
                                       noise_dim, epochs, steps_per_epoch)
 
         elif train_type == "Discriminator":
-            client = DiscriminatorBinaryClient(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
+            client = BinaryDiscriminatorClient(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
                                           X_test_data, y_test_data, BATCH_SIZE, noise_dim, epochs, steps_per_epoch)
 
 
     elif model_type == 'WGAN-GP':
         if train_type == "Both":
-            client = CentralBinaryWGan(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
+            client = BinaryWGanClient(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
                                    y_test_data, BATCH_SIZE,
                                    noise_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
-            client = None
+            client = BinaryWGeneratorClient(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
+                                  y_test_data, BATCH_SIZE,
+                 noise_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Discriminator":
-            client = None
+            client = BinaryWDiscriminatorClient(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
+                                  y_test_data, BATCH_SIZE,
+                                                noise_dim, epochs, steps_per_epoch, learning_rate)
 
     elif model_type == 'AC-GAN':
         if train_type == "Both":
-            client = CentralACGan(discriminator, generator, nids, X_train_data, X_val_data, y_train_data,
-                              y_val_data, X_test_data, y_test_data, BATCH_SIZE,
-                              noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
+            client = None
+        #     client = CentralACGan(discriminator, generator, nids, X_train_data, X_val_data, y_train_data,
+        #                       y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+        #                       noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
             client = None
         elif train_type == "Discriminator":

@@ -36,6 +36,7 @@ from datasetHandling.datasetLoadProcess import datasetLoadProcess
 from Client.overheadConfig.hyperparameterLoading import hyperparameterLoading
 from Client.overheadConfig.modelCreateLoad import modelCreateLoad
 from Client.overheadConfig.modelCentralTrainingConfigLoad import modelCentralTrainingConfigLoad
+from Client.overheadConfig.modelFederatedTrainingConifgLoad import modelFederatedTrainingConfigLoad
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -161,9 +162,10 @@ def main():
     # --- 5A Load Training Config ---#
     if TrainingArea == "Federated":
         if server_based is True:  # Receive the global model weights initially to train with
-            client = modelServerFedTrainingConfigLoad()
-        else:  # Use a pretrained model or receive model from peers.
             client = modelFederatedTrainingConfigLoad()
+        else:  # Use a pretrained model or receive model from peers.
+            client = None
+            # client = modelFederatedTrainingConfigLoad()
 
         # -- Federated TRAINING -- #
         if host == 4:

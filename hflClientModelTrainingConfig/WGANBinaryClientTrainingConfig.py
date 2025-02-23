@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import argparse
 import tensorflow as tf
+import flwr as fl
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LeakyReLU
 from tensorflow.keras.optimizers import Adam
@@ -11,10 +12,10 @@ from tensorflow_addons.layers import SpectralNormalization
 from tensorflow.keras.metrics import Precision, Recall, BinaryAccuracy
 
 
-class CentralBinaryWGan:
-    def __init__(self, model, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+class BinaryWGanClient(fl.client.NumPyClient):
+    def __init__(self, gan, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch, learning_rate):
-        self.model = model
+        self.model = gan
         self.nids = nids
         self.BATCH_SIZE = BATCH_SIZE
         self.noise_dim = noise_dim
@@ -25,6 +26,7 @@ class CentralBinaryWGan:
         self.x_val_ds = tf.data.Dataset.from_tensor_slices((x_val, y_val)).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(self.BATCH_SIZE)
 
+        self.gen_optimizer = Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.9)
         self.disc_optimizer = Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.9)
 
         self.generator = self.model.layers[0]
@@ -34,6 +36,13 @@ class CentralBinaryWGan:
         self.recall = Recall()
         self.accuracy = BinaryAccuracy()
 
+    # Sending training params to host
+    def get_parameters(self, config):
+        # Combine generator and discriminator weights into a single list
+        return self.model.get_weights()
+
+    # Loss Function
+
     def discriminator_loss(self, real_output, fake_output, gradient_penalty):
         return tf.reduce_mean(fake_output) - tf.reduce_mean(
             real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0
@@ -41,7 +50,7 @@ class CentralBinaryWGan:
     def generator_loss(self, fake_output):
         return -tf.reduce_mean(fake_output)
 
-    def gradient_penalty(self, real_data, fake_data):
+    def gradient_penalty(self, discriminator, real_data, fake_data):
         feature_dim = tf.shape(real_data)[1]
 
         # Generate alpha and broadcast it
@@ -59,7 +68,7 @@ class CentralBinaryWGan:
 
         with tf.GradientTape() as tape:
             tape.watch(interpolated)
-            pred = self.discriminator(interpolated, training=True)
+            pred = discriminator(interpolated, training=True)
 
         grads = tape.gradient(pred, [interpolated])[0]
         grad_norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1]))
@@ -70,7 +79,12 @@ class CentralBinaryWGan:
 
         return tf.reduce_mean((grad_norm - 1.0) ** 2)
 
-    def fit(self):
+    # Training
+    def fit(self, parameters, config):
+        self.model.set_weights(parameters)
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
         for epoch in range(self.epochs):
             for step, (real_data, real_labels) in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
                 # generate noise for generator to use.
@@ -81,49 +95,70 @@ class CentralBinaryWGan:
                 for _ in range(5):  # Train discriminator 5 times per generator update
                     with tf.GradientTape() as disc_tape:
                         # generate samples
-                        generated_samples = self.generator(noise, training=True)
+                        generated_samples = generator(noise, training=True)
 
                         # predict data
-                        real_output = self.discriminator(real_data, training=True)  # take real samples
-                        fake_output = self.discriminator(generated_samples, training=True)  # take fake smaples
+                        real_output = discriminator(real_data, training=True)  # take real samples
+                        fake_output = discriminator(generated_samples, training=True)  # take fake smaples
 
                         # compute loss functions
-                        gp_loss = self.gradient_penalty(real_data, generated_samples)
+                        gp_loss = self.gradient_penalty(discriminator, real_data, generated_samples)
                         disc_loss = self.discriminator_loss(real_output, fake_output, gp_loss)
 
                     # update the gradiants and discriminator weights from gradiants
-                    gradients_of_discriminator = disc_tape.gradient(disc_loss, self.discriminator.trainable_variables)
+                    gradients_of_discriminator = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
                     self.disc_optimizer.apply_gradients(
-                        zip(gradients_of_discriminator, self.discriminator.trainable_variables))
+                        zip(gradients_of_discriminator, discriminator.trainable_variables))
 
+                # Train Generator
+                with tf.GradientTape() as gen_tape:
+                    # generate samples
+                    generated_samples = generator(noise, training=True)
+
+                    # take generated samples
+                    fake_output = discriminator(generated_samples, training=True)
+
+                    # generator loss function
+                    gen_loss = self.generator_loss(fake_output)
+
+                # update the gradiants and generator weights from gradiants
+                gradients_of_generator = gen_tape.gradient(gen_loss, generator.trainable_variables)
+                self.gen_optimizer.apply_gradients(zip(gradients_of_generator, generator.trainable_variables))
 
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}')
+                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
 
             # Evaluate Discriminator (Critic) on Validation Set
-            val_disc_loss = self.evaluate_validation_disc()
+            val_disc_loss = self.evaluate_validation_disc(generator, discriminator)
             print(f'Epoch {epoch + 1}, Validation Critic Loss: {val_disc_loss:.4f}')
+
+            # Evaluate Generator Performance (Optional)
+            val_gen_loss = self.evaluate_validation_gen(generator, discriminator)
+            print(f'Epoch {epoch + 1}, Validation Generator Loss: {val_gen_loss:.4f}')
 
             # Evaluate NIDS if Available
             if self.nids is not None:
-                val_nids_loss = self.evaluate_validation_NIDS()
+                val_nids_loss = self.evaluate_validation_NIDS(generator)
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss:.4f}')
 
-    def evaluate_validation_disc(self):
+        return self.model.get_weights(), len(self.x_train), {}
+
+    # validation
+    def evaluate_validation_disc(self, generator, discriminator):
         total_disc_loss = 0.0
         num_batches = 0
 
         for step, (real_data, _) in enumerate(self.x_val_ds):
             # Generate fake samples
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-            generated_samples = self.generator(noise, training=False)
+            generated_samples = generator(noise, training=False)
 
             # Pass real and fake data through the discriminator
-            real_output = self.discriminator(real_data, training=False)
-            fake_output = self.discriminator(generated_samples, training=False)
+            real_output = discriminator(real_data, training=False)
+            fake_output = discriminator(generated_samples, training=False)
 
             # Compute gradient penalty (optional for consistency)
-            gp_loss = self.gradient_penalty(real_data, generated_samples)
+            gp_loss = self.gradient_penalty(discriminator, real_data, generated_samples)
 
             # Compute WGAN-GP loss
             disc_loss = tf.reduce_mean(fake_output) - tf.reduce_mean(real_output) + 10.0 * gp_loss
@@ -133,10 +168,23 @@ class CentralBinaryWGan:
 
         return total_disc_loss / num_batches  # Average loss
 
-    def evaluate_validation_NIDS(self):
+    def evaluate_validation_gen(self, generator, discriminator):
         # Generate fake samples
         noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        generated_samples = generator(noise, training=False)
+
+        # Pass fake samples through the discriminator
+        fake_output = discriminator(generated_samples, training=False)
+
+        # Compute WGAN-GP generator loss (maximize discriminator's mistake)
+        gen_loss = -tf.reduce_mean(fake_output)
+
+        return float(gen_loss.numpy())
+
+    def evaluate_validation_NIDS(self, generator):
+        # Generate fake samples
+        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+        generated_samples = generator(noise, training=False)
 
         # Ensure proper input format for NIDS
         real_data_batches = tf.concat([data for data, _ in self.x_val_ds], axis=0)
@@ -147,8 +195,8 @@ class CentralBinaryWGan:
 
         # Compute binary cross-entropy loss
         bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-        real_loss = bce(tf.ones_like(real_output), real_output)  # Real samples should be classified as 1
-        fake_loss = bce(tf.zeros_like(fake_output), fake_output)  # Fake samples should be classified as 0
+        real_loss = bce(tf.zeros_like(real_output), real_output)  # Real samples should be classified as 0
+        fake_loss = bce(tf.ones_like(fake_output), fake_output)  # Fake samples should be classified as 1
 
         nids_loss = real_loss
         gen_loss = fake_loss  # Generator loss to fool NIDS
@@ -159,7 +207,7 @@ class CentralBinaryWGan:
         return float(nids_loss.numpy())
 
     # -- Evaluate -- #
-    def evaluate(self):
+    def evaluate(self, parameters, config):
         total_disc_loss = 0.0
         total_gen_loss = 0.0
         num_batches = 0
@@ -167,14 +215,18 @@ class CentralBinaryWGan:
         recall_vals = []
         accuracy_vals = []
 
+        self.model.set_weights(parameters)
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
         for step, (test_data_batch, test_labels_batch) in enumerate(self.x_test_ds):
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-            generated_samples = self.generator(noise, training=False)
+            generated_samples = generator(noise, training=False)
 
-            real_output = self.discriminator(test_data_batch, training=False)
-            fake_output = self.discriminator(generated_samples, training=False)
+            real_output = discriminator(test_data_batch, training=False)
+            fake_output = discriminator(generated_samples, training=False)
 
-            gp_loss = self.gradient_penalty(test_data_batch, generated_samples)
+            gp_loss = self.gradient_penalty(discriminator, test_data_batch, generated_samples)
             disc_loss = self.discriminator_loss(real_output, fake_output, gp_loss)
             gen_loss = self.generator_loss(fake_output)
 
@@ -210,3 +262,4 @@ class CentralBinaryWGan:
             "accuracy": avg_accuracy,
             "f1_score": f1_score
         }
+

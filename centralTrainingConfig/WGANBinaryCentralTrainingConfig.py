@@ -35,6 +35,8 @@ class CentralBinaryWGan:
         self.recall = Recall()
         self.accuracy = BinaryAccuracy()
 
+    # Loss Function
+
     def discriminator_loss(self, real_output, fake_output, gradient_penalty):
         return tf.reduce_mean(fake_output) - tf.reduce_mean(
             real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0

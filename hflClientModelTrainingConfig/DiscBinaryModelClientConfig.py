@@ -48,7 +48,7 @@ from sklearn.utils import shuffle
 
 
 # #--- Class to handle discriminator training ---#
-class CentralBinaryDiscriminator:
+class BinaryDiscriminatorClient(fl.client.NumPyClient):
     def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, epochs, steps_per_epoch):
         self.generator = generator

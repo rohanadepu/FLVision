@@ -322,18 +322,6 @@ class GanBinaryClient(fl.client.NumPyClient):
             noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
             generated_samples = generator(noise, training=False)
 
-            # Binary masks for separating normal and intrusive test data
-            normal_mask = tf.equal(test_labels_batch, 1)  # Label 1 for normal
-            intrusive_mask = tf.equal(test_labels_batch, 0)  # Label 0 for intrusive
-
-            # Apply masks to create separate datasets
-            normal_data = tf.boolean_mask(test_data_batch, normal_mask)
-            intrusive_data = tf.boolean_mask(test_data_batch, intrusive_mask)
-
-            # print(f"Batch {step + 1}:")
-            # print(f"Normal data shape: {normal_data.shape}")
-            # print(f"Intrusive data shape: {intrusive_data.shape}")
-            # print(f"Generated samples shape: {generated_samples.shape}")
 
             # Discriminator predictions
             real_output = discriminator(test_data_batch, training=False)  # Real test data
