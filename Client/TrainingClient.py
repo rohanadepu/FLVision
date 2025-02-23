@@ -164,8 +164,7 @@ def main():
         if server_based is True:  # Receive the global model weights initially to train with
             client = modelFederatedTrainingConfigLoad()
         else:  # Use a pretrained model or receive model from peers.
-            client = None
-            # client = modelFederatedTrainingConfigLoad()
+            client = modelFederatedTrainingConfigLoad()
 
         # -- Federated TRAINING -- #
         if host == 4:
