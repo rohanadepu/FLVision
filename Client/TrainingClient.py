@@ -164,7 +164,14 @@ def main():
         if server_based is True:  # Receive the global model weights initially to train with
             client = modelFederatedTrainingConfigLoad()
         else:  # Use a pretrained model or receive model from peers.
-            client = modelFederatedTrainingConfigLoad()
+            client = modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
+                                            earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled,
+                                            X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data,
+                                            node, BATCH_SIZE, epochs, noise_dim, steps_per_epoch, input_dim, num_classes,
+                                            latent_dim, betas, learning_rate, l2_alpha, l2_norm_clip, noise_multiplier,
+                                            num_microbatches, metric_to_monitor_es, es_patience,
+                                            restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
+                                            metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
         # -- Federated TRAINING -- #
         if host == 4:
