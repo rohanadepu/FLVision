@@ -36,7 +36,7 @@ from datasetHandling.datasetLoadProcess import datasetLoadProcess
 from Client.overheadConfig.hyperparameterLoading import hyperparameterLoading
 from Client.overheadConfig.modelCreateLoad import modelCreateLoad
 from Client.overheadConfig.modelCentralTrainingConfigLoad import modelCentralTrainingConfigLoad
-from Client.overheadConfig.modelFederatedTrainingConifgLoad import modelFederatedTrainingConfigLoad
+from Client.overheadConfig.modelFederatedTrainingConfigLoad import modelFederatedTrainingConfigLoad
 
 ################################################################################################################
 #                                                   Execute                                                   #
