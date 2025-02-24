@@ -35,6 +35,10 @@ DICT_7CLASSES = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-
                      'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'
                      }
 
+DICT7_to_2CLASSES = {'DDoS':'Attack', 'DoS':'Attack', 'Mirai':'Attack','Recon':'Attack','Spoofing':'Attack',
+                     'Benign':'Benign', 'Web':'Attack', 'BruteForce':'Attack'
+                     }
+
 NUM_COLS = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
                 'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
                 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight'
