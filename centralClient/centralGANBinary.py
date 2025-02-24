@@ -38,9 +38,9 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGan
 from modelStructures.discriminatorStruct import create_discriminator_binary, create_discriminator_binary_optimized, create_discriminator_binary
 from modelStructures.generatorStruct import create_generator, create_generator_optimized
@@ -56,18 +56,10 @@ def main():
     # Generate a static timestamp at the start of the script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # --- Argument Parsing --- #
+    # --- 1 Argument Parsing --- #
     parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
     parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
                         help='Datasets to use: CICIOT, IOTBOTNET')
-
-    parser.add_argument("--node", type=int, choices=[1, 2, 3, 4, 5, 6], default=1, help="Client node number 1-6")
-    parser.add_argument("--fixedServer", type=int, choices=[1, 2, 3, 4], default=1, help="Fixed Server node number 1-4")
-
-    parser.add_argument("--pData", type=str, choices=["LF33", "LF66", "FN33", "FN66", None], default=None,
-                        help="Label Flip: LF33, LF66")
-
-    parser.add_argument('--reg', action='store_true', help='Enable Regularization')  # tested
 
     parser.add_argument("--evalLog", type=str, default=f"evaluation_metrics_{timestamp}.txt",
                         help="Name of the evaluation log file")
@@ -86,30 +78,26 @@ def main():
 
     parser.add_argument('--pretrained_nids', type=str,
                         help="Path to pretrained nids model (optional)", default=None)
+    parser.add_argument('--save_name', type=str,
+                        help="name of model files you save as", default=f"{timestamp}")
 
     # init variables to handle arguments
     args = parser.parse_args()
     # argument variables
     dataset_used = args.dataset
-    fixedServer = args.fixedServer
-    node = args.node
-    poisonedDataType = args.pData
-    regularizationEnabled = args.reg
     epochs = args.epochs
     pretrainedGan = args.pretrained_GAN
     pretrainedGenerator = args.pretrained_generator
     pretrainedDiscriminator = args.pretrained_discriminator
     pretrainedNids = args.pretrained_nids
+    save_name = args.save_name
 
     # display selected arguments
     print("|MAIN CONFIG|", "\n")
     # main experiment config
-    print("Selected Fixed Server:", fixedServer, "\n")
-    print("Selected Node:", node, "\n")
     print("Selected DATASET:", dataset_used, "\n")
-    print("Poisoned Data:", poisonedDataType, "\n")
 
-    # --- Load Data ---#
+    # --- 2 Load Data ---#
 
     # Initiate CICIOT to none
     ciciot_train_data = None
@@ -131,31 +119,23 @@ def main():
         # Load IOTbotnet data
         all_attacks_train, all_attacks_test, relevant_features_iotbotnet = loadIOTBOTNET()
 
-    # --- Preprocess Dataset ---#
+    # --- 3 Preprocess Dataset ---#
     X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
         dataset_used, ciciot_train_data, ciciot_test_data, all_attacks_train, all_attacks_test,
         irrelevant_features_ciciot, relevant_features_iotbotnet)
 
-    # --- Model setup --- #
+    # --- 4 Model setup --- #
 
-    # --- Hyperparameters ---#
+    # Hyperparameters
     BATCH_SIZE = 256
     noise_dim = 100
-
-    if regularizationEnabled:
-        l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
-
-    betas = [0.9, 0.999]  # Stable
+    steps_per_epoch = len(X_train_data) // BATCH_SIZE
+    input_dim = X_train_data.shape[1]
 
     learning_rate = 0.0001
 
-    steps_per_epoch = len(X_train_data) // BATCH_SIZE
-
-    input_dim = X_train_data.shape[1]
-
-    # --- Load or Create model ----#
-
-    # Load or create the discriminator, generator, or whole ganLegacy model
+    # Load or Create model
+    # Load or create the discriminator, generator, or whole gan model
     if pretrainedGan:
         print(f"Loading pretrained GAN Model from {pretrainedGan}")
         model = tf.keras.models.load_model(pretrainedGan)
@@ -192,24 +172,26 @@ def main():
     nids = None
     if pretrainedNids:
         print(f"Loading pretrained NIDS from {args.pretrained_nids}")
-        nids = tf.keras.models.load_model(args.pretrained_nids)
+        with tf.keras.utils.custom_object_scope({'LogCosh': LogCosh}):
+            nids = tf.keras.models.load_model(pretrainedNids)
 
+    #--- 5 Train Model ---#
     client = CentralBinaryGan(model, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                               noise_dim, epochs, steps_per_epoch, learning_rate)
 
     client.fit()
     client.evaluate()
 
-    # --- Save the trained generator model ---#
-    model.save("../pretrainedModels/GAN_B4.h5")
+    # --- 6 Save the trained generator model ---#
+    model.save(f"../pretrainedModels/GAN_{save_name}.h5")
 
     # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
     generator = model.layers[0]
     discriminator = model.layers[1]
 
     # Save each submodel separately
-    generator.save("../pretrainedModels/generator_GAN_B4.h5")
-    discriminator.save("../pretrainedModels/discriminator_GAN_B4.h5")
+    generator.save(f"../pretrainedModels/generator_GAN_{save_name}.h5")
+    discriminator.save(f"../pretrainedModels/discriminator_GAN_{save_name}.h5")
 
 
 if __name__ == "__main__":

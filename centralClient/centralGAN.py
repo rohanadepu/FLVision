@@ -38,9 +38,9 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.GANMetricsCentralTrainConfig import CentralGan
 from modelStructures.discriminatorStruct import create_discriminator
 from modelStructures.generatorStruct import create_generator
@@ -155,7 +155,7 @@ def main():
 
     # --- Load or Create model ----#
 
-    # Load or create the discriminator, generator, or whole ganLegacy model
+    # Load or create the discriminator, generator, or whole gan model
     if pretrainedGan:
         print(f"Loading pretrained GAN Model from {pretrainedGan}")
         model = tf.keras.models.load_model(pretrainedGan)
@@ -197,8 +197,11 @@ def main():
     client = CentralGan(model, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                        noise_dim, epochs, steps_per_epoch, learning_rate)
 
+    # -- Central TRAINING -- #
     client.fit()
     client.evaluate()
+
+    # -- EOF Central TRAINING -- #
 
     # --- Save the trained generator model ---#
     model.save("../pretrainedModels/GAN_V1.h5")

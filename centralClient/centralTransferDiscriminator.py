@@ -36,9 +36,9 @@ import matplotlib.pyplot as plt
 
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
 from centralTrainingConfig.transferDiscCentralTrainingConfig import DiscriminatorIntrusionTraining, DiscriminatorSyntheticTraining
 from modelStructures.discriminatorStruct import create_discriminator
 from modelStructures.generatorStruct import create_generator
@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--trainLog", type=str, default=f"training_metrics_{timestamp}.txt",
                         help="Name of the training log file")
 
-    parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train the model")
 
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
                         default=None)
@@ -167,7 +167,7 @@ def main():
     synthetic_client.evaluate()
 
     # --- Save the trained discriminator model ---#
-    discriminator.save("discriminator_Spit_v1.h5")
+    discriminator.save("../pretrainedModels/discriminator_Spit_v1.h5")
 
 
 if __name__ == "__main__":

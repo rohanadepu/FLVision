@@ -46,29 +46,6 @@ from sklearn.utils import shuffle
 #                                      Discriminator Model Setup                                        #
 ################################################################################################################
 
-
-# Function for creating the discriminator model
-def create_discriminator(input_dim):
-    # Discriminator is designed to classify three classes:
-    # - Normal (Benign) traffic
-    # - Intrusive (Malicious) traffic
-    # - Generated (Fake) traffic from the generator
-    discriminator = tf.keras.Sequential([
-        Dense(512, activation='relu', input_shape=(input_dim,)),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(256, activation='relu'),
-        Dropout(0.3),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(128, activation='relu'),
-        BatchNormalization(),
-        Dropout(0.3),
-        Dense(3, activation='softmax')  # 3 classes: Normal, Intrusive, Fake
-    ])
-    return discriminator
-
-
 # loss based on correct classifications between normal, intrusive, and fake traffic
 def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
     # Create labels matching the shape of the output logits
@@ -95,8 +72,8 @@ def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_out
 # Loss for intrusion training (normal and intrusive)
 def discriminator_loss_intrusion(real_normal_output, real_intrusive_output):
     # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
-    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
+    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
+    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
 
     # Calculate sparse categorical cross-entropy loss for each group separately
     real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
@@ -173,12 +150,22 @@ class DiscriminatorIntrusionTraining:
 
     def fit(self):
 
+        # Create a TensorFlow dataset that includes both features and labels
+        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
+
         for epoch in range(self.epochs):
-            for step, real_data in enumerate(self.x_train_ds.take(self.steps_per_epoch)):
-                # Assume real_data contains both normal and intrusive traffic
-                # Split the real_data into normal and intrusive samples
-                normal_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 1]  # Real normal traffic
-                intrusive_data = real_data[real_data['Label' if self.dataset_used == "IOTBOTNET" else 'label'] == 0]  # Real malicious traffic
+            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
+                # Create masks for normal and intrusive traffic based on labels
+                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
+                intrusive_mask = tf.equal(real_labels, 0)  # Assuming label 0 for intrusive
+
+                # Filter data based on these masks
+                normal_data = tf.boolean_mask(real_data, normal_mask)
+                intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
+
+                # Check if normal or intrusive data is empty for this batch
+                if normal_data.shape[0] == 0 or intrusive_data.shape[0] == 0:
+                    continue
 
                 # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
                 # using tape to track trainable variables during discriminator classification and loss calculations
@@ -192,7 +179,7 @@ class DiscriminatorIntrusionTraining:
 
                 gradients = tape.gradient(loss, self.discriminator.trainable_variables)
 
-                self.optimize.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+                self.optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
 
                 if step % 100 == 0:
                     print(f"Epoch {epoch+1}, Step {step}, D Intrusion Loss: {loss.numpy()}")
@@ -202,7 +189,8 @@ class DiscriminatorIntrusionTraining:
             print(f'Epoch {epoch+1}, Validation D Intrusion Loss: {val_disc_loss}')
 
     def evaluate(self):
-        loss = 0
+        total_loss = 0.0
+        num_batches = 0
 
         # Create a TensorFlow dataset that includes both test features and labels
         test_data = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
@@ -212,36 +200,58 @@ class DiscriminatorIntrusionTraining:
             normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
             intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
 
+            # Check if normal or intrusive data is empty for this batch
+            if normal_data.shape[0] == 0 or intrusive_data.shape[0] == 0:
+                continue
+
             # Discriminator predictions
             real_normal_output = self.discriminator(normal_data, training=False)
             real_intrusive_output = self.discriminator(intrusive_data, training=False)
 
             # Compute the loss for this batch
             batch_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
-            loss += batch_loss
+            print(f'Evaluation D Batch-{num_batches} Intrusion Loss: {batch_loss.numpy()}')
+            total_loss += batch_loss.numpy()
+            num_batches += 1
 
-        return float(loss.numpy()), len(self.x_test), {}
+        # Compute the average loss over all batches
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+
+        print(f'Evaluation D Intrusion Loss: {avg_loss}')
+
+        return avg_loss, len(self.x_test), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
+        total_loss = 0.0
+        num_batches = 0
+
         # Create a TensorFlow dataset for validation data
         val_data = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
 
-        total_loss = 0
         for instances, labels in val_data:
             # Filter normal and intrusive instances
             normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
             intrusive_data = tf.boolean_mask(instances, tf.equal(labels, 0))  # Assuming label 0 for intrusive
 
+            # Check if normal or intrusive data is empty for this batch
+            if normal_data.shape[0] == 0 or intrusive_data.shape[0] == 0:
+                continue
+
             # Discriminator predictions
             real_normal_output = self.discriminator(normal_data, training=False)
             real_intrusive_output = self.discriminator(intrusive_data, training=False)
 
             # Compute the loss for this batch
             batch_loss = discriminator_loss_intrusion(real_normal_output, real_intrusive_output)
-            total_loss += batch_loss
+            print(f'Validation D Batch-{num_batches} Intrusion Loss: {batch_loss.numpy()}')
+            total_loss += batch_loss.numpy()
+            num_batches += 1
 
-        return float(total_loss.numpy())
+        # Compute the average loss over all batches
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+
+        return avg_loss
 
 ################################################################################################################
 #                                       Discriminator SYNTHETIC Training                                       #
@@ -292,8 +302,15 @@ class DiscriminatorSyntheticTraining:
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
 
+                # Skip batch if normal data is empty
+                if normal_data.shape[0] == 0:
+                    continue
+
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
+
                 # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
 
                 # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
@@ -320,14 +337,20 @@ class DiscriminatorSyntheticTraining:
             print(f'Epoch {epoch+1}, Validation D Loss: {val_disc_loss}')
 
     def evaluate(self):
-        loss = 0
+        total_loss = 0.0
+        num_batches = 0
 
-        # Create a TensorFlow dataset that includes both test features and labels
+        # Create a TensorFlow dataset for test data
         test_data = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
 
         for instances, labels in test_data:
-            # Filter normal and intrusive instances
+            # Filter normal instances
             normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+
+            # Skip batch if normal data is empty
+            if normal_data.shape[0] == 0:
+                continue
+
             # Generate fake data
             fake_data = self.generator(tf.random.normal([self.BATCH_SIZE, self.noise_dim]), training=False)
 
@@ -337,29 +360,49 @@ class DiscriminatorSyntheticTraining:
 
             # Compute the loss for this batch
             batch_loss = discriminator_loss_synthetic(real_normal_output, fake_output)
-            loss += batch_loss
-        return float(loss.numpy()), len(self.x_test), {}
+            print(f'Evaluation D Batch-{num_batches} Synthetic Loss: {batch_loss.numpy()}')
+            total_loss += batch_loss.numpy()
+            num_batches += 1
+
+        # Compute the average loss over all batches
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+
+        print(f'Evaluation D Synthetic Loss: {avg_loss}')
+
+        return avg_loss, len(self.x_test), {}
 
     # Function to evaluate the discriminator on validation data
     def evaluate_validation(self):
-        # Generate fake samples
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        total_loss = 0.0
+        num_batches = 0
 
         # Create a TensorFlow dataset for validation data
         val_data = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
 
-        total_loss = 0
         for instances, labels in val_data:
-            # Filter normal and intrusive instances
+            # Filter normal instances
             normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+
+            # Skip batch if normal data is empty
+            if normal_data.shape[0] == 0:
+                continue
+
+            # Generate fake samples for this batch
+            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            fake_data = self.generator(noise, training=False)
 
             # Discriminator predictions
             real_normal_output = self.discriminator(normal_data, training=False)
-            fake_output = self.discriminator(generated_samples, training=False)
+            fake_output = self.discriminator(fake_data, training=False)
 
             # Compute the loss for this batch
             batch_loss = discriminator_loss_synthetic(real_normal_output, fake_output)
-            total_loss += batch_loss
+            print(f'Validation D Batch-{num_batches} Synthetic Loss: {batch_loss.numpy()}')
+            total_loss += batch_loss.numpy()
+            num_batches += 1
 
-        return float(total_loss.numpy())
+        # Compute the average loss over all batches
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+
+        return avg_loss
+

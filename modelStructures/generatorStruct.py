@@ -14,8 +14,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, LeakyReLU, BatchNormalization, ELU, Reshape, Conv1DTranspose, LSTM, GRU, Embedding, Concatenate, Flatten, Input, MaxPooling1D
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
@@ -23,6 +23,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+#Baseline
 
 # Function for creating the generator model
 def create_generator(input_dim, noise_dim):
@@ -62,6 +63,58 @@ def create_generator_optimized(input_dim, noise_dim):
     ])
 
     return generator
+
+def build_AC_generator(latent_dim, num_classes, input_dim):
+    noise_input = Input(shape=(latent_dim,))
+    label_input = Input(shape=(1,), dtype='int32')
+
+    # Embedding layer to process labels
+    label_embedding = Embedding(num_classes, latent_dim)(label_input)
+    label_embedding = Flatten()(label_embedding)
+
+    # Concatenate noise and label embedding
+    merged_input = Concatenate()([noise_input, label_embedding])
+
+    # Fully connected layers
+    x = Dense(128)(merged_input)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(256)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(512)(x)
+    x = LeakyReLU(0.2)(x)
+    output = Dense(input_dim, activation='tanh')(x)  # Output size should match dataset features
+
+    return Model([noise_input, label_input], output, name="ACGenerator")
+
+
+
+# WGAN
+
+def create_W_generator(input_dim, noise_dim):
+    """
+    Optimized Generator Model for WGAN-GP
+    - Uses LeakyReLU to improve training stability.
+    - BatchNormalization to prevent mode collapse.
+    - Sigmoid activation for network traffic feature generation.
+    """
+    model = tf.keras.Sequential([
+        Dense(256, input_shape=(noise_dim,)),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(512),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(1024),
+        BatchNormalization(),
+        LeakyReLU(alpha=0.2),
+
+        Dense(input_dim, activation='sigmoid')  # Output layer for network traffic data
+    ])
+    return model
+
+# Real Time
 
 def create_generator_optimized_conv(input_dim, noise_dim):
     generator = Sequential([

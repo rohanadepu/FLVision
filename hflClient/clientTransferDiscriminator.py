@@ -36,10 +36,10 @@ import matplotlib.pyplot as plt
 
 from sklearn.utils import shuffle
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.DiscSplitModelClientConfig import DiscriminatorIntrusionClient
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
+from hflClientModelTrainingConfig.DiscSplitModelClientConfig import DiscriminatorIntrusionClient
 from modelStructures.discriminatorStruct import create_discriminator
 from modelStructures.generatorStruct import create_generator
 ################################################################################################################

@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.layers import Dense, Dropout, LeakyReLU, Input, Add, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU
 from tensorflow.keras.regularizers import l2
+from tensorflow.keras.models import Model
 
 # Hyperparameters
 l2_alpha = 0.01  # L2 regularization factor
@@ -121,6 +122,50 @@ def create_realtime_GRU_CICIOT_Model(input_dim, regularizationEnabled, DP_enable
 
 
 # ---                   CICIOT Models                   --- #
+
+def create_optimized_model(input_dim, l2_alpha=0.0001, dropout_rate=0.2):
+    """
+    Optimized deep learning model:
+    - Uses LeakyReLU instead of ReLU.
+    - Reduces dropout rate for better feature retention.
+    - Adds residual (skip) connections for stability.
+    - Keeps L2 regularization for weight decay.
+    """
+
+    inputs = Input(shape=(input_dim,))
+
+    x = Dense(128, kernel_regularizer=l2(l2_alpha))(inputs)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    residual = Dense(64, kernel_regularizer=l2(l2_alpha))(x)  # Residual path
+    residual = BatchNormalization()(residual)
+    residual = LeakyReLU(alpha=0.1)(residual)
+
+    x = Dense(64, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Add()([x, residual])  # Adding residual connection
+
+    x = Dense(32, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Dense(16, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    outputs = Dense(1, activation='sigmoid')(x)
+
+    model = Model(inputs, outputs)
+
+    return model
+
 def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
 
     # --- Model Definition --- #

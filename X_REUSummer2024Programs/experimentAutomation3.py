@@ -44,7 +44,7 @@ def run_command_on_host(ip, command):
 def run_server():
     print("Starting the server node")
     server_ip = node_ips["server"]
-    command = 'cd FLVision/REU2024Programs && nohup python3 server.py &'
+    command = 'cd FLVision/X_REUSummer2024Programs && nohup python3 server.py &'
     run_command_on_host(server_ip, command)
 
 def run_client_experiments_on_node(node, datasets, poisoned_variants, defense_strategies, num_clean_nodes_list):
@@ -71,7 +71,7 @@ def run_client(node, dataset, poisoned_data, strategy, log_file):
     p_data_flag = f"--pData {poisoned_data}" if poisoned_data else ""
 
     command = (
-        f"cd FLVision/REU2024Programs && python3 clientExperiment.py --dataset {dataset} "
+        f"cd FLVision/X_REUSummer2024Programs && python3 clientExperiment.py --dataset {dataset} "
         f"--node {node} {p_data_flag} --evalLog eval_{log_file} --trainLog train_{log_file} "
         f"{reg_flag} {dp_flag} {prune_flag} {adv_flag}"
     )

@@ -86,8 +86,9 @@ class GeneratorClient(fl.client.NumPyClient):
 
         for epoch in range(self.epochs):
             for step in range(self.steps_per_epoch):
-                # Generate noise to create fake samples
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(self.x_train)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
 
                 # captures operations for the generator’s forward pass, computing gradients based on how well it generated fake samples that fooled the discriminator. These gradients then update the generator’s weights.
                 # using tape to track trainable variables during generation and loss calculations

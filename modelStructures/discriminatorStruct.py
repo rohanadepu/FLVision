@@ -14,8 +14,8 @@ if 'TF_USE_LEGACY_KERAS' in os.environ:
 import flwr as fl
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU, LeakyReLU, Activation
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Add, BatchNormalization, Dropout, LSTM, Conv1D, MaxPooling1D, GRU, LeakyReLU, Activation, Input, Flatten
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.metrics import AUC, Precision, Recall
 from tensorflow.keras.losses import LogCosh
@@ -67,6 +67,125 @@ def create_discriminator_binary(input_dim):
     return discriminator
 
 
+def create_discriminator_binary_optimized(input_dim):
+    """
+    Optimized Discriminator Model
+    - Uses LeakyReLU for better gradient flow.
+    - Applies Spectral Normalization for stable training.
+    - Includes BatchNorm and Dropout for regularization.
+    """
+    discriminator = Sequential([
+        Dense(512, input_shape=(input_dim,)),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(256),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(128),
+        LeakyReLU(alpha=0.2),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        Dense(1, activation='sigmoid')  # Output: Probability of being real
+    ])
+    return discriminator
+
+# ACGAN
+
+def build_AC_discriminator_V0(input_dim, num_classes):
+    data_input = Input(shape=(input_dim,))
+
+    x = Dense(512)(data_input)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(256)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dense(128)(x)
+    x = LeakyReLU(0.2)(x)
+
+    # Output layers
+    validity = Dense(1, activation='sigmoid', name="validity")(x)  # Real/Fake classification
+    label_output = Dense(num_classes, activation='softmax', name="class")(x)  # Class prediction
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+def build_AC_discriminator(input_dim, num_classes):
+    data_input = Input(shape=(input_dim,))
+
+    x = Dense(512, kernel_regularizer=l2(0.001))(data_input)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.3)(x)
+
+    x = Dense(256, kernel_regularizer=l2(0.001))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.3)(x)
+
+    shared = Dense(128, kernel_regularizer=l2(0.001))(x)
+    shared = BatchNormalization()(shared)
+    shared = LeakyReLU(0.2)(shared)
+
+    # Split into two branches:
+    validity = Dense (1, activation='sigmoid', name="validity")(shared)
+
+    # You could add additional layers for class prediction
+    class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch1 = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch1 = BatchNormalization()(class_branch1)
+    class_branch1 = LeakyReLU(0.2)(class_branch1)
+
+    class_branch = Add()([class_branch, class_branch1])  # Adding residual connection
+
+    class_branch = Dense(32, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch = Dense(16, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    label_output = Dense(num_classes, activation='softmax', name="class")(class_branch)
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+# WGAN
+
+def create_W_discriminator_binary_optimized(input_dim):
+    """
+    Optimized Discriminator Model for WGAN-GP
+    - Uses Spectral Normalization for stable training.
+    - LeakyReLU for improved gradient flow.
+    - No activation in the output layer (Wasserstein loss).
+    """
+    model = tf.keras.Sequential([
+        SpectralNormalization(Dense(512, input_shape=(input_dim,))),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(256)),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(128)),
+        LeakyReLU(alpha=0.2),
+        Dropout(0.3),
+
+        SpectralNormalization(Dense(1))  # No activation (raw Wasserstein score)
+    ])
+    return model
+
+
+# Real Time
+
 def create_discriminator_binary_optimized_spectral(input_dim):
     # Discriminator to classify two classes: Real (Benign & Malicious) traffic vs. Fake traffic
     discriminator = Sequential([
@@ -92,7 +211,7 @@ def create_discriminator_binary_optimized_spectral(input_dim):
     return discriminator
 
 # too strong, wtf
-def create_discriminator_binary_optimized(input_dim):
+def create_discriminator_binary_optimized_2(input_dim):
     discriminator = Sequential([
         # Input Layer
         Dense(512, use_bias=False, input_shape=(input_dim,)),
@@ -112,8 +231,6 @@ def create_discriminator_binary_optimized(input_dim):
         Dense(1, activation='sigmoid')  # 2 classes: Real, Fake
     ])
     return discriminator
-
-
 
 
 def create_discriminator_realtime_GRU(input_dim):

@@ -243,7 +243,7 @@ class CentralGan:
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
                 # Generate fake data
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                noise = tf.random.normal([tf.shape(real_data)[0], self.noise_dim])
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
 
@@ -297,8 +297,11 @@ class CentralGan:
         num_batches = 0
 
         for step, (test_data_batch, test_labels_batch) in enumerate(test_data):
-            # Generate fake samples
-            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            # generate noise for generator to use.
+            real_batch_size = tf.shape(test_data_batch)[0]  # Ensure real batch size
+            noise = tf.random.normal([real_batch_size, self.noise_dim])
+
+            # generate fake samples
             generated_samples = generator(noise, training=False)
 
             # Separate test data into normal and intrusive using boolean masking

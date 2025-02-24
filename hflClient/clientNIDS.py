@@ -10,10 +10,10 @@ from datetime import datetime
 import argparse
 sys.path.append(os.path.abspath('..'))
 
-from datasetLoadProcess.loadCiciotOptimized import loadCICIOT
-from datasetLoadProcess.iotbotnetDatasetLoad import loadIOTBOTNET
-from datasetLoadProcess.datasetPreprocess import preprocess_dataset
-from clientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient, recordConfig
+from datasetHandling.loadCiciotOptimized import loadCICIOT
+from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetPreprocess import preprocess_dataset
+from hflClientModelTrainingConfig.NIDSModelClientConfig import FlNidsClient, recordConfig
 from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:

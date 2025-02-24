@@ -80,8 +80,8 @@ class CentralDiscriminator:
     # loss based on correct classifications between normal, intrusive, and fake traffic
     def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
         # Create labels matching the shape of the output logits
-        real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-        real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
+        real_normal_labels = tf.zeros((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
+        real_intrusive_labels = tf.ones((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
         fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
 
         # Calculate sparse categorical cross-entropy loss for each group separately
@@ -113,8 +113,12 @@ class CentralDiscriminator:
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
+
+                # generate noise for generator to use.
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
+
                 # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
                 generated_data = self.generator(noise, training=False)
 
                 # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.

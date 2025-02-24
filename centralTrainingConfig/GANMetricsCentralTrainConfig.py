@@ -308,8 +308,10 @@ class CentralGan:
                 # Filter data based on these masks
                 normal_data = tf.boolean_mask(real_data, normal_mask)
                 intrusive_data = tf.boolean_mask(real_data, intrusive_mask)
+
                 # Generate noise for generator to shift through to create synthetic data
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+                real_batch_size = tf.shape(real_data)[0]  # Ensure real batch size
+                noise = tf.random.normal([real_batch_size, self.noise_dim])
 
                 with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
 
