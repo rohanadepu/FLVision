@@ -38,7 +38,7 @@ from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGa
 from centralTrainingConfig.WGANBinaryCentralTrainingConfig import CentralBinaryWGan
 from centralTrainingConfig.ACGANCentralTrainingConfig import CentralACGan
 
-def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
+def modelServerFedStratConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                    earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled, X_train_data,
                                    X_val_data, y_train_data, y_val_data, X_test_data, y_test_data, node, BATCH_SIZE,
                                    epochs, noise_dim, steps_per_epoch, input_dim, num_classes, latent_dim, betas,
@@ -63,10 +63,6 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
             client = CentralBinaryGan(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
                                   y_test_data, BATCH_SIZE,
                                   noise_dim, epochs, steps_per_epoch, learning_rate)
-        elif train_type == "Generator":
-            client = CentralGenerator(generator, discriminator, X_train_data, X_val_data, y_train_data, y_val_data,
-                                      X_test_data, y_test_data, BATCH_SIZE,
-                                      noise_dim, epochs, steps_per_epoch)
 
         elif train_type == "Discriminator":
             client = CentralDiscriminator(discriminator, generator, X_train_data, X_val_data, y_train_data, y_val_data,
@@ -78,8 +74,7 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
             client = CentralBinaryWGan(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
                                    y_test_data, BATCH_SIZE,
                                    noise_dim, epochs, steps_per_epoch, learning_rate)
-        elif train_type == "Generator":
-            client = None
+
         elif train_type == "Discriminator":
             client = None
 

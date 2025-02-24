@@ -28,7 +28,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from tensorflow.keras.optimizers import Adam
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-
+# GAN
 def create_model(input_dim, noise_dim):
     model = Sequential()
 
@@ -37,6 +37,7 @@ def create_model(input_dim, noise_dim):
 
     return model
 
+# GAN Binary
 def create_model_binary_optimized(input_dim, noise_dim):
     model = Sequential()
 
@@ -53,7 +54,11 @@ def create_model_binary(input_dim, noise_dim):
 
     return model
 
+# ACGAN
+# def create_model_AC(latent_dim, num_classes, input_dim):
+#     model =
 
+# WGAN Binary
 def create_model_W_binary(input_dim, noise_dim):
     model = Sequential()
 
@@ -62,12 +67,15 @@ def create_model_W_binary(input_dim, noise_dim):
 
     return model
 
+
+# model Loading
 def load_GAN_model(generator, discriminator):
     model = Sequential([generator, discriminator])
 
     return model
 
 
+# Submodel
 def split_GAN_model(model):
     # Assuming `self.model` is the GAN model created with Sequential([generator, discriminator])
     generator = model.layers[0]

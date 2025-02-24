@@ -31,17 +31,10 @@ from sklearn.utils import shuffle
 # import pickle
 # import joblib
 
-from datasetHandling.loadCiciotOptimized import loadCICIOT
-from datasetHandling.iotbotnetDatasetLoad import loadIOTBOTNET
+from datasetHandling.datasetLoadProcess import datasetLoadProcess
 
-from datasetHandling.datasetPreprocess import preprocess_dataset
-
-from centralTrainingConfig.GANBinaryCentralTrainingConfig import CentralBinaryGan
-
-from modelStructures.discriminatorStruct import create_discriminator_binary, create_discriminator_binary_optimized, create_discriminator_binary
-from modelStructures.generatorStruct import create_generator, create_generator_optimized
-from modelStructures.ganStruct import create_model, load_GAN_model, create_model_binary, create_model_binary_optimized
-
+from Client.overheadConfig.hyperparameterLoading import hyperparameterLoading
+from Client.overheadConfig.modelCreateLoad import modelCreateLoad
 ################################################################################################################
 #                                                   Execute                                                   #
 ################################################################################################################
@@ -59,22 +52,29 @@ def main():
     # -- Dataset Settings -- #
     parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
                         help='Datasets to use: CICIOT, IOTBOTNET')
-    parser.add_argument('--dataset_processing', type=str, choices=["Default", "MM[-1,-1]", "AC-GAN"], default="CICIOT",
-                        help='Datasets to use: Default, MM[-1,-1], AC-GAN')
+    parser.add_argument('--dataset_processing', type=str, choices=["Default", "MM[-1,-1]", "AC-GAN"], default="Default",
+                        help='Datasets to use: Default, MM[-1,1], AC-GAN')
 
     # -- Training / Model Parameters -- #
+    parser.add_argument('--clientBased', action='store_true',
+                        help='Only load the model structure and get the weights from the server')
+    parser.add_argument('--serverSave', action='store_true',
+                        help='Only load the model structure and get the weights from the server')
+
     parser.add_argument('--model_type', type=str, choices=["NIDS", "GAN", "WGAN-GP", "AC-GAN"],
                         help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
 
-    parser.add_argument('--model_training', type=str, choices=["NIDS","Generator", "Discriminator", "Both"],
-                        help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
+    parser.add_argument('--model_training', type=str, choices=["NIDS", "Generator", "Discriminator", "Both"],
+                        help='Please select NIDS, Generator, Discriminator, Both as the sub-model type to train')
 
+    # Optional
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+    parser.add_argument("--rounds", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], default=1,
+                        help="Rounds of training 1-10")
+    parser.add_argument("--min_clients", type=int, choices=[1, 2, 3, 4, 5, 6], default=2,
+                        help="Minimum number of clients required for training")
 
-    # -- Loading Models -- +
-    parser.add_argument('--model_init', type=str, choices=["Client", "Server"],
-                        help='Please select Client or Server to select where the model is being initialized from to train')
-
+    # -- Loading Models Optional -- +
     parser.add_argument('--pretrained_GAN', type=str,
                         help="Path to pretrained discriminator model (optional)", default=None)
     parser.add_argument('--pretrained_generator', type=str, help="Path to pretrained generator model (optional)",
@@ -84,61 +84,104 @@ def main():
     parser.add_argument('--pretrained_nids', type=str,
                         help="Path to pretrained nids model (optional)", default=None)
 
-    # -- Saving Models -- +
+    # -- Saving Models Optional -- +
     parser.add_argument('--save_name', type=str,
                         help="name of model files you save as", default=f"{timestamp}")
 
     # init variables to handle arguments
     args = parser.parse_args()
+
     # argument variables
     dataset_used = args.dataset
     dataset_processing = args.dataset_processing
+
+    # Model Spec
+    clientBased = args.clientBased
+    serverSave = args.serverSave
     model_type = args.model_type
     train_type = args.model_training
-    epochs = args.epochs
-    pretrainedGan = args.pretrained_GAN
-    pretrainedGenerator = args.pretrained_generator
-    pretrainedDiscriminator = args.pretrained_discriminator
-    pretrainedNids = args.pretrained_nids
-    save_name = args.save_name
-
     if model_type == "AC-GAN":
         dataset_processing = "AC-GAN"
+
+    # Training / Hyper Param
+    epochs = args.epochs
+    regularizationEnabled = True
+    DP_enabled = None
+    earlyStopEnabled = None
+    lrSchedRedEnabled = None
+    modelCheckpointEnabled = None
+
+    roundInput = args.rounds
+    minClients = args.min_clients
+
+    # Whole GAN model
+    pretrainedGan = args.pretrained_GAN
+
+    # Individual GAN Submodels
+    pretrainedGenerator = args.pretrained_generator
+    pretrainedDiscriminator = args.pretrained_discriminator
+
+    # Optional NIDS
+    pretrainedNids = args.pretrained_nids
+
+    # Save/Record Param
+    save_name = args.save_name
+    evaluationLog = timestamp
+    trainingLog = timestamp
+    node = 1
 
     # -- Display selected arguments --#
     print("|MAIN CONFIG|", "\n")
     # main experiment config
-    print("Selected DATASET:", dataset_used, "\n")
-    print("Selected Preprocessing:", dataset_processing, "\n")
-    print("Selected Model Type:", model_type, "\n")
-    print("Selected Model Training:", train_type, "\n")
-    print("Selected Epochs:", epochs, "\n")
-    print("Loaded GAN/GAN-Variant:", dataset_used, "\n")
+    if clientBased is False:
+        print("Selected DATASET:", dataset_used, "\n")
+        print("Selected Preprocessing:", dataset_processing, "\n")
+        print("Selected Model Type:", model_type, "\n")
+        print("Selected Model Training:", train_type, "\n")
+        print("Selected Epochs:", epochs, "\n")
+        print("Loaded GAN/GAN-Variant:", dataset_used, "\n")
     print("Loaded Generator Model:", pretrainedGenerator, "\n")
     print("Loaded Discriminator Model:", pretrainedDiscriminator, "\n")
     print("Loaded NIDS Model:", pretrainedNids, "\n")
     print("Save Name for the models in Trained in this session:", save_name, "\n")
 
-    # --- 2 Load & Preprocess Data ---#
+    if clientBased is True:
+        if serverSave is False:
+            # --- Default ---#
+            fl.server.start_server(
+                config=fl.server.ServerConfig(num_rounds=roundInput),
+                strategy=fl.server.strategy.FedAvg(
+                    min_fit_clients=minClients,
+                    min_evaluate_clients=minClients,
+                    min_available_clients=minClients
+                )
+            )
+        else:
+            # --- Save Model ---#
+            x = None
+    else:
+        # --- Server Based ---#
+        x = None
 
-    X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = datasetLoadProcess(dataset_used, dataset_processing)
+        # --- 2 Load & Preprocess Data ---#
+        X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = datasetLoadProcess(dataset_used,
+                                                                                                          dataset_processing)
 
-    # --- 3 Model Hyperparameter & Training Parameters ---#
-    BATCH_SIZE = 256
-    noise_dim = 100
-    steps_per_epoch = len(X_train_data) // BATCH_SIZE
-    input_dim = X_train_data.shape[1]
+        # --- 3 Model Hyperparameter & Training Parameters ---#
+        (BATCH_SIZE, noise_dim, steps_per_epoch, input_dim, num_classes, latent_dim, betas, learning_rate, l2_alpha,
+         l2_norm_clip, noise_multiplier, num_microbatches, metric_to_monitor_es, es_patience, restor_best_w,
+         metric_to_monitor_l2lr, l2lr_patience, save_best_only,
+         metric_to_monitor_mc, checkpoint_mode) = hyperparameterLoading(model_type, X_train_data,
+                                                                        regularizationEnabled, DP_enabled,
+                                                                        earlyStopEnabled,
+                                                                        lrSchedRedEnabled, modelCheckpointEnabled)
 
-    l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
-    betas = [0.9, 0.999]  # Stable
-    learning_rate = 0.0001
+        # --- 4 Model Loading & Creation ---#
+        nids, discriminator, generator, GAN = modelCreateLoad(model_type, train_type, pretrainedNids, pretrainedGan,
+                                                              pretrainedGenerator, pretrainedDiscriminator,
+                                                              dataset_used,
+                                                              input_dim, noise_dim, regularizationEnabled, DP_enabled,
+                                                              l2_alpha, latent_dim, num_classes)
+        # --- 5 Load Server Strat ---#
 
-    # --- 4 Model Loading & Creation ---#
-
-    # --- 5 Load Training Config ---#
-
-    # --- 6 Train Model ---#
-
-    # --- 7 Evaluate Model ---#
-
-    # --- 8 Save Model ---#
+        # --- 6 Start Hosting ---#
