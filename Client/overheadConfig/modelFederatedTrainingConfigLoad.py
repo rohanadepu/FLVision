@@ -38,8 +38,8 @@ from hflClientModelTrainingConfig.GenModelClientConfig import GeneratorClient
 from hflClientModelTrainingConfig.WGANBinaryClientTrainingConfig import BinaryWGanClient
 from hflClientModelTrainingConfig.WGAN_DiscriminatorBinaryClientTrainingConfig import BinaryWDiscriminatorClient
 from hflClientModelTrainingConfig.WGAN_GeneratorBinaryClientTrainingConfig import BinaryWGeneratorClient
-# from hflClientModelTrainingConfig.ACGANClientTrainingConfig import CentralACGan
-# from hflClientModelTrainingConfig.ACGANClientTrainingConfig
+from hflClientModelTrainingConfig.ACGANClientTrainingConfig import ACGanClient
+from hflClientModelTrainingConfig.ACDiscClientTrainingConfig import ACDiscriminatorClient
 
 def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                    earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled, X_train_data,
@@ -92,13 +92,15 @@ def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, datase
 
     elif model_type == 'AC-GAN':
         if train_type == "Both":
-            client = None
-        #     client = CentralACGan(discriminator, generator, nids, X_train_data, X_val_data, y_train_data,
-        #                       y_val_data, X_test_data, y_test_data, BATCH_SIZE,
-        #                       noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
+            client = ACGanClient(GAN, nids, X_train_data, X_val_data, y_train_data,
+                              y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+                              noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
             client = None
         elif train_type == "Discriminator":
-            client = None
+            client = ACDiscriminatorClient(discriminator, X_train_data, X_val_data, y_train_data,
+                                           y_val_data, X_test_data, y_test_data, BATCH_SIZE,
+                                           noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch,
+                                           learning_rate)
 
     return client

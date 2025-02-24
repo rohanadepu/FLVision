@@ -84,7 +84,7 @@ def build_AC_generator(latent_dim, num_classes, input_dim):
     x = LeakyReLU(0.2)(x)
     output = Dense(input_dim, activation='tanh')(x)  # Output size should match dataset features
 
-    return Model([noise_input, label_input], output, name="Generator")
+    return Model([noise_input, label_input], output, name="ACGenerator")
 
 
 

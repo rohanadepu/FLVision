@@ -49,27 +49,13 @@ from sklearn.utils import shuffle
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
 
-class ACGanClient(fl.client.NumPyClient):
-    def __init__(self, GAN, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+class CentralACGan:
+    def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
                  log_file="training.log"):
         #-- models
-        self.GAN = GAN
-        # Reconstruct the generator model from the merged model:
-        self.generator = Model(
-            inputs=self.GAN.inputs,
-            outputs=self.GAN.get_layer("ACGenerator").output,
-            name="Extracted_Generator"
-        )
-
-        self.discriminator = Model(
-            inputs=self.GAN.get_layer("Generator").output,  # this is the generated data input for the discriminator
-            outputs=[
-                self.GAN.get_layer("validity").output,
-                self.GAN.get_layer("class").output
-            ],
-            name="Extracted_Discriminator"
-        )
+        self.generator = generator
+        self.discriminator = discriminator
         self.nids = nids
 
         #-- I/O Specs for models
@@ -96,7 +82,7 @@ class ACGanClient(fl.client.NumPyClient):
         # -- Setup Logging
         self.setup_logger(log_file)
 
-        # -- Optimizers
+        #-- Optimizers
         # LR decay
         lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.98, staircase=True)
@@ -106,27 +92,27 @@ class ACGanClient(fl.client.NumPyClient):
 
         # Compile optimizer
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
-        self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
+        # self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
         print("Discriminator Output:", self.discriminator.output_names)
 
-        # -- Model Compilations
-        # Compile Discriminator separately (before freezing)
-        self.discriminator.compile(
-            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
-            optimizer=self.disc_optimizer,
-            metrics={
-                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
-                'class': ['accuracy', 'categorical_accuracy']
-            }
-        )
+        #-- Model Compilations
+        # # Compile Discriminator separately (before freezing)
+        # self.discriminator.compile(
+        #     loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+        #     optimizer=self.disc_optimizer,
+        #     metrics={
+        #         'validity': ['accuracy', 'binary_accuracy', 'AUC'],
+        #         'class': ['accuracy', 'categorical_accuracy']
+        #     }
+        # )
 
         # Freeze Discriminator only for AC-GAN training
         self.discriminator.trainable = False
 
         # Define AC-GAN (Generator + Frozen Discriminator)
         # I/O
-        noise_input = tf.keras.Input(shape=(self.latent_dim,))
+        noise_input = tf.keras.Input(shape=(latent_dim,))
         label_input = tf.keras.Input(shape=(1,), dtype='int32')
         generated_data = self.generator([noise_input, label_input])
         validity, class_pred = self.discriminator(generated_data)
@@ -148,10 +134,9 @@ class ACGanClient(fl.client.NumPyClient):
     def setACGAN(self):
         return self.ACGAN
 
-    def get_parameters(self, config):
-        return self.GAN.get_weights()
-
     # -- logging Functions -- #
+
+
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
         self.logger = logging.getLogger("CentralACGan")
@@ -258,52 +243,6 @@ class ACGanClient(fl.client.NumPyClient):
 
             print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
-            # --------------------------
-            # Train Discriminator
-            # --------------------------
-
-            # Sample a batch of real data
-            idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
-            real_data = tf.gather(X_train, idx)
-            real_labels = tf.gather(y_train, idx)
-
-            # Ensure labels are one-hot encoded
-            if len(real_labels.shape) == 1:
-                real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
-            else:
-                real_labels_onehot = real_labels
-
-            # Sample the noise data
-            noise = tf.random.normal((self.batch_size, self.latent_dim))
-            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
-            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
-
-            # Generate fake data
-            generated_data = self.generator.predict([noise, fake_labels])
-
-            # Train discriminator on real and fake data
-            d_loss_real = self.discriminator.train_on_batch(real_data, [valid, real_labels_onehot])
-            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake, fake_labels_onehot])
-            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
-
-            # Collect discriminator metrics
-            d_metrics = {
-                "Total Loss": f"{d_loss[0]:.4f}",
-                "Validity Loss": f"{d_loss[1]:.4f}",
-                "Class Loss": f"{d_loss[2]:.4f}",
-                "Validity Accuracy": f"{d_loss[3] * 100:.2f}%",
-                "Validity Binary Accuracy": f"{d_loss[4] * 100:.2f}%",
-                "Validity AUC": f"{d_loss[5] * 100:.2f}%",
-                "Class Accuracy": f"{d_loss[6] * 100:.2f}%",
-                "Class Categorical Accuracy": f"{d_loss[7] * 100:.2f}%"
-            }
-            self.logger.info("Training Discriminator")
-            self.logger.info(
-                f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
-            self.logger.info(
-                f"Validity Accuracy: {d_loss[3] * 100:.2f}%, Binary Accuracy: {d_loss[4] * 100:.2f}%, AUC: {d_loss[5] * 100:.2f}%")
-            self.logger.info(
-                f"Class Accuracy: {d_loss[6] * 100:.2f}%, Categorical Accuracy: {d_loss[7] * 100:.2f}%")
 
             # --------------------------
             # Train Generator (AC-GAN)
@@ -352,7 +291,7 @@ class ACGanClient(fl.client.NumPyClient):
                 # Log the metrics for this epoch using our new logging method
                 self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
                 self.logger.info(
-                    f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
+                    f"Epoch {epoch}: ACGAN Loss: {g_loss[0]:.4f}")
 
         # -- Loss Calculation -- #
 
