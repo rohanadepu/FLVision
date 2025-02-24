@@ -39,7 +39,7 @@ from hflClientModelTrainingConfig.WGANBinaryClientTrainingConfig import BinaryWG
 from hflClientModelTrainingConfig.WGAN_DiscriminatorBinaryClientTrainingConfig import BinaryWDiscriminatorClient
 from hflClientModelTrainingConfig.WGAN_GeneratorBinaryClientTrainingConfig import BinaryWGeneratorClient
 from hflClientModelTrainingConfig.ACGANClientTrainingConfig import ACGanClient
-from hflClientModelTrainingConfig.ACDiscClientTrainingConfig import ACDiscriminatorClient
+from hflClientModelTrainingConfig.AC_DiscClientTrainingConfig import ACDiscriminatorClient
 
 def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                    earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled, X_train_data,
