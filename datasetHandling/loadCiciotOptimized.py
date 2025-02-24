@@ -35,10 +35,6 @@ DICT_7CLASSES = {'DDoS-RSTFINFlood': 'DDoS', 'DDoS-PSHACK_Flood': 'DDoS', 'DDoS-
                      'CommandInjection': 'Web', 'DictionaryBruteForce': 'BruteForce'
                      }
 
-DICT7_to_2CLASSES = {'DDoS':'Attack', 'DoS':'Attack', 'Mirai':'Attack','Recon':'Attack','Spoofing':'Attack',
-                     'Benign':'Benign', 'Web':'Attack', 'BruteForce':'Attack'
-                     }
-
 NUM_COLS = ['flow_duration', 'Header_Length', 'Rate', 'Srate', 'Drate', 'ack_count', 'syn_count', 'fin_count',
                 'urg_count', 'rst_count', 'Tot sum', 'Min', 'Max', 'AVG', 'Std', 'Tot size', 'IAT', 'Number',
                 'Magnitue', 'Radius', 'Covariance', 'Variance', 'Weight'
@@ -121,75 +117,11 @@ def map_labels(data, label_class_dict):
     return data
 
 
-def split_label(data, label_list):
-    """
-    Excludes rows with specific labels from the dataset.
-
-    Parameters:
-        data (pd.DataFrame): The input dataset containing a 'label' column.
-        label_list (list): A list of labels to exclude from the dataset.
-
-    Returns:
-        pd.DataFrame: The dataset with specified labels removed.
-    """
-    # Ensure 'label' column exists in the data
-    if 'label' not in data.columns:
-        raise ValueError("The dataset does not contain a 'label' column.")
-
-    # Filter out rows where the 'label' is in the label_list
-    filtered_data = data[~data['label'].isin(label_list)]
-
-    return filtered_data
-
-
 def load_and_balance_data(file_path, label_class_dict, current_benign_size, benign_size_limit):
 
     data = pd.read_csv(file_path)
 
     data = map_labels(data, label_class_dict)
-
-    attack_samples = data[data['label'] == 'Attack']
-    benign_samples = data[data['label'] == 'Benign']
-
-    remaining_benign_quota = benign_size_limit - current_benign_size
-    if len(benign_samples) > remaining_benign_quota:
-        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
-
-    min_samples = min(len(attack_samples), len(benign_samples))
-    balanced_data = pd.concat([attack_samples.sample(min_samples, random_state=47),
-                               benign_samples])
-
-    return balanced_data, len(benign_samples)
-
-def load_and_balance_data_general(file_path, label_class_dict, current_benign_size, benign_size_limit, labels_to_exclude=None):
-
-    data = pd.read_csv(file_path)
-
-    data = map_labels(data, label_class_dict)
-
-    data = split_label(data, labels_to_exclude)
-
-    benign_samples = data[data['label'] == 'Benign']
-
-    remaining_benign_quota = benign_size_limit - current_benign_size
-    if len(benign_samples) > remaining_benign_quota:
-        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
-
-    min_samples = min(len(attack_samples), len(benign_samples))
-    balanced_data = pd.concat([attack_samples.sample(min_samples, random_state=47),
-                               benign_samples])
-
-    return balanced_data, len(benign_samples)
-
-def load_and_balance_data_general_to_binary(file_path, label_class_dict_general_to_binary, label_class_dict_general, current_benign_size, benign_size_limit):
-
-    data = pd.read_csv(file_path)
-
-    data = map_labels(data, label_class_dict_general)
-
-    data = split_general(data, )
-
-    data = map_labels(data, label_class_dict_general_to_binary)
 
     attack_samples = data[data['label'] == 'Attack']
     benign_samples = data[data['label'] == 'Benign']
@@ -206,22 +138,6 @@ def load_and_balance_data_general_to_binary(file_path, label_class_dict_general_
 
 
 def reduce_attack_samples(data, attack_ratio):
-
-    attack_samples = data[data['label'] == 'Attack'].sample(frac=attack_ratio, random_state=47)
-
-    benign_samples = data[data['label'] == 'Benign']
-
-    return pd.concat([benign_samples, attack_samples])
-
-def reduce_attack_samples_binary(data, attack_ratio):
-
-    attack_samples = data[data['label'] == 'Attack'].sample(frac=attack_ratio, random_state=47)
-
-    benign_samples = data[data['label'] == 'Benign']
-
-    return pd.concat([benign_samples, attack_samples])
-
-def reduce_attack_samples_general(data, attack_ratio):
 
     attack_samples = data[data['label'] == 'Attack'].sample(frac=attack_ratio, random_state=47)
 
