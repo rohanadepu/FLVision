@@ -204,5 +204,8 @@ def main():
         # --- 7A Centrally Evaluate Model ---#
         client.evaluate()
 
+    # --- 8 Locally Save Model After Training ---#
+    # client.save()
+
 if __name__ == "__main__":
     main()

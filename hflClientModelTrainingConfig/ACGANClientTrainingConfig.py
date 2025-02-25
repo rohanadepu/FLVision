@@ -56,14 +56,7 @@ class ACGanClient(fl.client.NumPyClient):
         #-- models
         self.GAN = GAN
         # Reconstruct the generator model from the merged model:
-        self.generator = Model(
-            inputs=[
-                self.GAN.get_layer("noise_input").input,
-                self.GAN.get_layer("label_input").input
-            ],
-            outputs=self.GAN.get_layer("ACGenerator").output,
-            name="Extracted_Generator"
-        )
+        self.generator = self.GAN.generator  # directly use the stored generator
 
         self.discriminator = Model(
             inputs=self.GAN.get_layer("ACGenerator").output,  # this is the generated data input for the discriminator

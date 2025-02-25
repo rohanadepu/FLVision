@@ -44,6 +44,8 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
+
+from idsSystem.detectInstrusion import predict_and_act
 ################################################################################################################
 #                                       NIDS Training                                       #
 ################################################################################################################
@@ -233,6 +235,8 @@ class FlNidsClient(fl.client.NumPyClient):
 
         # Test the model
         loss, accuracy, precision, recall, auc, logcosh = self.model.evaluate(self.X_test_data, self.y_test_data)
+
+        predict_and_act(self.model, self.X_test_data, self.y_test_data, threshold=0.4)
 
         # Record end time and calculate elapsed time
         end_time = time.time()

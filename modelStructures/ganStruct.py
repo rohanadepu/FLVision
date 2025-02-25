@@ -92,7 +92,7 @@ from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model, load_model
 
 
-def load_and_merge_ACmodels(generator_path, discriminator_path, latent_dim, num_classes, input_dim):
+def load_and_merge_ACmodels_V0(generator_path, discriminator_path, latent_dim, num_classes, input_dim):
 
     pretrained_generator = None
     pretrained_discriminator = None
@@ -125,6 +125,38 @@ def load_and_merge_ACmodels(generator_path, discriminator_path, latent_dim, num_
         outputs=[validity, class_output],
         name="ACGAN"
     )
+    return merged_model
+
+
+def load_and_merge_ACmodels(generator_path, discriminator_path, latent_dim, num_classes, input_dim):
+    noise_input = Input(shape=(latent_dim,), name="noise_input")
+    label_input = Input(shape=(1,), dtype='int32', name="label_input")
+
+    # Build or load the generator:
+    if generator_path is not None:
+        gen_model = load_model(generator_path)
+    else:
+        gen_model = build_AC_generator(latent_dim, num_classes, input_dim)
+
+    # Call the generator to obtain generated data.
+    generated_data = gen_model([noise_input, label_input])
+    # Optionally, give the output an explicit name.
+    generated_data = tf.identity(generated_data, name="ACGenerator")
+
+    # Build or load the discriminator and call it:
+    if discriminator_path is not None:
+        disc_model = load_model(discriminator_path)
+        validity, class_output = disc_model(generated_data)
+    else:
+        validity, class_output = build_AC_discriminator(input_dim, num_classes)(generated_data)
+    # Create and return the merged AC-GAN model
+    merged_model = Model(
+        inputs=[noise_input, label_input],
+        outputs=[validity, class_output],
+        name="ACGAN"
+    )
+    # Save the generator as an attribute so that it can be extracted later.
+    merged_model.generator = gen_model
     return merged_model
 
 

@@ -234,7 +234,7 @@ def modelCreateLoad(modelType, train_type, pretrainedNids, pretrainedGan, pretra
 
                 discriminator = build_AC_discriminator(input_dim, num_classes)
 
-                GAN = create_model_AC(latent_dim, num_classes, input_dim)
+                GAN = load_and_merge_ACmodels(pretrainedGenerator, pretrainedDiscriminator, latent_dim, num_classes, input_dim)
 
         elif train_type == 'Generator':
             if pretrainedDiscriminator and pretrainedGenerator:
