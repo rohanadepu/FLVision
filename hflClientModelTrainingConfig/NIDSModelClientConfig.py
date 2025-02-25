@@ -45,7 +45,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
-from idsSystem.detectInstrusion import predict_and_act
+from idsSystem.detectIntrusions import predict_and_act
 ################################################################################################################
 #                                       NIDS Training                                       #
 ################################################################################################################
