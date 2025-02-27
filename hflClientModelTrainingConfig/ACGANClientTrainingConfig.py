@@ -236,6 +236,9 @@ class ACGanClient(fl.client.NumPyClient):
             X_train = self.x_train
             y_train = self.y_train
 
+            for i, sample in enumerate(X_train):
+                print(f"Sample {i} shape: {np.array(sample).shape}")
+
         # Log model settings at the start
         self.log_model_settings()
 
