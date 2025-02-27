@@ -150,7 +150,8 @@ class BinaryWGanClient(fl.client.NumPyClient):
 
         for step, (real_data, _) in enumerate(self.x_val_ds):
             # Generate fake samples
-            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            current_batch_size = tf.shape(real_data)[0]
+            noise = tf.random.normal([current_batch_size, self.noise_dim])
             generated_samples = generator(noise, training=False)
 
             # Pass real and fake data through the discriminator
@@ -182,12 +183,14 @@ class BinaryWGanClient(fl.client.NumPyClient):
         return float(gen_loss.numpy())
 
     def evaluate_validation_NIDS(self, generator):
-        # Generate fake samples
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = generator(noise, training=False)
 
         # Ensure proper input format for NIDS
         real_data_batches = tf.concat([data for data, _ in self.x_val_ds], axis=0)
+
+        # Generate fake samples
+        current_batch_size = tf.shape(real_data_batches)[0]
+        noise = tf.random.normal([current_batch_size, self.noise_dim])
+        generated_samples = generator(noise, training=False)
 
         # Get NIDS predictions
         real_output = self.nids(real_data_batches, training=False)
@@ -220,7 +223,9 @@ class BinaryWGanClient(fl.client.NumPyClient):
         discriminator = self.model.layers[1]
 
         for step, (test_data_batch, test_labels_batch) in enumerate(self.x_test_ds):
-            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+
+            current_batch_size = tf.shape(test_data_batch)[0]
+            noise = tf.random.normal([current_batch_size, self.noise_dim])
             generated_samples = generator(noise, training=False)
 
             real_output = discriminator(test_data_batch, training=False)
