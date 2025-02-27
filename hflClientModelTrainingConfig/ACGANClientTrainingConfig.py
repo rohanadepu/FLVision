@@ -94,45 +94,9 @@ class ACGanClient(fl.client.NumPyClient):
         lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
 
-        # Compile optimizer
+        # Init optimizer
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
-
-        print("Discriminator Output:", self.discriminator.output_names)
-
-        # -- Model Compilations
-        # Compile Discriminator separately (before freezing)
-        self.discriminator.compile(
-            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
-            optimizer=self.disc_optimizer,
-            metrics={
-                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
-                'class': ['accuracy', 'categorical_accuracy']
-            }
-        )
-
-        # Freeze Discriminator only for AC-GAN training
-        self.discriminator.trainable = False
-
-        # Define AC-GAN (Generator + Frozen Discriminator)
-        # I/O
-        noise_input = tf.keras.Input(shape=(self.latent_dim,))
-        label_input = tf.keras.Input(shape=(1,), dtype='int32')
-        generated_data = self.generator([noise_input, label_input])
-        validity, class_pred = self.discriminator(generated_data)
-        # Compile Combined Model
-        self.ACGAN = Model([noise_input, label_input], [validity, class_pred])
-
-        print("ACGAN Output:", self.ACGAN.output_names)
-
-        self.ACGAN.compile(
-            loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
-            optimizer=self.gen_optimizer,
-            metrics={
-                'Discriminator': ['accuracy', 'binary_accuracy', 'AUC'],
-                'Discriminator_1': ['accuracy', 'categorical_accuracy']
-            }
-        )
 
     # Saving function for ACGAN
     def setACGAN(self):
@@ -231,13 +195,50 @@ class ACGanClient(fl.client.NumPyClient):
         self.logger.info("=" * 50)
 
     # -- Train -- #
-    def fit(self, X_train=None, y_train=None):
-        if X_train is None or y_train is None:
-            X_train = self.x_train
-            y_train = self.y_train
+    def fit(self, parameters, config):
 
+        self.GAN.set_weights(parameters)
 
-        print("Xtrain Data",X_train.head())
+        print("Discriminator Output:", self.discriminator.output_names)
+
+        # -- Model Compilations
+        # Compile Discriminator separately (before freezing)
+        self.discriminator.compile(
+            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+            optimizer=self.disc_optimizer,
+            metrics={
+                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
+                'class': ['accuracy', 'categorical_accuracy']
+            }
+        )
+
+        # Freeze Discriminator only for AC-GAN training
+        self.discriminator.trainable = False
+
+        # Define AC-GAN (Generator + Frozen Discriminator)
+        # I/O
+        noise_input = tf.keras.Input(shape=(self.latent_dim,))
+        label_input = tf.keras.Input(shape=(1,), dtype='int32')
+        generated_data = self.generator([noise_input, label_input])
+        validity, class_pred = self.discriminator(generated_data)
+        # Compile Combined Model
+        self.ACGAN = Model([noise_input, label_input], [validity, class_pred])
+
+        print("ACGAN Output:", self.ACGAN.output_names)
+
+        self.ACGAN.compile(
+            loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
+            optimizer=self.gen_optimizer,
+            metrics={
+                'Discriminator': ['accuracy', 'binary_accuracy', 'AUC'],
+                'Discriminator_1': ['accuracy', 'categorical_accuracy']
+            }
+        )
+
+        X_train = self.x_train
+        y_train = self.y_train
+
+        print("Xtrain Data", X_train.head())
 
         # Log model settings at the start
         self.log_model_settings()
