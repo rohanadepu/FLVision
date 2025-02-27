@@ -224,7 +224,7 @@ class BinaryWGanClient(fl.client.NumPyClient):
 
         for step, (test_data_batch, test_labels_batch) in enumerate(self.x_test_ds):
 
-            current_batch_size = tf.shape(test_data_batch)[0]
+            current_batch_size = tf.shape(test_data_batch)[0]  # for ensuring it matches to noise batch
             noise = tf.random.normal([current_batch_size, self.noise_dim])
             generated_samples = generator(noise, training=False)
 
