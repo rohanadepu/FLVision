@@ -132,33 +132,33 @@ def load_and_merge_ACmodels(generator_path, discriminator_path, latent_dim, num_
     noise_input = Input(shape=(latent_dim,), name="noise_input")
     label_input = Input(shape=(1,), dtype='int32', name="label_input")
 
-    # Build or load the generator:
+    # Build or load the generator.
     if generator_path is not None:
         gen_model = load_model(generator_path)
     else:
         gen_model = build_AC_generator(latent_dim, num_classes, input_dim)
 
-    # Call the generator to obtain generated data.
     generated_data = gen_model([noise_input, label_input])
-    # Optionally, give the output an explicit name.
     generated_data = tf.identity(generated_data, name="ACGenerator")
 
-    # Build or load the discriminator and call it:
+    # Build or load the discriminator.
     if discriminator_path is not None:
         disc_model = load_model(discriminator_path)
-        validity, class_output = disc_model(generated_data)
     else:
-        validity, class_output = build_AC_discriminator(input_dim, num_classes)(generated_data)
-    # Create and return the merged AC-GAN model
+        disc_model = build_AC_discriminator(input_dim, num_classes)
+
+    validity, class_output = disc_model(generated_data)
+
     merged_model = Model(
         inputs=[noise_input, label_input],
         outputs=[validity, class_output],
         name="ACGAN"
     )
-    # Save the generator as an attribute so that it can be extracted later.
-    merged_model.generator = gen_model
-    return merged_model
 
+    # Store the generator and discriminator as attributes.
+    merged_model.generator = gen_model
+    merged_model.discriminator = disc_model
+    return merged_model
 
 
 # Submodel
