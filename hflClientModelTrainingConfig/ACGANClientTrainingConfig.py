@@ -236,8 +236,26 @@ class ACGanClient(fl.client.NumPyClient):
             X_train = self.x_train
             y_train = self.y_train
 
-            for i, sample in enumerate(X_train):
-                print(f"Sample {i} shape: {np.array(sample).shape}")
+        # Print shape for debugging
+        for i, sample in enumerate(X_train):
+            print(f"Sample {i} shape: {np.shape(sample)}")
+
+            # Convert DataFrame to a NumPy array properly
+        if hasattr(X_train, "to_numpy"):
+            X_train = X_train.to_numpy()
+        else:
+            try:
+                X_train = np.stack(X_train)
+            except Exception as e:
+                print("Error stacking X_train: ", e)
+                for i, sample in enumerate(X_train):
+                    print(f"Sample {i} shape: {np.shape(sample)}")
+
+            # Similarly for y_train if needed
+        if hasattr(y_train, "to_numpy"):
+            y_train = y_train.to_numpy()
+        else:
+            y_train = np.array(y_train)
 
         # Log model settings at the start
         self.log_model_settings()
