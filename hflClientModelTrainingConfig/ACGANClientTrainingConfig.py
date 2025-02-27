@@ -253,6 +253,9 @@ class ACGanClient(fl.client.NumPyClient):
             # --------------------------
 
             # Sample a batch of real data
+            X_train = np.array(X_train)
+            y_train = np.array(y_train)
+
             idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
             real_data = tf.gather(X_train, idx)
             real_labels = tf.gather(y_train, idx)
@@ -343,6 +346,9 @@ class ACGanClient(fl.client.NumPyClient):
                 self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
                 self.logger.info(
                     f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
+
+            # Return parameters for both generator and discriminator
+            return self.GAN.get_weights(), len(self.x_train), {}
 
         # -- Loss Calculation -- #
 
