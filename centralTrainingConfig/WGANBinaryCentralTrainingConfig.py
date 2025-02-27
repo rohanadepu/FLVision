@@ -136,7 +136,8 @@ class CentralBinaryWGan:
 
         for step, (real_data, _) in enumerate(self.x_val_ds):
             # Generate fake samples
-            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            current_batch_size = tf.shape(real_data)[0]
+            noise = tf.random.normal([current_batch_size, self.noise_dim])
             generated_samples = self.generator(noise, training=False)
 
             # Pass real and fake data through the discriminator
