@@ -197,6 +197,7 @@ class ACGanClient(fl.client.NumPyClient):
     # -- Train -- #
     def fit(self, parameters, config):
 
+        #-- Set the model weights from the Host --#
         self.GAN.set_weights(parameters)
 
         print("Discriminator Output:", self.discriminator.output_names)
@@ -235,6 +236,7 @@ class ACGanClient(fl.client.NumPyClient):
             }
         )
 
+        # -- Set the Data --#
         X_train = self.x_train
         y_train = self.y_train
 
@@ -246,6 +248,7 @@ class ACGanClient(fl.client.NumPyClient):
         valid = tf.ones((self.batch_size, 1))
         fake = tf.zeros((self.batch_size, 1))
 
+        #-- Training loop --#
         for epoch in range(self.epochs):
             print("Discriminator Metrics:",self.discriminator.metrics_names)
             print("ACGAN Metrics:",self.ACGAN.metrics_names)
@@ -354,8 +357,7 @@ class ACGanClient(fl.client.NumPyClient):
             # Return parameters for both generator and discriminator
             return self.GAN.get_weights(), len(self.x_train), {}
 
-        # -- Loss Calculation -- #
-
+        # -- Loss Calculations -- #
     def nids_loss(self, real_output, fake_output):
         """
         Compute the NIDS loss on real and fake samples.
@@ -377,7 +379,7 @@ class ACGanClient(fl.client.NumPyClient):
         total_loss = real_loss + fake_loss
         return total_loss.numpy()
 
-    # -- Validate -- #
+    # -- Validation Functions (Disc, Gen, NIDS) -- #
     def validation_disc(self):
         """
         Evaluate the discriminator on the validation set.
@@ -564,10 +566,10 @@ class ACGanClient(fl.client.NumPyClient):
         return custom_nids_loss, metrics
 
     # -- Evaluate -- #
-    def evaluate(self, X_test=None, y_test=None):
-        if X_test is None or y_test is None:
-            X_test = self.x_test
-            y_test = self.y_test
+    def evaluate(self, parameters, config):
+
+        X_test = self.x_test
+        y_test = self.y_test
 
         # --------------------------
         # Test Discriminator
@@ -707,3 +709,5 @@ class ACGanClient(fl.client.NumPyClient):
 
         # Log the overall evaluation metrics using our logging function
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
+
+        return d_loss_total, len(self.x_test), {}
