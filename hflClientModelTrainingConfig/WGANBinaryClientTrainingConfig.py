@@ -141,7 +141,7 @@ class BinaryWGanClient(fl.client.NumPyClient):
                 val_nids_loss = self.evaluate_validation_NIDS(generator)
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss:.4f}')
 
-        return self.model.get_weights(), len(self.x_train), {}
+        return self.model.get_weights(), len(self.x_train_ds), {}
 
     # validation
     def evaluate_validation_disc(self, generator, discriminator):
