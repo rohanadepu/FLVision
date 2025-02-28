@@ -184,3 +184,6 @@ class BinaryDiscriminatorClient(fl.client.NumPyClient):
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
         return avg_disc_loss, len(self.x_test), {}
+
+    def save(self, save_name):
+        self.discriminator.save(f"../pretrainedModels/discriminator_fed_GAN_{save_name}.h5")

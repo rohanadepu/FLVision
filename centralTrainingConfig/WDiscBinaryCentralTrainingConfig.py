@@ -210,3 +210,6 @@ class CentralBinaryWDisc:
             "accuracy": avg_accuracy,
             "f1_score": f1_score
         }
+
+    def save(self, save_name):
+        self.discriminator.save(f"../pretrainedModels/discriminator_local_WGANGP_{save_name}.h5")

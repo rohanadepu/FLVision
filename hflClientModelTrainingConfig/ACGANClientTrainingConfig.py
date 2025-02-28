@@ -568,6 +568,10 @@ class ACGanClient(fl.client.NumPyClient):
     # -- Evaluate -- #
     def evaluate(self, parameters, config):
 
+        # -- Set the model weights from the Host --#
+        self.GAN.set_weights(parameters)
+
+        # Set the data
         X_test = self.x_test
         y_test = self.y_test
 
@@ -711,3 +715,10 @@ class ACGanClient(fl.client.NumPyClient):
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
 
         return d_loss_total, len(self.x_test), {}
+
+    def save(self, save_name):
+        self.GAN.save(f"../pretrainedModels/fed_ACGAN_{save_name}.h5")
+
+        # Save each submodel separately
+        self.generator.save(f"../pretrainedModels/generator_fed_ACGAN_{save_name}.h5")
+        self.discriminator.save(f"../pretrainedModels/discriminator_fed_ACGAN_{save_name}.h5")

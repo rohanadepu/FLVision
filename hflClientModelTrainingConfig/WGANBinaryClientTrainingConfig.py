@@ -268,3 +268,14 @@ class BinaryWGanClient(fl.client.NumPyClient):
             "f1_score": f1_score
         }
 
+    def save(self, save_name):
+        self.model.save(f"../pretrainedModels/fed_WGANGP_{save_name}.h5")
+
+        # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
+        generator = self.model.layers[0]
+        discriminator = self.model.layers[1]
+
+        # Save each submodel separately
+        generator.save(f"../pretrainedModels/generator_fed_WGANGP_{save_name}.h5")
+        discriminator.save(f"../pretrainedModels/discriminator_fed_WGANGP_{save_name}.h5")
+

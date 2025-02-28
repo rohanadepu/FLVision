@@ -346,3 +346,14 @@ class GanBinaryClient(fl.client.NumPyClient):
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
         return avg_disc_loss, len(self.x_test_ds), {}
+
+    def save(self, save_name):
+        self.gan.save(f"../pretrainedModels/fed_GAN_{save_name}.h5")
+
+        # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
+        generator = self.gan.layers[0]
+        discriminator = self.gan.layers[1]
+
+        # Save each submodel separately
+        generator.save(f"../pretrainedModels/generator_local_GAN_{save_name}.h5")
+        discriminator.save(f"../pretrainedModels/discriminator_local_GAN_{save_name}.h5")

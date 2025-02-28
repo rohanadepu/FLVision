@@ -177,3 +177,6 @@ class CentralBinaryDiscriminator:
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
         return avg_disc_loss, len(self.x_test_ds), {}
+
+    def save(self, save_name):
+        self.discriminator.save(f"../pretrainedModels/discriminator_local_GAN_{save_name}.h5")

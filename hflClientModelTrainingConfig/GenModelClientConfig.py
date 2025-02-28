@@ -156,3 +156,6 @@ class GeneratorClient(fl.client.NumPyClient):
             gen_loss = tf.reduce_mean(gen_loss)  # or tf.reduce_sum() based on your requirements
 
         return float(gen_loss.numpy())
+
+    def save(self, save_name):
+        self.generator.save(f"../pretrainedModels/generator_fed_GAN_{save_name}.h5")

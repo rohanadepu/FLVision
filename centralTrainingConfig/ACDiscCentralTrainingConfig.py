@@ -107,14 +107,7 @@ class CentralACGan:
             }
         )
 
-
-    # Saving function for ACGAN
-    def setACGAN(self):
-        return self.ACGAN
-
     # -- logging Functions -- #
-
-
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
         self.logger = logging.getLogger("CentralACGan")
@@ -173,30 +166,32 @@ class CentralACGan:
         self.logger.info(f"Learning Rate (Discriminator): {self.disc_optimizer.learning_rate}")
         self.logger.info("=" * 50)
 
-    def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None):
+    def log_epoch_metrics(self, epoch, d_metrics, g_metrics=None, nids_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
         self.logger.info("Discriminator Metrics:")
         for key, value in d_metrics.items():
             self.logger.info(f"  {key}: {value}")
-        self.logger.info("Generator Metrics:")
-        for key, value in g_metrics.items():
-            self.logger.info(f"  {key}: {value}")
+        if g_metrics is not None:
+            self.logger.info("Generator Metrics:")
+            for key, value in g_metrics.items():
+                self.logger.info(f"  {key}: {value}")
         if nids_metrics is not None:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None):
+    def log_evaluation_metrics(self, d_eval, g_eval=None, nids_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
-        self.logger.info("Generator Evaluation:")
-        for key, value in g_eval.items():
-            self.logger.info(f"  {key}: {value}")
+        if g_eval is not None:
+            self.logger.info("Generator Evaluation:")
+            for key, value in g_eval.items():
+                self.logger.info(f"  {key}: {value}")
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
@@ -217,7 +212,6 @@ class CentralACGan:
 
         for epoch in range(self.epochs):
             print("Discriminator Metrics:",self.discriminator.metrics_names)
-            print("ACGAN Metrics:",self.ACGAN.metrics_names)
 
             print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
@@ -274,14 +268,13 @@ class CentralACGan:
             if epoch % 1 == 0:
                 self.logger.info(f"=== Epoch {epoch} Validation ===")
                 d_val_loss, d_val_metrics = self.validation_disc()
-                g_val_loss, g_val_metrics = self.validation_gen()
                 nids_val_metrics = None
                 if self.nids is not None:
                     nids_custom_loss, nids_val_metrics = self.validation_NIDS()
                     self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
                 # Log the metrics for this epoch using our new logging method
-                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
+                self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics)
                 self.logger.info(
                     f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
 
@@ -388,46 +381,7 @@ class CentralACGan:
         }
         return avg_total_loss, metrics
 
-    def validation_gen(self):
-        """
-        Evaluate the generator (via the AC-GAN) using a validation batch.
-        The generator is evaluated by its ability to “fool” the discriminator.
-        Prints and returns the total generator loss along with key metrics.
-        """
-        noise = tf.random.normal((len(self.x_val), self.latent_dim))
-        sampled_labels = tf.random.uniform(
-            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
-        )
-        sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
-        valid_labels = np.ones((len(self.x_val), 1))
 
-        g_loss = self.ACGAN.evaluate(
-            [noise, sampled_labels],
-            [valid_labels, sampled_labels_onehot],
-            verbose=0
-        )
-
-        # Log detailed metrics
-        self.logger.info("Validation Generator (AC-GAN) Evaluation:")
-        self.logger.info(
-            f"Total Loss: {g_loss[0]:.4f}, Validity Loss: {g_loss[1]:.4f}, Class Loss: {g_loss[2]:.4f}")
-        self.logger.info(
-            f"Validity Accuracy: {g_loss[3] * 100:.2f}%, Binary Accuracy: {g_loss[4] * 100:.2f}%, AUC: {g_loss[5] * 100:.2f}%")
-        self.logger.info(
-            f"Class Accuracy: {g_loss[6] * 100:.2f}%, Categorical Accuracy: {g_loss[7] * 100:.2f}%")
-
-        # Create a metrics dictionary with the full set of metrics
-        g_metrics = {
-            "Total Loss": f"{g_loss[0]:.4f}",
-            "Validity Loss": f"{g_loss[1]:.4f}",
-            "Class Loss": f"{g_loss[2]:.4f}",
-            "Validity Accuracy": f"{g_loss[3] * 100:.2f}%",
-            "Validity Binary Accuracy": f"{g_loss[4] * 100:.2f}%",
-            "Validity AUC": f"{g_loss[5] * 100:.2f}%",
-            "Class Accuracy": f"{g_loss[6] * 100:.2f}%",
-            "Class Categorical Accuracy": f"{g_loss[7] * 100:.2f}%"
-        }
-        return g_loss[0], g_metrics
 
     def validation_NIDS(self):
         """
@@ -537,51 +491,6 @@ class CentralACGan:
         )
 
         # --------------------------
-        # Test Generator (ACGAN)
-        # --------------------------
-        self.logger.info("-- Evaluating Generator --")
-
-        # get the noise samples
-        noise = tf.random.normal((len(y_test), self.latent_dim))
-        sampled_labels = tf.random.uniform((len(y_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
-
-        # run the model
-        g_loss = self.ACGAN.evaluate([noise, sampled_labels],
-                                     [tf.ones((len(y_test), 1)),
-                                      tf.one_hot(sampled_labels, depth=self.num_classes)],
-                                     verbose=0)
-
-        # Using the updated ordering for ACGAN:
-        g_loss_total = g_loss[0]
-        g_loss_validity = g_loss[1]
-        g_loss_class = g_loss[2]
-        g_validity_acc = g_loss[3]
-        g_validity_bin_acc = g_loss[4]
-        g_validity_auc = g_loss[5]
-        g_class_acc = g_loss[6]
-        g_class_cat_acc = g_loss[7]
-
-        g_eval_metrics = {
-            "Loss": f"{g_loss_total:.4f}",
-            "Validity Loss": f"{g_loss_validity:.4f}",
-            "Class Loss": f"{g_loss_class:.4f}",
-            "Validity Accuracy": f"{g_validity_acc * 100:.2f}%",
-            "Validity Binary Accuracy": f"{g_validity_bin_acc * 100:.2f}%",
-            "Validity AUC": f"{g_validity_auc * 100:.2f}%",
-            "Class Accuracy": f"{g_class_acc * 100:.2f}%",
-            "Class Categorical Accuracy": f"{g_class_cat_acc * 100:.2f}%"
-        }
-        self.logger.info(
-            f"Generator Total Loss: {g_loss_total:.4f} | Validity Loss: {g_loss_validity:.4f} | Class Loss: {g_loss_class:.4f}"
-        )
-        self.logger.info(
-            f"Validity Accuracy: {g_validity_acc * 100:.2f}%, Binary Accuracy: {g_validity_bin_acc * 100:.2f}%, AUC: {g_validity_auc * 100:.2f}%"
-        )
-        self.logger.info(
-            f"Class Accuracy: {g_class_acc * 100:.2f}%, Categorical Accuracy: {g_class_cat_acc * 100:.2f}%"
-        )
-
-        # --------------------------
         # Test NIDS
         # --------------------------
         nids_eval_metrics = None
@@ -637,4 +546,8 @@ class CentralACGan:
             self.logger.info(class_report)
 
         # Log the overall evaluation metrics using our logging function
-        self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
+        self.log_evaluation_metrics(d_eval_metrics, nids_eval_metrics)
+
+    def save(self, save_name):
+        # Save each submodel separately
+        self.discriminator.save(f"../pretrainedModels/discriminator_local_ACGAN_{save_name}.h5")

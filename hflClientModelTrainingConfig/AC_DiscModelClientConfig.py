@@ -285,3 +285,7 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         self.log_evaluation_metrics(d_eval_metrics)  # Only discriminator metrics for federated config
 
         return float(results.numpy()), len(self.x_test), {}
+
+    def save(self, save_name):
+        # Save each submodel separately
+        self.discriminator.save(f"../pretrainedModels/discriminator_fed_ACGAN_{save_name}.h5")

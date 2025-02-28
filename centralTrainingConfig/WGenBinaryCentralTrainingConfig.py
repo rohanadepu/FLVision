@@ -213,3 +213,6 @@ class CentralBinaryWGen:
             "accuracy": avg_accuracy,
             "f1_score": f1_score
         }
+
+    def save(self, save_name):
+        self.generator.save(f"../pretrainedModels/generator_local_WGANGP_{save_name}.h5")

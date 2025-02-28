@@ -254,6 +254,9 @@ class CentralNidsClient:
             f.write(f"LogCosh: {logcosh}\n")
             f.write("\n")
 
+    def save(self, save_name):
+        self.model.save(f"../pretrainedModels/local_NIDS_{save_name}.h5")
+
 
 def recordConfig(name, dataset_used, DP_enabled, regularizationEnabled, input_dim, epochs,
                  batch_size, steps_per_epoch, betas, learning_rate, l2_norm_clip, noise_multiplier, num_microbatches

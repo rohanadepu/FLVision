@@ -121,7 +121,7 @@ class BinaryWDiscriminatorClient(fl.client.NumPyClient):
                 val_nids_loss = self.evaluate_validation_NIDS(generator)
                 print(f'Epoch {epoch + 1}, Validation NIDS Loss: {val_nids_loss:.4f}')
 
-        return self.get_parameters(config={}), len(self.x_train), {}
+        return self.get_parameters(config={}), len(self.x_train_ds), {}
 
     # validation
     def evaluate_validation_disc(self, generator, discriminator):
@@ -241,4 +241,7 @@ class BinaryWDiscriminatorClient(fl.client.NumPyClient):
             "accuracy": avg_accuracy,
             "f1_score": f1_score
         }
+
+    def save(self, save_name):
+        self.discriminator.save(f"../pretrainedModels/discriminator_fed_WGANGP_{save_name}.h5")
 

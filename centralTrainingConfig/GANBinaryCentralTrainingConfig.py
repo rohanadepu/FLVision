@@ -96,6 +96,13 @@ class CentralBinaryGan:
         self.generator = self.gan.layers[0]
         self.discriminator = self.gan.layers[1]
 
+        self.disc_accuracy = tf.keras.metrics.BinaryAccuracy(name='disc_accuracy')
+        self.disc_precision = tf.keras.metrics.Precision(name='disc_precision')
+        self.disc_recall = tf.keras.metrics.Recall(name='disc_recall')
+
+        self.gen_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen_accuracy')
+        self.gen_precision = tf.keras.metrics.Precision(name='gen_precision')
+
     def discriminator_loss(self, real_output, fake_output):
         # Create binary labels: 0 for real, 1 for fake
         real_labels = tf.zeros_like(real_output)
@@ -343,3 +350,14 @@ class CentralBinaryGan:
 
         # Return average discriminator loss, number of test samples, and an empty dictionary (optional outputs)
         return avg_disc_loss, len(self.x_test_ds), {}
+
+    def save(self, save_name):
+        self.gan.save(f"../pretrainedModels/local_GAN_{save_name}.h5")
+
+        # Assuming `model` is the GAN model created with Sequential([generator, discriminator])
+        generator = self.gan.layers[0]
+        discriminator = self.gan.layers[1]
+
+        # Save each submodel separately
+        generator.save(f"../pretrainedModels/generator_local_GAN_{save_name}.h5")
+        discriminator.save(f"../pretrainedModels/discriminator_local_GAN_{save_name}.h5")
