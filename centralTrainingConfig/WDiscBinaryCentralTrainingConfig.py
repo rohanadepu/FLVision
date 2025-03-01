@@ -45,8 +45,8 @@ class CentralBinaryWDisc:
         fake_preds = tf.cast(fake_output > threshold, tf.int32)
 
         # Create corresponding labels.
-        real_labels = tf.ones_like(real_preds)
-        fake_labels = tf.zeros_like(fake_preds)
+        real_labels = tf.zeros_like(real_preds)
+        fake_labels = tf.ones_like(fake_preds)
 
         # Concatenate predictions and labels.
         all_preds = tf.concat([real_preds, fake_preds], axis=0)

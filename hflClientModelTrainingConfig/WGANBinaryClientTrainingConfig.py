@@ -51,8 +51,8 @@ class BinaryWGanClient(fl.client.NumPyClient):
         fake_preds = tf.cast(fake_output > threshold, tf.int32)
 
         # Create corresponding labels.
-        real_labels = tf.ones_like(real_preds)
-        fake_labels = tf.zeros_like(fake_preds)
+        real_labels = tf.zeros_like(real_preds)
+        fake_labels = tf.ones_like(fake_preds)
 
         # Concatenate predictions and labels.
         all_preds = tf.concat([real_preds, fake_preds], axis=0)
@@ -67,7 +67,7 @@ class BinaryWGanClient(fl.client.NumPyClient):
         # Convert the critic's output on generated samples to binary predictions.
         # For the generator, we want these samples to be classified as real (1).
         fake_preds = tf.cast(fake_output > threshold, tf.int32)
-        target_labels = tf.ones_like(fake_preds)
+        target_labels = tf.zeros_like(fake_preds)
         self.gen_accuracy.update_state(target_labels, fake_preds)
         self.gen_precision.update_state(target_labels, fake_preds)
 

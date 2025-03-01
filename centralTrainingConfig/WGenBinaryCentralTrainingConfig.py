@@ -42,7 +42,7 @@ class CentralBinaryWGen:
         # Convert the critic's output on generated samples to binary predictions.
         # For the generator, we want these samples to be classified as real (1).
         fake_preds = tf.cast(fake_output > threshold, tf.int32)
-        target_labels = tf.ones_like(fake_preds)
+        target_labels = tf.zeros_like(fake_preds)
         self.gen_accuracy.update_state(target_labels, fake_preds)
         self.gen_precision.update_state(target_labels, fake_preds)
 
