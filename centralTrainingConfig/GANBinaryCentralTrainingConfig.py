@@ -7,6 +7,7 @@ import random
 import time
 from datetime import datetime
 import argparse
+import logging
 
 
 if 'TF_USE_LEGACY_KERAS' in os.environ:
@@ -102,6 +103,28 @@ class CentralBinaryGan:
 
         self.gen_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen_accuracy')
         self.gen_precision = tf.keras.metrics.Precision(name='gen_precision')
+
+        # --- Logger Setup ---
+    def setup_logger(self, log_file):
+        """Set up a logger that records both to a file and to the console."""
+        self.logger = logging.getLogger("Central Gan")
+        self.logger.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        # File handler.
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(logging.INFO)
+        fh.setFormatter(formatter)
+
+        # Console handler.
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(formatter)
+
+        # Avoid duplicate handlers.
+        if not self.logger.handlers:
+            self.logger.addHandler(fh)
+            self.logger.addHandler(ch)
 
     #-- Metrics--#
     def log_metrics(self, step, disc_loss, gen_loss):

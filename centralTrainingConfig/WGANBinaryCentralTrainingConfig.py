@@ -9,6 +9,7 @@ from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LeakyReL
 from tensorflow.keras.optimizers import Adam
 from tensorflow_addons.layers import SpectralNormalization
 from tensorflow.keras.metrics import Precision, Recall, BinaryAccuracy
+import logging
 
 
 class CentralBinaryWGan:
@@ -37,6 +38,28 @@ class CentralBinaryWGan:
 
         self.gen_accuracy = BinaryAccuracy(name="gen_accuracy")
         self.gen_precision = Precision(name="gen_precision")
+
+        # --- Logger Setup ---
+        def setup_logger(self, log_file):
+            """Set up a logger that records both to a file and to the console."""
+            self.logger = logging.getLogger("CentralWGan")
+            self.logger.setLevel(logging.INFO)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+            # File handler.
+            fh = logging.FileHandler(log_file)
+            fh.setLevel(logging.INFO)
+            fh.setFormatter(formatter)
+
+            # Console handler.
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.INFO)
+            ch.setFormatter(formatter)
+
+            # Avoid duplicate handlers.
+            if not self.logger.handlers:
+                self.logger.addHandler(fh)
+                self.logger.addHandler(ch)
 
     #-- Metric Helper Functions
     def update_critic_metrics(self, real_output, fake_output, threshold=0.0):
