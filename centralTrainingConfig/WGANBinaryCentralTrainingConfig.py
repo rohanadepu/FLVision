@@ -35,8 +35,62 @@ class CentralBinaryWGan:
         self.recall = Recall()
         self.accuracy = BinaryAccuracy()
 
-    # Loss Function
+        self.gen_accuracy = BinaryAccuracy(name="gen_accuracy")
+        self.gen_precision = Precision(name="gen_precision")
 
+    #-- Metric Helper Functions
+    def update_critic_metrics(self, real_output, fake_output, threshold=0.0):
+        """
+        Update classification metrics by thresholding raw scores.
+        Real samples are expected to have scores > threshold (label 1),
+        while fake samples should be below threshold (label 0).
+        """
+        # Convert scores to binary predictions based on the threshold.
+        real_preds = tf.cast(real_output > threshold, tf.int32)
+        fake_preds = tf.cast(fake_output > threshold, tf.int32)
+
+        # Create corresponding labels.
+        real_labels = tf.ones_like(real_preds)
+        fake_labels = tf.zeros_like(fake_preds)
+
+        # Concatenate predictions and labels.
+        all_preds = tf.concat([real_preds, fake_preds], axis=0)
+        all_labels = tf.concat([real_labels, fake_labels], axis=0)
+
+        # Update metrics.
+        self.accuracy.update_state(all_labels, all_preds)
+        self.precision.update_state(all_labels, all_preds)
+        self.recall.update_state(all_labels, all_preds)
+
+    def update_generator_metrics(self, fake_output, threshold=0.0):
+        # Convert the critic's output on generated samples to binary predictions.
+        # For the generator, we want these samples to be classified as real (1).
+        fake_preds = tf.cast(fake_output > threshold, tf.int32)
+        target_labels = tf.ones_like(fake_preds)
+        self.gen_accuracy.update_state(target_labels, fake_preds)
+        self.gen_precision.update_state(target_labels, fake_preds)
+
+    def log_metrics(self, step, disc_loss, gen_loss):
+        # Retrieve critic (discriminator) metrics.
+        acc = self.accuracy.result().numpy()
+        prec = self.precision.result().numpy()
+        rec = self.recall.result().numpy()
+        # Retrieve generator metrics.
+        gen_acc = self.gen_accuracy.result().numpy()
+        gen_prec = self.gen_precision.result().numpy()
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}, G Loss: {gen_loss.numpy():.4f}")
+        print(f"Critic Metrics -- Accuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}")
+        print(f"Generator Metrics -- Accuracy: {gen_acc:.4f}, Precision: {gen_prec:.4f}")
+
+    def reset_metrics(self):
+        self.accuracy.reset_states()
+        self.precision.reset_states()
+        self.recall.reset_states()
+
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
+
+    #-- Loss Functions
     def discriminator_loss(self, real_output, fake_output, gradient_penalty):
         return tf.reduce_mean(fake_output) - tf.reduce_mean(
             real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0
@@ -114,8 +168,14 @@ class CentralBinaryWGan:
                 gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
 
+                # Update metrics using discriminator outputs.
+                self.update_critic_metrics(real_output, fake_output)
+
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+                    self.log_metrics(step, disc_loss, gen_loss)
+
+                # Reset metric states after each epoch.
+            self.reset_metrics()
 
             # Evaluate Discriminator (Critic) on Validation Set
             val_disc_loss = self.evaluate_validation_disc()

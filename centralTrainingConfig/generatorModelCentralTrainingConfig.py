@@ -71,6 +71,27 @@ class CentralGenerator:
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
+        self.gen_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen_accuracy')
+        self.gen_precision = tf.keras.metrics.Precision(name='gen_precision')
+
+    # -- Metrics--#
+    def log_metrics(self, step, gen_loss):
+        print(f"Step {step}, G Loss: {gen_loss.numpy():.4f}")
+        print(f"Generator Metrics -- Accuracy: {self.gen_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.gen_precision.result().numpy():.4f}")
+
+    def update_metrics(self, fake_output=None):
+        if fake_output is not None:
+            # Update generator metrics: generator's goal is to have fake outputs classified as 0
+            target_gen = tf.zeros_like(fake_output)
+            self.gen_accuracy.update_state(target_gen, fake_output)
+            self.gen_precision.update_state(target_gen, fake_output)
+
+    def reset_metrics(self):
+        # Reset generator metrics
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
+
     # loss based on generating fake data that get misclassified as real by discriminator
     def generator_loss(self, fake_output):
         # Generator aims to fool the discriminator by making fake samples appear as class 0 (normal)
@@ -102,8 +123,15 @@ class CentralGenerator:
                 # Update the model based on the gradient of the loss respect to the weights of the model
                 self.optimizer.apply_gradients(zip(gradients, self.generator.trainable_variables))
 
+                # Update Metrics
+                # After computing real_output and fake_output
+                self.update_metrics(fake_output)
+
                 if step % 100 == 0:
-                    print(f"Epoch {epoch + 1}, Step {step}, G Loss: {loss.numpy()}")
+                    self.log_metrics(step, loss)
+
+                # reset Training Metrics
+            self.reset_metrics()
 
             # After each epoch, evaluate on the validation set
             val_gen_loss = self.evaluate_validation()

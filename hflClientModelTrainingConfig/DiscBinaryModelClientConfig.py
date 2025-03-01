@@ -74,6 +74,36 @@ class BinaryDiscriminatorClient(fl.client.NumPyClient):
 
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
+        self.disc_accuracy = tf.keras.metrics.BinaryAccuracy(name='disc_accuracy')
+        self.disc_precision = tf.keras.metrics.Precision(name='disc_precision')
+        self.disc_recall = tf.keras.metrics.Recall(name='disc_recall')
+
+        # -- Metrics--#
+
+    def log_metrics(self, step, disc_loss):
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}")
+        print(f"Discriminator Metrics -- Accuracy: {self.disc_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.disc_precision.result().numpy():.4f}, "
+              f"Recall: {self.disc_recall.result().numpy():.4f}")
+
+    def update_metrics(self, real_output=None, fake_output=None):
+        if real_output is not None:
+            # Update discriminator metrics: real samples are labeled 0, fake samples are labeled 1
+            real_labels = tf.zeros_like(real_output)
+            fake_labels = tf.ones_like(fake_output)
+            all_labels = tf.concat([real_labels, fake_labels], axis=0)
+            all_predictions = tf.concat([real_output, fake_output], axis=0)
+            self.disc_accuracy.update_state(all_labels, all_predictions)
+            self.disc_precision.update_state(all_labels, all_predictions)
+            self.disc_recall.update_state(all_labels, all_predictions)
+
+    def reset_metrics(self):
+        # Reset discriminator metrics
+        self.disc_accuracy.reset_states()
+        self.disc_precision.reset_states()
+        self.disc_recall.reset_states()
+
+    #-- Federation Helper Function
     def get_parameters(self, config):
         return self.discriminator.get_weights()
 
@@ -120,8 +150,15 @@ class BinaryDiscriminatorClient(fl.client.NumPyClient):
                 self.disc_optimizer.apply_gradients(
                     zip(gradients_of_discriminator, self.discriminator.trainable_variables))
 
+                # Update Metrics
+                # After computing real_output and fake_output
+                self.update_metrics(real_output, fake_output)
+
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}')
+                    self.log_metrics(step, disc_loss)
+
+                # reset Training Metrics
+            self.reset_metrics()
 
             # Validation after each epoch
             val_disc_loss = self.evaluate_validation_disc()

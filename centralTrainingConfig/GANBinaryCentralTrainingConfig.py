@@ -103,6 +103,42 @@ class CentralBinaryGan:
         self.gen_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen_accuracy')
         self.gen_precision = tf.keras.metrics.Precision(name='gen_precision')
 
+    #-- Metrics--#
+    def log_metrics(self, step, disc_loss, gen_loss):
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}, G Loss: {gen_loss.numpy():.4f}")
+        print(f"Discriminator Metrics -- Accuracy: {self.disc_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.disc_precision.result().numpy():.4f}, "
+              f"Recall: {self.disc_recall.result().numpy():.4f}")
+        print(f"Generator Metrics -- Accuracy: {self.gen_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.gen_precision.result().numpy():.4f}")
+
+    def update_metrics(self, real_output=None, fake_output=None):
+        if real_output is not None:
+            # Update discriminator metrics: real samples are labeled 0, fake samples are labeled 1
+            real_labels = tf.zeros_like(real_output)
+            fake_labels = tf.ones_like(fake_output)
+            all_labels = tf.concat([real_labels, fake_labels], axis=0)
+            all_predictions = tf.concat([real_output, fake_output], axis=0)
+            self.disc_accuracy.update_state(all_labels, all_predictions)
+            self.disc_precision.update_state(all_labels, all_predictions)
+            self.disc_recall.update_state(all_labels, all_predictions)
+
+        if fake_output is not None:
+            # Update generator metrics: generator's goal is to have fake outputs classified as 0
+            target_gen = tf.zeros_like(fake_output)
+            self.gen_accuracy.update_state(target_gen, fake_output)
+            self.gen_precision.update_state(target_gen, fake_output)
+
+    def reset_metrics(self):
+        # Reset discriminator metrics
+        self.disc_accuracy.reset_states()
+        self.disc_precision.reset_states()
+        self.disc_recall.reset_states()
+        # Reset generator metrics
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
+
+    #-- loss calculation --#
     def discriminator_loss(self, real_output, fake_output):
         # Create binary labels: 0 for real, 1 for fake
         real_labels = tf.zeros_like(real_output)
@@ -177,8 +213,15 @@ class CentralBinaryGan:
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
                 self.disc_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
 
+                # Update Metrics
+                # After computing real_output and fake_output
+                self.update_metrics(real_output, fake_output)
+
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+                    self.log_metrics(step, disc_loss, gen_loss)
+
+            # reset Training Metrics
+            self.reset_metrics()
 
             # Validation after each epoch
             val_disc_loss = self.evaluate_validation_disc()
@@ -190,6 +233,9 @@ class CentralBinaryGan:
 
     # -- Validate -- #
     def evaluate_validation_disc(self):
+        # Reset metrics before starting the validation loop.
+        self.reset_metrics()
+
         total_disc_loss = 0.0
         num_batches = 0
 
@@ -207,23 +253,49 @@ class CentralBinaryGan:
             total_disc_loss += disc_loss.numpy()
             num_batches += 1
 
+            # Update metrics for this validation batch.
+            self.update_metrics(real_output, fake_output)
+
         # Average discriminator loss over all validation batches
         avg_disc_loss = total_disc_loss / num_batches
-        return avg_disc_loss
+
+        # Retrieve the metric results.
+        val_accuracy = self.disc_accuracy.result().numpy()
+        val_precision = self.disc_precision.result().numpy()
+        val_recall = self.disc_recall.result().numpy()
+        print(
+            f"Validation Discriminator Metrics - Accuracy: {val_accuracy:.4f}, Precision: {val_precision:.4f}, Recall: {val_recall:.4f}")
+
+        # Return both the average loss and the metrics dictionary.
+        return avg_disc_loss, {"accuracy": val_accuracy, "precision": val_precision, "recall": val_recall}
 
     def evaluate_validation_gen(self):
-        # Generate fake samples using the generator
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        # Reset generator metrics before validation.
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
 
-        # fake data through the discriminator
-        fake_output = self.discriminator(generated_samples, training=False)
+        total_gen_loss = 0.0
+        num_batches = 0
 
-        # Compute the generator loss: How well does the generator fool the discriminator
-        gen_loss = self.generator_loss(fake_output)
+        # For generator validation, you might loop over several batches.
+        for step in range(len(self.x_val_ds)):
+            noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
+            generated_samples = self.generator(noise, training=False)
+            fake_output = self.discriminator(generated_samples, training=False)
 
-        return float(gen_loss.numpy())
+            # Compute generator loss
+            gen_loss = self.generator_loss(fake_output)
+            total_gen_loss += gen_loss.numpy()
+            num_batches += 1
 
+            # Update only the generator metrics.
+            self.update_metrics(fake_output=fake_output)
+
+        avg_gen_loss = total_gen_loss / num_batches
+        val_gen_accuracy = self.gen_accuracy.result().numpy()
+        val_gen_precision = self.gen_precision.result().numpy()
+        print(f"Validation Generator Metrics - Accuracy: {val_gen_accuracy:.4f}, Precision: {val_gen_precision:.4f}")
+        return avg_gen_loss, {"accuracy": val_gen_accuracy, "precision": val_gen_precision}
 
     def evaluate_validation_NIDS(self):
         total_nids_loss = 0.0

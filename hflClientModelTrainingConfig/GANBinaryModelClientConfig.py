@@ -61,16 +61,20 @@ class GanBinaryClient(fl.client.NumPyClient):
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
 
+        # Raw Data
         self.x_train = x_train
         self.y_train = y_train
         self.x_val = x_val
         self.y_val = y_val
         self.x_test = x_test
         self.y_test = y_test
+
+        # slice data
         self.x_train_ds = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).shuffle(10000).batch(self.BATCH_SIZE)
         self.x_val_ds = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
         self.x_test_ds = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.BATCH_SIZE)
 
+        # optimizers
         lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.98, staircase=True)
 
@@ -80,11 +84,55 @@ class GanBinaryClient(fl.client.NumPyClient):
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
+        self.disc_accuracy = tf.keras.metrics.BinaryAccuracy(name='disc_accuracy')
+        self.disc_precision = tf.keras.metrics.Precision(name='disc_precision')
+        self.disc_recall = tf.keras.metrics.Recall(name='disc_recall')
+
+        self.gen_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen_accuracy')
+        self.gen_precision = tf.keras.metrics.Precision(name='gen_precision')
+
+        # -- Metrics--#
+
+    def log_metrics(self, step, disc_loss, gen_loss):
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}, G Loss: {gen_loss.numpy():.4f}")
+        print(f"Discriminator Metrics -- Accuracy: {self.disc_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.disc_precision.result().numpy():.4f}, "
+              f"Recall: {self.disc_recall.result().numpy():.4f}")
+        print(f"Generator Metrics -- Accuracy: {self.gen_accuracy.result().numpy():.4f}, "
+              f"Precision: {self.gen_precision.result().numpy():.4f}")
+
+    def update_metrics(self, real_output=None, fake_output=None):
+        if real_output is not None:
+            # Update discriminator metrics: real samples are labeled 0, fake samples are labeled 1
+            real_labels = tf.zeros_like(real_output)
+            fake_labels = tf.ones_like(fake_output)
+            all_labels = tf.concat([real_labels, fake_labels], axis=0)
+            all_predictions = tf.concat([real_output, fake_output], axis=0)
+            self.disc_accuracy.update_state(all_labels, all_predictions)
+            self.disc_precision.update_state(all_labels, all_predictions)
+            self.disc_recall.update_state(all_labels, all_predictions)
+
+        if fake_output is not None:
+            # Update generator metrics: generator's goal is to have fake outputs classified as 0
+            target_gen = tf.zeros_like(fake_output)
+            self.gen_accuracy.update_state(target_gen, fake_output)
+            self.gen_precision.update_state(target_gen, fake_output)
+
+    def reset_metrics(self):
+        # Reset discriminator metrics
+        self.disc_accuracy.reset_states()
+        self.disc_precision.reset_states()
+        self.disc_recall.reset_states()
+        # Reset generator metrics
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
+
+    # -- federation helper function --#
     def get_parameters(self, config):
         # Combine generator and discriminator weights into a single list
         return self.gan.get_weights()
 
-    # -- Loss Calculation -- #
+    # -- Loss Functions -- #
     def discriminator_loss(self, real_output, fake_output):
         # Create binary labels: 0 for real, 1 for fake
         real_labels = tf.zeros_like(real_output)
@@ -113,7 +161,6 @@ class GanBinaryClient(fl.client.NumPyClient):
         Returns:
             Total NIDS loss (real + fake loss).
         """
-
         # Binary labels: 0 for real samples, 1 for fake samples
         real_labels = tf.zeros_like(real_output)
         fake_labels = tf.ones_like(fake_output)
@@ -165,8 +212,15 @@ class GanBinaryClient(fl.client.NumPyClient):
                 self.disc_optimizer.apply_gradients(
                     zip(gradients_of_discriminator, discriminator.trainable_variables))
 
+                # Update Metrics
+                # After computing real_output and fake_output
+                self.update_metrics(real_output, fake_output)
+
                 if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}, G Loss: {gen_loss.numpy()}')
+                    self.log_metrics(step, disc_loss, gen_loss)
+
+                # reset Training Metrics
+            self.reset_metrics()
 
             # Validation after each epoch
             val_disc_loss = self.evaluate_validation_disc(generator, discriminator)
@@ -181,6 +235,9 @@ class GanBinaryClient(fl.client.NumPyClient):
 
     # -- Validate -- #
     def evaluate_validation_disc(self, generator, discriminator):
+        # Reset metrics before starting the validation loop.
+        self.reset_metrics()
+
         total_disc_loss = 0.0
         num_batches = 0
 
@@ -198,8 +255,19 @@ class GanBinaryClient(fl.client.NumPyClient):
             total_disc_loss += disc_loss.numpy()
             num_batches += 1
 
+            # Update metrics for this validation batch.
+            self.update_metrics(real_output, fake_output)
+
         # Average discriminator loss over all validation batches
         avg_disc_loss = total_disc_loss / num_batches
+
+        # Retrieve the metric results.
+        val_accuracy = self.disc_accuracy.result().numpy()
+        val_precision = self.disc_precision.result().numpy()
+        val_recall = self.disc_recall.result().numpy()
+        print(
+            f"Validation Metrics - Accuracy: {val_accuracy:.4f}, Precision: {val_precision:.4f}, Recall: {val_recall:.4f}")
+
         return avg_disc_loss
 
     def evaluate_validation_gen(self, generator, discriminator):
@@ -355,5 +423,5 @@ class GanBinaryClient(fl.client.NumPyClient):
         discriminator = self.gan.layers[1]
 
         # Save each submodel separately
-        generator.save(f"../pretrainedModels/generator_local_GAN_{save_name}.h5")
-        discriminator.save(f"../pretrainedModels/discriminator_local_GAN_{save_name}.h5")
+        generator.save(f"../pretrainedModels/generator_fed_GAN_{save_name}.h5")
+        discriminator.save(f"../pretrainedModels/discriminator_fed_GAN_{save_name}.h5")

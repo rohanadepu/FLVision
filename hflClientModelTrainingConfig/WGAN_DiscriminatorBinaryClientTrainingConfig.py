@@ -35,13 +35,49 @@ class BinaryWDiscriminatorClient(fl.client.NumPyClient):
         self.recall = Recall()
         self.accuracy = BinaryAccuracy()
 
+    def update_critic_metrics(self, real_output, fake_output, threshold=0.0):
+        """
+        Update classification metrics by thresholding raw scores.
+        Real samples are expected to have scores > threshold (label 1),
+        while fake samples should be below threshold (label 0).
+        """
+        # Convert scores to binary predictions based on the threshold.
+        real_preds = tf.cast(real_output > threshold, tf.int32)
+        fake_preds = tf.cast(fake_output > threshold, tf.int32)
+
+        # Create corresponding labels.
+        real_labels = tf.ones_like(real_preds)
+        fake_labels = tf.zeros_like(fake_preds)
+
+        # Concatenate predictions and labels.
+        all_preds = tf.concat([real_preds, fake_preds], axis=0)
+        all_labels = tf.concat([real_labels, fake_labels], axis=0)
+
+        # Update metrics.
+        self.accuracy.update_state(all_labels, all_preds)
+        self.precision.update_state(all_labels, all_preds)
+        self.recall.update_state(all_labels, all_preds)
+
+    def log_metrics(self, step, disc_loss):
+        # Retrieve critic (discriminator) metrics.
+        acc = self.accuracy.result().numpy()
+        prec = self.precision.result().numpy()
+        rec = self.recall.result().numpy()
+
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}")
+        print(f"Critic Metrics -- Accuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}")
+
+    def reset_metrics(self):
+        self.accuracy.reset_states()
+        self.precision.reset_states()
+        self.recall.reset_states()
+
     # Sending training params to host
     def get_parameters(self, config):
         # Combine generator and discriminator weights into a single list
         return self.discriminator.get_weights()
 
     # Loss Function
-
     def discriminator_loss(self, real_output, fake_output, gradient_penalty):
         return tf.reduce_mean(fake_output) - tf.reduce_mean(
             real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0
@@ -108,9 +144,14 @@ class BinaryWDiscriminatorClient(fl.client.NumPyClient):
                     self.disc_optimizer.apply_gradients(
                         zip(gradients_of_discriminator, self.discriminator.trainable_variables))
 
+                    # Update metrics using discriminator outputs.
+                    self.update_critic_metrics(real_output, fake_output)
 
-                if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, D Loss: {disc_loss.numpy()}')
+                    if step % 100 == 0:
+                        self.log_metrics(step, disc_loss)
+
+                    # Reset metric states after each epoch.
+                self.reset_metrics()
 
             # Evaluate Discriminator (Critic) on Validation Set
             val_disc_loss = self.evaluate_validation_disc(generator, self.discriminator)

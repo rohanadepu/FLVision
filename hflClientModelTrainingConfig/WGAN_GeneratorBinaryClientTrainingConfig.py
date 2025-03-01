@@ -35,6 +35,31 @@ class BinaryWGeneratorClient(fl.client.NumPyClient):
         self.recall = Recall()
         self.accuracy = BinaryAccuracy()
 
+        self.gen_accuracy = BinaryAccuracy(name="gen_accuracy")
+        self.gen_precision = Precision(name="gen_precision")
+
+        # -- Metric Helper Functions
+
+    def update_generator_metrics(self, fake_output, threshold=0.0):
+        # Convert the critic's output on generated samples to binary predictions.
+        # For the generator, we want these samples to be classified as real (1).
+        fake_preds = tf.cast(fake_output > threshold, tf.int32)
+        target_labels = tf.ones_like(fake_preds)
+        self.gen_accuracy.update_state(target_labels, fake_preds)
+        self.gen_precision.update_state(target_labels, fake_preds)
+
+    def log_metrics(self, step, gen_loss):
+        # Retrieve generator metrics.
+        gen_acc = self.gen_accuracy.result().numpy()
+        gen_prec = self.gen_precision.result().numpy()
+
+        print(f"Step {step}, G Loss: {gen_loss.numpy():.4f}")
+        print(f"Generator Metrics -- Accuracy: {gen_acc:.4f}, Precision: {gen_prec:.4f}")
+
+    def reset_metrics(self):
+        self.gen_accuracy.reset_states()
+        self.gen_precision.reset_states()
+
     # Sending training params to host
     def get_parameters(self, config):
         # Combine generator and discriminator weights into a single list
@@ -104,9 +129,14 @@ class BinaryWGeneratorClient(fl.client.NumPyClient):
                 gradients_of_generator = gen_tape.gradient(gen_loss, self.generator.trainable_variables)
                 self.gen_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
 
-                if step % 100 == 0:
-                    print(f'Epoch {epoch + 1}, Step {step}, G Loss: {gen_loss.numpy()}')
+                # Update metrics using discriminator outputs.
+                self.update_generator_metrics(fake_output, 0.5)
 
+                if step % 100 == 0:
+                    self.log_metrics(step, gen_loss)
+
+                # Reset metric states after each epoch.
+            self.reset_metrics()
 
             # Evaluate Generator Performance (Optional)
             val_gen_loss = self.evaluate_validation_gen(self.generator, discriminator)
