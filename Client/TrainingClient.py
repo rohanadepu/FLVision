@@ -68,7 +68,7 @@ def main():
     parser.add_argument('--model_type', type=str, choices=["NIDS", "GAN", "WGAN-GP", "AC-GAN"],
                         help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
 
-    parser.add_argument('--model_training', type=str, choices=["NIDS", "Generator", "Discriminator", "Both"],
+    parser.add_argument('--model_training', type=str, choices=["NIDS", "Generator", "Discriminator", "Both"], default="Both",
                         help='Please select NIDS, Generator, Discriminator, Both as the sub-model type to train')
 
     # Optional
@@ -103,6 +103,8 @@ def main():
     train_type = args.model_training
     if model_type == "AC-GAN":
         dataset_processing = "AC-GAN"
+    if model_type == "NIDS":
+        train_type = "NIDS"
 
     # Training / Hyper Param
     epochs = args.epochs
