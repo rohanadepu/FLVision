@@ -153,10 +153,10 @@ def main():
     # Make Save name for model based on Arguments
     save_name = f""
     if fitOnEnd is True:
-        save_name = f"'fitOnEnd'_{dataset_used}_{dataset_processing}_{model_type}_{train_type}_{save_name_input}"
+        save_name = f"'fitOnEnd'_{dataset_used}_{dataset_processing}_{model_type}_{train_type}_{save_name_input}.h5"
     # if base strategies
     else:
-        save_name = f"{model_type}_{train_type}_{save_name_input}"
+        save_name = f"{model_type}_{train_type}_{save_name_input}.h5"
 
     # -- Display selected arguments --#
     print("|MAIN CONFIG|", "\n")
