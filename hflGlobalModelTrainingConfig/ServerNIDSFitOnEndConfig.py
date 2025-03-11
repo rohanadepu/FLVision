@@ -46,8 +46,7 @@ from sklearn.utils import shuffle
 from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
 
-class
-    (fl.server.strategy.FedAvg):
+class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
     def __init__(self, discriminator, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
                  X_train_data, y_train_data,X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
                  noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, synth_portion, adv_portion,
