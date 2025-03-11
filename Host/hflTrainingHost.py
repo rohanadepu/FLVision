@@ -145,10 +145,18 @@ def main():
     pretrainedNids = args.pretrained_nids
 
     # Save/Record Param
-    save_name = args.save_name
+    save_name_input = args.save_name
     evaluationLog = timestamp
     trainingLog = timestamp
     node = 1
+
+    # Make Save name for model based on Arguments
+    save_name = f""
+    if fitOnEnd is True:
+        save_name = f"'fitOnEnd'_{dataset_used}_{dataset_processing}_{model_type}_{train_type}_{save_name_input}"
+    # if base strategies
+    else:
+        save_name = f"{model_type}_{train_type}_{save_name_input}"
 
     # -- Display selected arguments --#
     print("|MAIN CONFIG|", "\n")
@@ -209,12 +217,11 @@ def main():
 
         # Non Fit on end Strats
         if fitOnEnd is False:
-
             # Server Load only Config
             if serverLoad is True and serverSave is False:
                 # --- Load Model ---#
                 fl.server.start_server(
-                    config=fl.server.ServerConfig(num_rounds=5),
+                    config=fl.server.ServerConfig(num_rounds=roundInput),
                     strategy=LoadModelFedAvg(
                         model=model,
                         min_fit_clients=2,
@@ -227,10 +234,10 @@ def main():
             elif serverLoad is False and serverSave is True:
                 # --- Save Model ---#
                 fl.server.start_server(
-                    config=fl.server.ServerConfig(num_rounds=5),
+                    config=fl.server.ServerConfig(num_rounds=roundInput),
                     strategy=SaveModelFedAvg(
                         model=model,
-                        model_save_path="global_model.h5",
+                        model_save_path=save_name,
                         min_fit_clients=2,
                         min_evaluate_clients=2,
                         min_available_clients=2
@@ -241,10 +248,10 @@ def main():
             elif serverLoad is True and serverSave is True:
                 # --- Load and Save Model ---#
                 fl.server.start_server(
-                    config=fl.server.ServerConfig(num_rounds=5),
+                    config=fl.server.ServerConfig(num_rounds=roundInput),
                     strategy=LoadSaveModelFedAvg(
                         model=model,
-                        model_save_path="global_model.h5",
+                        model_save_path=save_name,
                         min_fit_clients=2,
                         min_evaluate_clients=2,
                         min_available_clients=2
@@ -256,7 +263,7 @@ def main():
         #     # NIDS fit on end advanced synthetic training
         #     if train_type == "NIDS":
         #         fl.server.start_server(
-        #             config=fl.server.ServerConfig(num_rounds=5),
+        #             config=fl.server.ServerConfig(num_rounds=roundInput),
         #             strategy=NIDSFitOnEndStrategy(
         #                 discriminator=discriminator,  # Pre-trained or newly created discriminator
         #                 generator=generator,  # Pre-trained or newly created generator
@@ -296,7 +303,7 @@ def main():
         #         # Discriminator advanced global synthetic training
         #         if model_type == "GAN":
         #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=5),
+        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
         #                 strategy=DiscriminatorSyntheticStrategy(
         #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
         #                     generator=generator,  # Pre-trained or newly created generator
@@ -331,7 +338,7 @@ def main():
         #         # WGAN-GP Discriminator advanced global synthetic training
         #         elif model_type == "WGAN-GP":
         #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=5),
+        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
         #                 strategy=WDiscriminatorSyntheticStrategy(
         #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
         #                     generator=generator,  # Pre-trained or newly created generator
@@ -366,7 +373,7 @@ def main():
         #         # AC Discriminator advanced global synthetic training
         #         elif model_type == "AC-GAN":
         #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=5),
+        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
         #                 strategy=ACDiscriminatorSyntheticStrategy(
         #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
         #                     generator=generator,  # Pre-trained or newly created generator
