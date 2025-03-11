@@ -190,7 +190,7 @@ def main():
         elif host == 3:
             server_address = "192.168.129.7:8080"
         else:
-            server_address = "192.168.129.2:8080"
+            server_address = "192.168.129.3:8080"
 
         # --- 6/7A Train & Evaluate Model ---#
         fl.client.start_client(server_address=server_address, client=client.to_client())
