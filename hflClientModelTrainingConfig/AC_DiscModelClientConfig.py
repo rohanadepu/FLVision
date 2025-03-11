@@ -195,6 +195,7 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
                 "Validity AUC": f"{d_loss[4] * 100:.2f}%",
                 "Class Accuracy": f"{d_loss[5] * 100:.2f}%"
             }
+
             self.logger.info("Training Discriminator")
             self.logger.info(
                 f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")

@@ -43,13 +43,26 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
-from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
 
-class ModelSavingStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, **kwargs):
-
+class SaveModelFedAvg(fl.server.strategy.FedAvg):
+    def __init__(self, model=None, model_save_path="global_model.h5", **kwargs):
         super().__init__(**kwargs)
-        self.nids = None
+        self.model_save_path = model_save_path
+        self.model = model
+
+    def aggregate_fit(self, server_round, results, failures):
+        """Aggregates client results and saves the global model."""
+        aggregated_weights = super().aggregate_fit(server_round, results, failures)
+
+        if aggregated_weights is not None:
+            print(f"Saving global model after round {server_round}...")
+
+            self.model.set_weights(aggregated_weights)
+            self.model.save(self.model_save_path)
+            print(f"Model saved at: {self.model_save_path}")
+
+        return aggregated_weights
+
 
 

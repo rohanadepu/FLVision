@@ -35,6 +35,18 @@ from datasetHandling.datasetLoadProcess import datasetLoadProcess
 
 from Client.overheadConfig.hyperparameterLoading import hyperparameterLoading
 from Client.overheadConfig.modelCreateLoad import modelCreateLoad
+
+# Load and Saving Configs
+from hflGlobalModelTrainingConfig.ServerSaveOnlyConfig import SaveModelFedAvg
+from hflGlobalModelTrainingConfig.ServerLoadOnlyConfig import LoadModelFedAvg
+from hflGlobalModelTrainingConfig.ServerLoadNSaveConfig import LoadSaveModelFedAvg
+
+# Fit on End configs
+from hflGlobalModelTrainingConfig.ServerNIDSFitOnEndConfig import NIDSFitOnEndStrategy
+from hflGlobalModelTrainingConfig.ServerDiscBinaryFitOnEndConfig import DiscriminatorSyntheticStrategy
+from hflGlobalModelTrainingConfig.ServerWDiscFitOnEndConfig import WDiscriminatorSyntheticStrategy
+from hflGlobalModelTrainingConfig.ServerACDiscFitOnEndConfig import ACDiscriminatorSyntheticStrategy
+
 ################################################################################################################
 #                                                   Execute                                                   #
 ################################################################################################################
@@ -55,20 +67,23 @@ def main():
     parser.add_argument('--dataset_processing', type=str, choices=["Default", "MM[-1,-1]", "AC-GAN"], default="Default",
                         help='Datasets to use: Default, MM[-1,1], AC-GAN')
 
-    # -- Training / Model Parameters -- #
-    parser.add_argument('--clientBased', action='store_true',
+    # -- Server Hosting Modes -- #
+    parser.add_argument('--serverLoad', action='store_true',
                         help='Only load the model structure and get the weights from the server')
     parser.add_argument('--serverSave', action='store_true',
                         help='Only load the model structure and get the weights from the server')
+    parser.add_argument('--fitOnEnd', action='store_true',
+                        help='Only load the model structure and get the weights from the server')
 
+    # -- Training / Model Parameters -- #
     parser.add_argument('--model_type', type=str, choices=["NIDS", "GAN", "WGAN-GP", "AC-GAN"],
                         help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
-
-    parser.add_argument('--model_training', type=str, choices=["NIDS", "Generator", "Discriminator", "Both"],
-                        help='Please select NIDS, Generator, Discriminator, Both as the sub-model type to train')
+    parser.add_argument('--model_training', type=str, choices=["NIDS", "Discriminator", "GAN"],
+                        help='Please select NIDS, Discriminator, GAN as the model type to train')
 
     # Optional
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
+
     parser.add_argument("--rounds", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], default=1,
                         help="Rounds of training 1-10")
     parser.add_argument("--min_clients", type=int, choices=[1, 2, 3, 4, 5, 6], default=2,
@@ -96,12 +111,17 @@ def main():
     dataset_processing = args.dataset_processing
 
     # Model Spec
-    clientBased = args.clientBased
+    fitOnEnd = args.fitOnEnd
     serverSave = args.serverSave
+    serverLoad = args.serverLoad
     model_type = args.model_type
     train_type = args.model_training
     if model_type == "AC-GAN":
         dataset_processing = "AC-GAN"
+    if model_type == "NIDS":
+        train_type = "NIDS"
+    if train_type == "NIDS":
+        model_type = "NIDS"
 
     # Training / Hyper Param
     epochs = args.epochs
@@ -133,7 +153,7 @@ def main():
     # -- Display selected arguments --#
     print("|MAIN CONFIG|", "\n")
     # main experiment config
-    if clientBased is False:
+    if fitOnEnd is True:
         print("Selected DATASET:", dataset_used, "\n")
         print("Selected Preprocessing:", dataset_processing, "\n")
         print("Selected Model Type:", model_type, "\n")
@@ -145,24 +165,20 @@ def main():
     print("Loaded NIDS Model:", pretrainedNids, "\n")
     print("Save Name for the models in Trained in this session:", save_name, "\n")
 
-    if clientBased is True:
-        if serverSave is False:
-            # --- Default ---#
-            fl.server.start_server(
-                config=fl.server.ServerConfig(num_rounds=roundInput),
-                strategy=fl.server.strategy.FedAvg(
-                    min_fit_clients=minClients,
-                    min_evaluate_clients=minClients,
-                    min_available_clients=minClients
-                )
+    # -- 1B determine whether to do default federation hosting or do a custom strategy --#
+    if serverLoad is False and serverSave is False and fitOnEnd is False:
+        # --- Default, No Loading, No Saving ---#
+        fl.server.start_server(
+            config=fl.server.ServerConfig(num_rounds=roundInput),
+            strategy=fl.server.strategy.FedAvg(
+                min_fit_clients=minClients,
+                min_evaluate_clients=minClients,
+                min_available_clients=minClients
             )
-        else:
-            # --- Save Model ---#
-            x = None
-    else:
-        # --- Server Based ---#
-        x = None
+        )
 
+    # if the user wants to either load, save, or fit a model
+    else:
         # --- 2 Load & Preprocess Data ---#
         X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = datasetLoadProcess(dataset_used,
                                                                                                           dataset_processing)
@@ -182,6 +198,202 @@ def main():
                                                               dataset_used,
                                                               input_dim, noise_dim, regularizationEnabled, DP_enabled,
                                                               l2_alpha, latent_dim, num_classes)
-        # --- 5 Load Server Strat ---#
+        # -- 5. run server based on selected config -- #
+        # selet model for base hosting config
+        if train_type == "GAN":
+            model = GAN
+        elif train_type == "Discriminator":
+            model = discriminator
+        else:
+            model = nids
 
-        # --- 6 Start Hosting ---#
+        # Non Fit on end Strats
+        if fitOnEnd is False:
+
+            # Server Load only Config
+            if serverLoad is True and serverSave is False:
+                # --- Load Model ---#
+                fl.server.start_server(
+                    config=fl.server.ServerConfig(num_rounds=5),
+                    strategy=LoadModelFedAvg(
+                        model=model,
+                        min_fit_clients=2,
+                        min_evaluate_clients=2,
+                        min_available_clients=2
+                    )
+                )
+
+            # Server saving only
+            elif serverLoad is False and serverSave is True:
+                # --- Save Model ---#
+                fl.server.start_server(
+                    config=fl.server.ServerConfig(num_rounds=5),
+                    strategy=SaveModelFedAvg(
+                        model=model,
+                        model_save_path="global_model.h5",
+                        min_fit_clients=2,
+                        min_evaluate_clients=2,
+                        min_available_clients=2
+                    )
+                )
+
+            # Server Load and Save model
+            elif serverLoad is True and serverSave is True:
+                # --- Load and Save Model ---#
+                fl.server.start_server(
+                    config=fl.server.ServerConfig(num_rounds=5),
+                    strategy=LoadSaveModelFedAvg(
+                        model=model,
+                        model_save_path="global_model.h5",
+                        min_fit_clients=2,
+                        min_evaluate_clients=2,
+                        min_available_clients=2
+                    )
+                )
+
+        # If the server is fitting the global model at end of federation round
+        else:
+            # NIDS fit on end advanced synthetic training
+            if train_type == "NIDS":
+                fl.server.start_server(
+                    config=fl.server.ServerConfig(num_rounds=5),
+                    strategy=NIDSFitOnEndStrategy(
+                        discriminator=discriminator,  # Pre-trained or newly created discriminator
+                        generator=generator,  # Pre-trained or newly created generator
+                        dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
+                        node="server_node_1",  # Server node identifier
+                        adversarialTrainingEnabled=True,  # Enable adversarial training
+                        earlyStopEnabled=True,  # Enable early stopping
+                        DP_enabled=False,  # Differential privacy enabled/disabled
+                        X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
+                        X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
+                        X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
+                        l2_norm_clip=1.0,  # L2 norm clipping for DP
+                        noise_multiplier=0.1,  # Noise multiplier for DP
+                        num_microbatches=32,  # Microbatches for DP
+                        batch_size=32,  # Training batch size
+                        epochs=10,  # Number of fine-tuning epochs
+                        steps_per_epoch=100,  # Training steps per epoch
+                        learning_rate=0.001,  # Optimizer learning rate
+                        synth_portion=0.3,  # Portion of synthetic data used
+                        adv_portion=0.3,  # Portion of adversarial data used
+                        metric_to_monitor_es="val_loss",  # Early stopping monitor metric
+                        es_patience=5,  # Early stopping patience
+                        restor_best_w=True,  # Restore best weights on early stopping
+                        metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
+                        l2lr_patience=3,  # Learning rate schedule patience
+                        save_best_only=True,  # Save best model only
+                        metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
+                        checkpoint_mode="max"  # Save best model based on max value of metric
+                    )
+                )
+
+            # fit on end discriminator from GAN models
+            else:
+                # load model ??
+                # fit and save
+
+                # Discriminator advanced global synthetic training
+                if model_type == "GAN":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=5),
+                        strategy=DiscriminatorSyntheticStrategy(
+                            discriminator=discriminator,  # Pre-trained or newly created discriminator
+                            generator=generator,  # Pre-trained or newly created generator
+                            dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
+                            node="server_node_1",  # Server node identifier
+                            adversarialTrainingEnabled=True,  # Enable adversarial training
+                            earlyStopEnabled=True,  # Enable early stopping
+                            DP_enabled=False,  # Differential privacy enabled/disabled
+                            X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
+                            X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
+                            X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
+                            l2_norm_clip=1.0,  # L2 norm clipping for DP
+                            noise_multiplier=0.1,  # Noise multiplier for DP
+                            num_microbatches=32,  # Microbatches for DP
+                            batch_size=32,  # Training batch size
+                            epochs=10,  # Number of fine-tuning epochs
+                            steps_per_epoch=100,  # Training steps per epoch
+                            learning_rate=0.001,  # Optimizer learning rate
+                            synth_portion=0.3,  # Portion of synthetic data used
+                            adv_portion=0.3,  # Portion of adversarial data used
+                            metric_to_monitor_es="val_loss",  # Early stopping monitor metric
+                            es_patience=5,  # Early stopping patience
+                            restor_best_w=True,  # Restore best weights on early stopping
+                            metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
+                            l2lr_patience=3,  # Learning rate schedule patience
+                            save_best_only=True,  # Save best model only
+                            metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
+                            checkpoint_mode="max"  # Save best model based on max value of metric
+                        )
+                    )
+
+                # WGAN-GP Discriminator advanced global synthetic training
+                elif model_type == "WGAN-GP":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=5),
+                        strategy=WDiscriminatorSyntheticStrategy(
+                            discriminator=discriminator,  # Pre-trained or newly created discriminator
+                            generator=generator,  # Pre-trained or newly created generator
+                            dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
+                            node="server_node_1",  # Server node identifier
+                            adversarialTrainingEnabled=True,  # Enable adversarial training
+                            earlyStopEnabled=True,  # Enable early stopping
+                            DP_enabled=False,  # Differential privacy enabled/disabled
+                            X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
+                            X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
+                            X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
+                            l2_norm_clip=1.0,  # L2 norm clipping for DP
+                            noise_multiplier=0.1,  # Noise multiplier for DP
+                            num_microbatches=32,  # Microbatches for DP
+                            batch_size=32,  # Training batch size
+                            epochs=10,  # Number of fine-tuning epochs
+                            steps_per_epoch=100,  # Training steps per epoch
+                            learning_rate=0.001,  # Optimizer learning rate
+                            synth_portion=0.3,  # Portion of synthetic data used
+                            adv_portion=0.3,  # Portion of adversarial data used
+                            metric_to_monitor_es="val_loss",  # Early stopping monitor metric
+                            es_patience=5,  # Early stopping patience
+                            restor_best_w=True,  # Restore best weights on early stopping
+                            metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
+                            l2lr_patience=3,  # Learning rate schedule patience
+                            save_best_only=True,  # Save best model only
+                            metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
+                            checkpoint_mode="max"  # Save best model based on max value of metric
+                        )
+                    )
+
+                # AC Discriminator advanced global synthetic training
+                elif model_type == "AC-GAN":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=5),
+                        strategy=ACDiscriminatorSyntheticStrategy(
+                            discriminator=discriminator,  # Pre-trained or newly created discriminator
+                            generator=generator,  # Pre-trained or newly created generator
+                            dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
+                            node="server_node_1",  # Server node identifier
+                            adversarialTrainingEnabled=True,  # Enable adversarial training
+                            earlyStopEnabled=True,  # Enable early stopping
+                            DP_enabled=False,  # Differential privacy enabled/disabled
+                            X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
+                            X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
+                            X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
+                            l2_norm_clip=1.0,  # L2 norm clipping for DP
+                            noise_multiplier=0.1,  # Noise multiplier for DP
+                            num_microbatches=32,  # Microbatches for DP
+                            batch_size=32,  # Training batch size
+                            epochs=10,  # Number of fine-tuning epochs
+                            steps_per_epoch=100,  # Training steps per epoch
+                            learning_rate=0.001,  # Optimizer learning rate
+                            synth_portion=0.3,  # Portion of synthetic data used
+                            adv_portion=0.3,  # Portion of adversarial data used
+                            metric_to_monitor_es="val_loss",  # Early stopping monitor metric
+                            es_patience=5,  # Early stopping patience
+                            restor_best_w=True,  # Restore best weights on early stopping
+                            metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
+                            l2lr_patience=3,  # Learning rate schedule patience
+                            save_best_only=True,  # Save best model only
+                            metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
+                            checkpoint_mode="max"  # Save best model based on max value of metric
+                        )
+                    )

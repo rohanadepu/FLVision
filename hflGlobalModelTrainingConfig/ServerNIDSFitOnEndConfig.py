@@ -46,7 +46,8 @@ from sklearn.utils import shuffle
 from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
 
 
-class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
+class
+    (fl.server.strategy.FedAvg):
     def __init__(self, discriminator, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
                  X_train_data, y_train_data,X_test_data, y_test_data, X_val_data, y_val_data, l2_norm_clip,
                  noise_multiplier, num_microbatches,batch_size, epochs, steps_per_epoch, learning_rate, synth_portion, adv_portion,
@@ -138,7 +139,7 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
 
             self.nids = create_CICIOT_Model(self.input_dim, self.regularizationEnabled, self.DP_enabled, self.l2_alpha)
 
-    def on_fit_end(self, server_round, aggregated_weights, failures):
+    def aggregate_fit(self, server_round, results, failures):
         # increment round count
         self.roundCount += 1
 
@@ -148,8 +149,14 @@ class NIDSAdvGANStrategy(fl.server.strategy.FedAvg):
         # Record start time
         start_time = time.time()
 
-        # set model weights
-        self.nids.set_weights(aggregated_weights)
+        """Aggregates client updates, fine-tunes, and sends weights back."""
+        aggregated_weights = super().aggregate_fit(server_round, results, failures)
+
+        if aggregated_weights is not None:
+            print(f"Fine-tuning model on server-side data after round {server_round}...")
+
+            # Apply aggregated weights
+            self.nids.set_weights(aggregated_weights)
 
         # ---         Differential Privacy Engine Model Compile              --- #
 
