@@ -43,6 +43,7 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 
 
 class SaveModelFedAvg(fl.server.strategy.FedAvg):
@@ -53,16 +54,23 @@ class SaveModelFedAvg(fl.server.strategy.FedAvg):
 
     def aggregate_fit(self, server_round, results, failures):
         """Aggregates client results and saves the global model."""
-        aggregated_weights = super().aggregate_fit(server_round, results, failures)
+        aggregated_parameters = super().aggregate_fit(server_round, results, failures)
 
-        if aggregated_weights is not None:
+        if aggregated_parameters is not None:
             print(f"Saving global model after round {server_round}...")
 
-            self.model.set_weights(aggregated_weights)
-            self.model.save(self.model_save_path)
-            print(f"Model saved at: {self.model_save_path}")
+            # Convert Parameters object to numpy arrays
+            aggregated_weights = parameters_to_ndarrays(aggregated_parameters[0])
 
-        return aggregated_weights
+            if len(aggregated_weights) == len(self.model.get_weights()):
+                self.model.set_weights(aggregated_weights)
+                self.model.save(self.model_save_path)
+                print(f"Model saved at: {self.model_save_path}")
+            else:
+                print(
+                    f"Warning: Weight mismatch. Expected {len(self.model.get_weights())} but got {len(aggregated_weights)}.")
+
+        return aggregated_parameters
 
 
 
