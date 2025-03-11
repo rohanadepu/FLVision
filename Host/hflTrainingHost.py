@@ -397,3 +397,6 @@ def main():
         #                     checkpoint_mode="max"  # Save best model based on max value of metric
         #                 )
         #             )
+
+if __name__ == "__main__":
+    main()
