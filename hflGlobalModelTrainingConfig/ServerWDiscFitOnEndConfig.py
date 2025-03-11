@@ -2,7 +2,6 @@ import flwr as fl
 import argparse
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from hflDiscModelConfig import create_discriminator
 
 
 # loss based on correct classifications between normal, intrusive, and fake traffic

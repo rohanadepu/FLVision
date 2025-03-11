@@ -43,8 +43,6 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
-from hflNIDSModelConfig import create_CICIOT_Model, create_IOTBOTNET_Model
-
 
 class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
     def __init__(self, discriminator, generator, dataset_used, node, adversarialTrainingEnabled, earlyStopEnabled, DP_enabled,
