@@ -42,7 +42,7 @@ from hflGlobalModelTrainingConfig.ServerLoadOnlyConfig import LoadModelFedAvg
 from hflGlobalModelTrainingConfig.ServerLoadNSaveConfig import LoadSaveModelFedAvg
 
 # Fit on End configs
-# from hflGlobalModelTrainingConfig.ServerNIDSFitOnEndConfig import NIDSFitOnEndStrategy
+from hflGlobalModelTrainingConfig.ServerNIDSFitOnEndConfig import NIDSFitOnEndStrategy
 # from hflGlobalModelTrainingConfig.ServerDiscBinaryFitOnEndConfig import DiscriminatorSyntheticStrategy
 # from hflGlobalModelTrainingConfig.ServerWDiscFitOnEndConfig import WDiscriminatorSyntheticStrategy
 # from hflGlobalModelTrainingConfig.ServerACDiscFitOnEndConfig import ACDiscriminatorSyntheticStrategy
@@ -86,6 +86,10 @@ def main():
 
     parser.add_argument("--rounds", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], default=1,
                         help="Rounds of training 1-10")
+
+    parser.add_argument("--synth_portion", type=float, choices=[0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6], default=0,
+                       help="Percentage of Synthetic data compared to training data size to be augmented to that dataset, 0-0.6")
+
     parser.add_argument("--min_clients", type=int, choices=[1, 2, 3, 4, 5, 6], default=2,
                         help="Minimum number of clients required for training")
 
@@ -125,6 +129,7 @@ def main():
 
     # Training / Hyper Param
     epochs = args.epochs
+    synth_portion = args.synth_portion
     regularizationEnabled = True
     DP_enabled = None
     earlyStopEnabled = None
@@ -259,41 +264,44 @@ def main():
                 )
 
         # If the server is fitting the global model at end of federation round
-        # else:
-        #     # NIDS fit on end advanced synthetic training
-        #     if train_type == "NIDS":
-        #         fl.server.start_server(
-        #             config=fl.server.ServerConfig(num_rounds=roundInput),
-        #             strategy=NIDSFitOnEndStrategy(
-        #                 discriminator=discriminator,  # Pre-trained or newly created discriminator
-        #                 generator=generator,  # Pre-trained or newly created generator
-        #                 dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
-        #                 node="server_node_1",  # Server node identifier
-        #                 adversarialTrainingEnabled=True,  # Enable adversarial training
-        #                 earlyStopEnabled=True,  # Enable early stopping
-        #                 DP_enabled=False,  # Differential privacy enabled/disabled
-        #                 X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
-        #                 X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
-        #                 X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
-        #                 l2_norm_clip=1.0,  # L2 norm clipping for DP
-        #                 noise_multiplier=0.1,  # Noise multiplier for DP
-        #                 num_microbatches=32,  # Microbatches for DP
-        #                 batch_size=32,  # Training batch size
-        #                 epochs=10,  # Number of fine-tuning epochs
-        #                 steps_per_epoch=100,  # Training steps per epoch
-        #                 learning_rate=0.001,  # Optimizer learning rate
-        #                 synth_portion=0.3,  # Portion of synthetic data used
-        #                 adv_portion=0.3,  # Portion of adversarial data used
-        #                 metric_to_monitor_es="val_loss",  # Early stopping monitor metric
-        #                 es_patience=5,  # Early stopping patience
-        #                 restor_best_w=True,  # Restore best weights on early stopping
-        #                 metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
-        #                 l2lr_patience=3,  # Learning rate schedule patience
-        #                 save_best_only=True,  # Save best model only
-        #                 metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
-        #                 checkpoint_mode="max"  # Save best model based on max value of metric
-        #             )
-        #         )
+        else:
+            # NIDS fit on end advanced synthetic training
+            if train_type == "NIDS":
+                fl.server.start_server(
+                    config=fl.server.ServerConfig(num_rounds=roundInput),
+                    strategy=NIDSFitOnEndStrategy(
+                        discriminator=discriminator,  # Pre-trained or newly created discriminator
+                        generator=generator,  # Pre-trained or newly created generator
+                        nids=nids,
+                        dataset_used=dataset_used,  # or "IOTBOTNET" depending on dataset
+                        node=node,  # Server node identifier
+                        earlyStopEnabled=earlyStopEnabled,  # Enable early stopping
+                        DP_enabled=DP_enabled,  # Differential privacy enabled/disabled
+                        X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
+                        X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
+                        X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
+                        l2_norm_clip=l2_norm_clip,  # L2 norm clipping for DP
+                        noise_multiplier=noise_multiplier,  # Noise multiplier for DP
+                        num_microbatches=num_microbatches,  # Microbatches for DP
+                        batch_size=BATCH_SIZE,  # Training batch size
+                        epochs=epochs,  # Number of fine-tuning epochs
+                        steps_per_epoch=steps_per_epoch,  # Training steps per epoch
+                        learning_rate=learning_rate,  # Optimizer learning rate
+                        synth_portion=synth_portion,  # Portion of synthetic data used
+                        latent_dim=latent_dim,
+                        num_classes=num_classes,
+                        metric_to_monitor_es=metric_to_monitor_es,  # Early stopping monitor metric
+                        es_patience=es_patience,  # Early stopping patience
+                        restor_best_w=restor_best_w,  # Restore best weights on early stopping
+                        metric_to_monitor_l2lr=metric_to_monitor_l2lr,  # Learning rate schedule monitor
+                        l2lr_patience=l2lr_patience,  # Learning rate schedule patience
+                        save_best_only=save_best_only,  # Save best model only
+                        metric_to_monitor_mc=metric_to_monitor_mc,  # Model checkpoint monitor metric
+                        checkpoint_mode=checkpoint_mode, # Save best model based on max value of metric
+                        save_name = save_name,
+                        serverLoad = serverLoad,
+                    )
+                )
         #
         #     # fit on end discriminator from GAN models
         #     else:
