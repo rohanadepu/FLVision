@@ -153,7 +153,7 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
         print(f"Round: {self.roundCount}\n")
         start_time = time.time()
 
-        # bring in the parameters for the global model
+        #-- Set the model with global weights, Bring in the parameters for the global model --#
         aggregated_parameters = super().aggregate_fit(server_round, results, failures)
 
         if aggregated_parameters is not None:
@@ -161,6 +161,7 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
             aggregated_weights = parameters_to_ndarrays(aggregated_parameters[0])
             if len(aggregated_weights) == len(self.nids.get_weights()):
                 self.nids.set_weights(aggregated_weights)
+        # EoF Set global weights
 
         #-- ReCompile Model --#
         # Differential Privacy (optional)
