@@ -98,6 +98,8 @@ class ACGanClient(fl.client.NumPyClient):
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
+        # maybe put the model compilation in here too? for ACGAN and ACDISCRIMINATOR
+
     # Saving function for ACGAN
     def setACGAN(self):
         return self.ACGAN

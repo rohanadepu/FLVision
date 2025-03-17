@@ -1,7 +1,11 @@
 import flwr as fl
 import argparse
 import tensorflow as tf
+import logging
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Sequential, Model
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
+import numpy as np
 
 
 # loss based on correct classifications between normal, intrusive, and fake traffic
@@ -79,13 +83,13 @@ def discriminator_loss_synthetic(real_normal_output, fake_output):
 
 # Custom FedAvg strategy with server-side model training and saving
 class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
+    def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
                  dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
         self.generator = generator  # Generator is fixed during discriminator training
         # create model
-        self.discriminator = create_discriminator(self.input_dim)
+        self.discriminator = discriminator
 
         self.x_train = x_train
         self.y_train = y_train
@@ -105,50 +109,259 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 
-    def on_fit_end(self, server_round, aggregated_weights, failures):
-        # set aggregated weights
-        self.discriminator.set_weights(aggregated_weights)
+    # -- logging Functions -- #
+    def setup_logger(self, log_file):
+        """Set up a logger that records both to a file and to the console."""
+        self.logger = logging.getLogger("CentralACGan")
+        self.logger.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        # Create a TensorFlow dataset that includes both features and labels
-        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
+        # File handler
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(logging.INFO)
+        fh.setFormatter(formatter)
 
+        # Console handler
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(formatter)
+
+        # Avoid adding duplicate handlers if logger already has them.
+        if not self.logger.handlers:
+            self.logger.addHandler(fh)
+            self.logger.addHandler(ch)
+
+    def log_model_settings(self):
+        """Logs model names, structures, and hyperparameters."""
+        self.logger.info("=== Model Settings ===")
+
+        self.logger.info("Generator Model Summary:")
+        generator_summary = []
+        self.generator.summary(print_fn=lambda x: generator_summary.append(x))
+        for line in generator_summary:
+            self.logger.info(line)
+
+        self.logger.info("Discriminator Model Summary:")
+        discriminator_summary = []
+        self.discriminator.summary(print_fn=lambda x: discriminator_summary.append(x))
+        for line in discriminator_summary:
+            self.logger.info(line)
+
+        if self.nids is not None:
+            self.logger.info("NIDS Model Summary:")
+            nids_summary = []
+            self.nids.summary(print_fn=lambda x: nids_summary.append(x))
+            for line in nids_summary:
+                self.logger.info(line)
+        else:
+            self.logger.info("NIDS Model is not defined.")
+
+        self.logger.info("--- Hyperparameters ---")
+        self.logger.info(f"Batch Size: {self.batch_size}")
+        self.logger.info(f"Noise Dimension: {self.noise_dim}")
+        self.logger.info(f"Latent Dimension: {self.latent_dim}")
+        self.logger.info(f"Number of Classes: {self.num_classes}")
+        self.logger.info(f"Input Dimension: {self.input_dim}")
+        self.logger.info(f"Epochs: {self.epochs}")
+        self.logger.info(f"Steps per Epoch: {self.steps_per_epoch}")
+        self.logger.info(f"Learning Rate (Generator): {self.gen_optimizer.learning_rate}")
+        self.logger.info(f"Learning Rate (Discriminator): {self.disc_optimizer.learning_rate}")
+        self.logger.info("=" * 50)
+
+    def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None):
+        """Logs a formatted summary of the metrics for this epoch."""
+        self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
+        self.logger.info("Discriminator Metrics:")
+        for key, value in d_metrics.items():
+            self.logger.info(f"  {key}: {value}")
+        self.logger.info("Generator Metrics:")
+        for key, value in g_metrics.items():
+            self.logger.info(f"  {key}: {value}")
+        if nids_metrics is not None:
+            self.logger.info("NIDS Metrics:")
+            for key, value in nids_metrics.items():
+                self.logger.info(f"  {key}: {value}")
+        self.logger.info("=" * 50)
+
+    def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None):
+        """Logs a formatted summary of evaluation metrics."""
+        self.logger.info("=== Evaluation Metrics Summary ===")
+        self.logger.info("Discriminator Evaluation:")
+        for key, value in d_eval.items():
+            self.logger.info(f"  {key}: {value}")
+        self.logger.info("Generator Evaluation:")
+        for key, value in g_eval.items():
+            self.logger.info(f"  {key}: {value}")
+        if nids_eval is not None:
+            self.logger.info("NIDS Evaluation:")
+            for key, value in nids_eval.items():
+                self.logger.info(f"  {key}: {value}")
+        self.logger.info("=" * 50)
+
+    def on_fit_end(self, server_round, results, failures):
+        # -- Set the model with global weights, Bring in the parameters for the global model --#
+        aggregated_parameters = super().aggregate_fit(server_round, results, failures)
+
+        if aggregated_parameters is not None:
+            print(f"Saving global model after round {server_round}...")
+            aggregated_weights = parameters_to_ndarrays(aggregated_parameters[0])
+            if len(aggregated_weights) == len(self.discriminator.get_weights()):
+                self.discriminator.set_weights(aggregated_weights)
+        # EoF Set global weights
+
+        print("Discriminator Output:", self.discriminator.output_names)
+
+        # -- Model Compilations
+        # Compile Discriminator separately (before freezing)
+        self.discriminator.compile(
+            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+            optimizer=self.disc_optimizer,
+            metrics={
+                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
+                'class': ['accuracy', 'categorical_accuracy']
+            }
+        )
+
+        # Freeze Discriminator only for AC-GAN training
+        self.discriminator.trainable = False
+
+        # Define AC-GAN (Generator + Frozen Discriminator)
+        # I/O
+        noise_input = tf.keras.Input(shape=(self.latent_dim,))
+        label_input = tf.keras.Input(shape=(1,), dtype='int32')
+        generated_data = self.generator([noise_input, label_input])
+        validity, class_pred = self.discriminator(generated_data)
+        # Compile Combined Model
+        self.ACGAN = Model([noise_input, label_input], [validity, class_pred])
+
+        print("ACGAN Output:", self.ACGAN.output_names)
+
+        self.ACGAN.compile(
+            loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
+            optimizer=self.gen_optimizer,
+            metrics={
+                'Discriminator': ['accuracy', 'binary_accuracy', 'AUC'],
+                'Discriminator_1': ['accuracy', 'categorical_accuracy']
+            }
+        )
+
+        # -- Set the Data --#
+        X_train = self.x_train
+        y_train = self.y_train
+
+        print("Xtrain Data", X_train.head())
+
+        # Log model settings at the start
+        self.log_model_settings()
+
+        valid = tf.ones((self.batch_size, 1))
+        fake = tf.zeros((self.batch_size, 1))
+
+        # -- Training loop --#
         for epoch in range(self.epochs):
-            for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
-                # Create masks for normal and intrusive traffic based on labels
-                normal_mask = tf.equal(real_labels, 1)  # Assuming label 1 for normal
-                # Filter data based on these masks
-                normal_data = tf.boolean_mask(real_data, normal_mask)
+            print("Discriminator Metrics:", self.discriminator.metrics_names)
+            print("ACGAN Metrics:", self.ACGAN.metrics_names)
 
-                # Generate fake data using the generator
-                noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-                generated_data = self.generator(noise, training=False)
+            print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
+            self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
+            # --------------------------
+            # Train Discriminator
+            # --------------------------
 
-                # captures the discriminator’s operations to compute the gradients for adjusting its weights based on how well it classified real vs. fake data.
-                # using tape to track trainable variables during discriminator classification and loss calculations
-                with tf.GradientTape() as tape:
-                    # Discriminator outputs based on its classifications from inputted data in parameters
-                    real_normal_output = self.discriminator(normal_data, training=True)
-                    fake_output = self.discriminator(generated_data, training=True)
+            # Sample a batch of real data
+            X_train = np.array(X_train)
+            y_train = np.array(y_train)
 
-                    # Loss calculation for normal, intrusive, and fake data
-                    loss = discriminator_loss_synthetic(real_normal_output, fake_output)
+            idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
+            real_data = tf.gather(X_train, idx)
+            real_labels = tf.gather(y_train, idx)
 
-                # calculate the gradient based on the loss respect to the weights of the model
-                gradients = tape.gradient(loss, self.discriminator.trainable_variables)
+            # Ensure labels are one-hot encoded
+            if len(real_labels.shape) == 1:
+                real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
+            else:
+                real_labels_onehot = real_labels
 
-                # Update the model based on the gradient of the loss respect to the weights of the model
-                self.optimizer.apply_gradients(zip(gradients, self.discriminator.trainable_variables))
+            # Sample the noise data
+            noise = tf.random.normal((self.batch_size, self.latent_dim))
+            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
+            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-                if step % 100 == 0:
-                    print(f"Epoch {epoch + 1}, Step {step}, D Loss: {loss.numpy()}")
+            # Generate fake data
+            generated_data = self.generator.predict([noise, fake_labels])
 
-            # After each epoch, evaluate on the validation set
-            val_disc_loss = self.evaluate_validation()
-            print(f'Epoch {epoch + 1}, Validation D Loss: {val_disc_loss}')
+            # Train discriminator on real and fake data
+            d_loss_real = self.discriminator.train_on_batch(real_data, [valid, real_labels_onehot])
+            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake, fake_labels_onehot])
+            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
-        # Save the fine-tuned model
-        self.discriminator.save("disc_model_fine_tuned.h5")
-        print(f"Model fine-tuned and saved after round {server_round}.")
+            # Collect discriminator metrics
+            d_metrics = {
+                "Total Loss": f"{d_loss[0]:.4f}",
+                "Validity Loss": f"{d_loss[1]:.4f}",
+                "Class Loss": f"{d_loss[2]:.4f}",
+                "Validity Accuracy": f"{d_loss[3] * 100:.2f}%",
+                "Validity Binary Accuracy": f"{d_loss[4] * 100:.2f}%",
+                "Validity AUC": f"{d_loss[5] * 100:.2f}%",
+                "Class Accuracy": f"{d_loss[6] * 100:.2f}%",
+                "Class Categorical Accuracy": f"{d_loss[7] * 100:.2f}%"
+            }
+            self.logger.info("Training Discriminator")
+            self.logger.info(
+                f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
+            self.logger.info(
+                f"Validity Accuracy: {d_loss[3] * 100:.2f}%, Binary Accuracy: {d_loss[4] * 100:.2f}%, AUC: {d_loss[5] * 100:.2f}%")
+            self.logger.info(
+                f"Class Accuracy: {d_loss[6] * 100:.2f}%, Categorical Accuracy: {d_loss[7] * 100:.2f}%")
+
+            # --------------------------
+            # Train Generator (AC-GAN)
+            # --------------------------
+
+            # Generate noise and label inputs for ACGAN
+            noise = tf.random.normal((self.batch_size, self.latent_dim))
+            sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
+                                               dtype=tf.int32)
+            sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
+
+            # Train ACGAN with sampled noise data
+            g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid, sampled_labels_onehot])
+
+            # Collect generator metrics
+            g_metrics = {
+                "Total Loss": f"{g_loss[0]:.4f}",
+                "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
+                "Class Loss": f"{g_loss[2]:.4f}",  # This is Discriminator_1_loss
+                "Validity Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_accuracy
+                "Validity Binary Accuracy": f"{g_loss[4] * 100:.2f}%",  # Discriminator_binary_accuracy
+                "Validity AUC": f"{g_loss[5] * 100:.2f}%",  # Discriminator_auc
+                "Class Accuracy": f"{g_loss[6] * 100:.2f}%",  # Discriminator_1_accuracy
+                "Class Categorical Accuracy": f"{g_loss[7] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
+            }
+            self.logger.info("Training Generator with ACGAN FLOW")
+            self.logger.info(
+                f"AC-GAN Generator Total Loss: {g_loss[0]:.4f} | Validity Loss: {g_loss[1]:.4f} | Class Loss: {g_loss[2]:.4f}")
+            self.logger.info(
+                f"Validity Accuracy: {g_loss[3] * 100:.2f}%, Binary Accuracy: {g_loss[4] * 100:.2f}%, AUC: {g_loss[5] * 100:.2f}%")
+            self.logger.info(
+                f"Class Accuracy: {g_loss[6] * 100:.2f}%, Categorical Accuracy: {g_loss[7] * 100:.2f}%")
+
+            # --------------------------
+            # Validation every 1 epochs
+            # --------------------------
+            if epoch % 1 == 0:
+                self.logger.info(f"=== Epoch {epoch} Validation ===")
+                d_val_loss, d_val_metrics = self.validation_disc()
+                g_val_loss, g_val_metrics = self.validation_gen()
+                nids_val_metrics = None
+                if self.nids is not None:
+                    nids_custom_loss, nids_val_metrics = self.validation_NIDS()
+                    self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
+
+                # Log the metrics for this epoch using our new logging method
+                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
+                self.logger.info(
+                    f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
 
         # Send updated weights back to clients
         return self.discriminator.get_weights(), {}

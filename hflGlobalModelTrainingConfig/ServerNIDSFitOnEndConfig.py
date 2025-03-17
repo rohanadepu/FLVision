@@ -147,6 +147,51 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
         fake_labels = np.random.randint(0, self.num_classes, num_samples)
         return self.ACgenerator.predict([noise, fake_labels]), fake_labels
 
+    def generate_balanced_synthetic_data(self, num_samples, target_classes=None):
+        """
+        Generates balanced synthetic data using the AC-GAN generator.
+
+        Parameters:
+        - num_samples: Total number of samples to generate
+        - target_classes: List of specific class labels to generate (defaults to all classes)
+
+        Returns:
+        - X_synthetic: Generated synthetic data
+        - y_synthetic: Corresponding class labels
+        """
+        # If no specific classes requested, use all classes
+        if target_classes is None:
+            target_classes = list(range(self.num_classes))
+
+        num_target_classes = len(target_classes)
+
+        # Calculate samples per class (ensure divisibility)
+        samples_per_class = num_samples // num_target_classes
+
+        synthetic_data_list = []
+        labels_list = []
+
+        # Generate equal samples for each requested class
+        for class_idx in target_classes:
+            noise = np.random.normal(0, 1, (samples_per_class, self.latent_dim))
+            fake_labels = np.full(samples_per_class, class_idx)
+
+            class_data = self.ACgenerator.predict([noise, fake_labels])
+
+            synthetic_data_list.append(class_data)
+            labels_list.append(fake_labels)
+
+        # Combine and shuffle
+        X_synthetic = np.vstack(synthetic_data_list)
+        y_synthetic = np.hstack(labels_list)
+
+        # Shuffle to avoid having blocks of the same class
+        shuffle_idx = np.random.permutation(len(X_synthetic))
+        X_synthetic = X_synthetic[shuffle_idx]
+        y_synthetic = y_synthetic[shuffle_idx]
+
+        return X_synthetic, y_synthetic
+
     def aggregate_fit(self, server_round, results, failures):
         """Aggregates client updates, fine-tunes, and sends weights back."""
         self.roundCount += 1
