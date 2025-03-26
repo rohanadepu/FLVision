@@ -4,11 +4,10 @@ import tensorflow as tf
 import logging
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.metrics import AUC, Precision, Recall
 from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 import numpy as np
 from sklearn.metrics import f1_score, classification_report
-
-
 
 
 # Custom FedAvg strategy with server-side model training and saving
@@ -58,6 +57,28 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         # Init optimizer
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
+
+     # -- Loss Calculations -- #
+    def nids_loss(self, real_output, fake_output):
+        """
+        Compute the NIDS loss on real and fake samples.
+        For real samples, the target is 1 (benign), and for fake samples, 0 (attack).
+        Returns a scalar loss value.
+        """
+        # define labels
+        real_labels = tf.ones_like(real_output)
+        fake_labels = tf.zeros_like(fake_output)
+
+        # define loss function
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+
+        # calculate outputs
+        real_loss = bce(real_labels, real_output)
+        fake_loss = bce(fake_labels, fake_output)
+
+        # sum up total loss
+        total_loss = real_loss + fake_loss
+        return total_loss.numpy()
 
     # -- logging Functions -- #
     def setup_logger(self, log_file):
@@ -133,22 +154,25 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None):
+    def log_evaluation_metrics(self, d_eval, g_eval=None, nids_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
-        self.logger.info("Generator Evaluation:")
-        for key, value in g_eval.items():
-            self.logger.info(f"  {key}: {value}")
+        if g_eval is not None:
+            self.logger.info("Generator Evaluation:")
+            for key, value in g_eval.items():
+                self.logger.info(f"  {key}: {value}")
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def on_fit_end(self, server_round, results, failures):
+
+
+    def aggregate_fit(self, server_round, results, failures):
         # -- Set the model with global weights, Bring in the parameters for the global model --#
         aggregated_parameters = super().aggregate_fit(server_round, results, failures)
 
@@ -309,7 +333,7 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
                     self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
                 # Log the metrics for this epoch using our new logging method
-                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
+                self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics)
                 self.logger.info(
                     f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
 
@@ -317,6 +341,7 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         return self.discriminator.get_weights(), {}
 
         # -- Validation Functions (Disc, Gen, NIDS) -- #
+
 
     def validation_disc(self):
         """

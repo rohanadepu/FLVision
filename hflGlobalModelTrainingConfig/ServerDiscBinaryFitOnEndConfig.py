@@ -7,10 +7,11 @@ from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 
 # Custom FedAvg strategy with server-side model training and saving
 class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
+    def __init__(self, gan, generator, discriminator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
                  dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
+        self.gan = gan
         self.generator = generator  # Generator is fixed during discriminator training
         # create model
         self.discriminator = discriminator
@@ -86,7 +87,7 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         if aggregated_parameters is not None:
             print(f"Saving global model after round {server_round}...")
             aggregated_weights = parameters_to_ndarrays(aggregated_parameters[0])
-            if len(aggregated_weights) == len(self.discriminator.get_weights()):
+            if len(aggregated_weights) == len(self.gan.get_weights()):
                 self.discriminator.set_weights(aggregated_weights)
         # EoF Set global weights
 
