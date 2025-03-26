@@ -6,108 +6,58 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, Model
 from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 import numpy as np
+from sklearn.metrics import f1_score, classification_report
 
 
-# loss based on correct classifications between normal, intrusive, and fake traffic
-def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
-    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
-                                                                          real_intrusive_output)
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
-    mean_fake_loss = tf.reduce_mean(fake_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
-    return total_loss
-
-
-# Loss for intrusion training (normal and intrusive)
-def discriminator_loss_intrusion(real_normal_output, real_intrusive_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
-    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
-                                                                          real_intrusive_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss) / 2
-
-    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    # real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_intrusive_output), real_intrusive_output)  # Label 1 for intrusive
-    # total_loss = real_normal_loss + real_intrusive_loss
-
-    return total_loss
-
-
-# Loss for synthetic training (normal and fake)
-def discriminator_loss_synthetic(real_normal_output, fake_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_fake_loss = tf.reduce_mean(fake_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_fake_loss) / 2
-
-    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    # fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.fill(tf.shape(fake_output), 2), fake_output)  # Label 2 for fake
-    # total_loss = real_normal_loss + fake_loss
-
-    return total_loss
 
 
 # Custom FedAvg strategy with server-side model training and saving
-class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
-                 dataset_used, input_dim, **kwargs):
+class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
+    def __init__(self, GAN, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
+                 noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
+                 log_file="training.log", **kwargs):
         super().__init__(**kwargs)
-        self.input_dim = input_dim
-        self.generator = generator  # Generator is fixed during discriminator training
-        # create model
-        self.discriminator = discriminator
+        # -- models
+        self.GAN = GAN
+        # Reconstruct the generator model from the merged model:
+        self.generator = self.GAN.generator  # directly use the stored generator
+        self.discriminator = self.GAN.discriminator  # directly use the stored discriminator
 
-        self.x_train = x_train
-        self.y_train = y_train
-        self.x_val = x_val  # Add validation data
-        self.y_val = y_val
-        self.x_test = x_test
-        self.y_test = y_test
+        self.nids = nids
 
-        self.BATCH_SIZE = BATCH_SIZE
+        # -- I/O Specs for models
+        self.batch_size = BATCH_SIZE
         self.noise_dim = noise_dim
+        self.latent_dim = latent_dim
+        self.num_classes = num_classes
+        self.input_dim = input_dim
+
+        # -- training duration
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.dataset_used = dataset_used
 
-        self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
-        self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
+        # -- Data
+        self.x_train = x_train
+        self.x_test = x_test
+        self.x_val = x_val
+        self.y_train = y_train
+        self.y_test = y_test
+        self.y_val = y_val
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        # -- Setup Logging
+        self.setup_logger(log_file)
+
+        # -- Optimizers
+        # LR decay
+        lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.98, staircase=True)
+
+        lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
+
+        # Init optimizer
+        self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
+        self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
     # -- logging Functions -- #
     def setup_logger(self, log_file):
@@ -352,7 +302,7 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
             if epoch % 1 == 0:
                 self.logger.info(f"=== Epoch {epoch} Validation ===")
                 d_val_loss, d_val_metrics = self.validation_disc()
-                g_val_loss, g_val_metrics = self.validation_gen()
+
                 nids_val_metrics = None
                 if self.nids is not None:
                     nids_custom_loss, nids_val_metrics = self.validation_NIDS()
@@ -366,26 +316,299 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         # Send updated weights back to clients
         return self.discriminator.get_weights(), {}
 
-    # Function to evaluate the discriminator on validation data
-    def evaluate_validation(self):
-        # Generate fake samples
-        noise = tf.random.normal([self.BATCH_SIZE, self.noise_dim])
-        generated_samples = self.generator(noise, training=False)
+        # -- Validation Functions (Disc, Gen, NIDS) -- #
 
-        # Create a TensorFlow dataset for validation data
-        val_data = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.BATCH_SIZE)
+    def validation_disc(self):
+        """
+        Evaluate the discriminator on the validation set.
+        First, evaluate on real data (with labels = 1) and then on fake data (labels = 0).
+        Prints and returns the average total loss along with a metrics dictionary.
+        """
+        # --- Evaluate on real validation data ---
+        val_valid_labels = np.ones((len(self.x_val), 1))
 
-        total_loss = 0
-        for instances, labels in val_data:
-            # Filter normal and intrusive instances
-            normal_data = tf.boolean_mask(instances, tf.equal(labels, 1))  # Assuming label 1 for normal
+        # Ensure y_val is one-hot encoded if needed
+        if self.y_val.ndim == 1 or self.y_val.shape[1] != self.num_classes:
+            y_val_onehot = tf.one_hot(self.y_val, depth=self.num_classes)
+        else:
+            y_val_onehot = self.y_val
 
-            # Discriminator predictions
-            real_normal_output = self.discriminator(normal_data, training=False)
-            fake_output = self.discriminator(generated_samples, training=False)
+        d_loss_real = self.discriminator.evaluate(
+            self.x_val, [val_valid_labels, y_val_onehot], verbose=0
+        )
 
-            # Compute the loss for this batch
-            batch_loss = discriminator_loss_synthetic(real_normal_output, fake_output)
-            total_loss += batch_loss
+        # --- Evaluate on generated (fake) data ---
+        noise = tf.random.normal((len(self.x_val), self.latent_dim))
+        fake_labels = tf.random.uniform(
+            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
+        )
+        fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+        fake_valid_labels = np.zeros((len(self.x_val), 1))
+        generated_data = self.generator.predict([noise, fake_labels])
+        d_loss_fake = self.discriminator.evaluate(
+            generated_data, [fake_valid_labels, fake_labels_onehot], verbose=0
+        )
 
-        return float(total_loss.numpy())
+        # --- Compute average loss ---
+        avg_total_loss = 0.5 * (d_loss_real[0] + d_loss_fake[0])
+
+        self.logger.info("Validation Discriminator Evaluation:")
+        # Log for real data: using all relevant indices
+        self.logger.info(
+            f"Real Data -> Total Loss: {d_loss_real[0]:.4f}, "
+            f"Validity Loss: {d_loss_real[1]:.4f}, "
+            f"Class Loss: {d_loss_real[2]:.4f}, "
+            f"Validity Accuracy: {d_loss_real[3] * 100:.2f}%, "
+            f"Validity Binary Accuracy: {d_loss_real[4] * 100:.2f}%, "
+            f"Validity AUC: {d_loss_real[5] * 100:.2f}%, "
+            f"Class Accuracy: {d_loss_real[6] * 100:.2f}%, "
+            f"Class Categorical Accuracy: {d_loss_real[7] * 100:.2f}%"
+        )
+        self.logger.info(
+            f"Fake Data -> Total Loss: {d_loss_fake[0]:.4f}, "
+            f"Validity Loss: {d_loss_fake[1]:.4f}, "
+            f"Class Loss: {d_loss_fake[2]:.4f}, "
+            f"Validity Accuracy: {d_loss_fake[3] * 100:.2f}%, "
+            f"Validity Binary Accuracy: {d_loss_fake[4] * 100:.2f}%, "
+            f"Validity AUC: {d_loss_fake[5] * 100:.2f}%, "
+            f"Class Accuracy: {d_loss_fake[6] * 100:.2f}%, "
+            f"Class Categorical Accuracy: {d_loss_fake[7] * 100:.2f}%"
+        )
+        self.logger.info(f"Average Discriminator Loss: {avg_total_loss:.4f}")
+
+        metrics = {
+            "Real Total Loss": f"{d_loss_real[0]:.4f}",
+            "Real Validity Loss": f"{d_loss_real[1]:.4f}",
+            "Real Class Loss": f"{d_loss_real[2]:.4f}",
+            "Real Validity Accuracy": f"{d_loss_real[3] * 100:.2f}%",
+            "Real Validity Binary Accuracy": f"{d_loss_real[4] * 100:.2f}%",
+            "Real Validity AUC": f"{d_loss_real[5] * 100:.2f}%",
+            "Real Class Accuracy": f"{d_loss_real[6] * 100:.2f}%",
+            "Real Class Categorical Accuracy": f"{d_loss_real[7] * 100:.2f}%",
+            "Fake Total Loss": f"{d_loss_fake[0]:.4f}",
+            "Fake Validity Loss": f"{d_loss_fake[1]:.4f}",
+            "Fake Class Loss": f"{d_loss_fake[2]:.4f}",
+            "Fake Validity Accuracy": f"{d_loss_fake[3] * 100:.2f}%",
+            "Fake Validity Binary Accuracy": f"{d_loss_fake[4] * 100:.2f}%",
+            "Fake Validity AUC": f"{d_loss_fake[5] * 100:.2f}%",
+            "Fake Class Accuracy": f"{d_loss_fake[6] * 100:.2f}%",
+            "Fake Class Categorical Accuracy": f"{d_loss_fake[7] * 100:.2f}%",
+            "Average Total Loss": f"{avg_total_loss:.4f}"
+        }
+        return avg_total_loss, metrics
+
+    def validation_NIDS(self):
+        """
+        Evaluate the NIDS model on validation data augmented with generated fake samples.
+        Real data is labeled as 1 (benign) and fake/generated data as 0 (attack).
+        Prints detailed metrics including a classification report and returns the custom
+        NIDS loss along with a metrics dictionary.
+        """
+        if self.nids is None:
+            print("NIDS model is not defined.")
+            return None
+
+        # --- Prepare Real Data ---
+        X_real = self.x_val
+        y_real = np.ones((len(self.x_val),), dtype="int32")  # Real samples labeled 1
+
+        # --- Generate Fake Data ---
+        noise = tf.random.normal((len(self.x_val), self.latent_dim))
+        fake_labels = tf.random.uniform(
+            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
+        )
+        generated_samples = self.generator.predict([noise, fake_labels])
+        # Rescale generated samples from [-1, 1] to [0, 1] so they match the NIDS training data.
+        X_fake = (generated_samples + 1) / 2
+        y_fake = np.zeros((len(self.x_val),), dtype="int32")  # Fake samples labeled 0
+
+        # --- Compute custom NIDS loss ---
+        real_output = self.nids.predict(X_real)
+        fake_output = self.nids.predict(X_fake)
+        custom_nids_loss = self.nids_loss(real_output, fake_output)
+
+        # --- Evaluate on the Combined Dataset ---
+        X_combined = np.vstack([X_real, X_fake])
+        y_combined = np.hstack([y_real, y_fake])
+        nids_eval = self.nids.evaluate(X_combined, y_combined, verbose=0)
+        # Expected order: [loss, accuracy, precision, recall, auc, logcosh]
+
+        # --- Compute Additional Metrics ---
+        y_pred_probs = self.nids.predict(X_combined)
+        y_pred = (y_pred_probs > 0.5).astype("int32")
+        f1 = f1_score(y_combined, y_pred)
+        class_report = classification_report(
+            y_combined, y_pred, target_names=["Attack (Fake)", "Benign (Real)"]
+        )
+
+        self.logger.info("Validation NIDS Evaluation with Augmented Data:")
+        self.logger.info(f"Custom NIDS Loss (Real vs Fake): {custom_nids_loss:.4f}")
+        self.logger.info(f"Overall NIDS Loss: {nids_eval[0]:.4f}, Accuracy: {nids_eval[1]:.4f}, "
+                         f"Precision: {nids_eval[2]:.4f}, Recall: {nids_eval[3]:.4f}, "
+                         f"AUC: {nids_eval[4]:.4f}, LogCosh: {nids_eval[5]:.4f}")
+        self.logger.info("Classification Report:")
+        self.logger.info(class_report)
+        self.logger.info(f"F1 Score: {f1:.4f}")
+
+        metrics = {
+            "Custom NIDS Loss": f"{custom_nids_loss:.4f}",
+            "Loss": f"{nids_eval[0]:.4f}",
+            "Accuracy": f"{nids_eval[1]:.4f}",
+            "Precision": f"{nids_eval[2]:.4f}",
+            "Recall": f"{nids_eval[3]:.4f}",
+            "AUC": f"{nids_eval[4]:.4f}",
+            "LogCosh": f"{nids_eval[5]:.4f}",
+            "F1 Score": f"{f1:.4f}"
+        }
+        return custom_nids_loss, metrics
+
+    # # -- Evaluate -- #
+    # def evaluate(self, parameters, config):
+    #
+    #     # -- Set the model weights from the Host --#
+    #     self.GAN.set_weights(parameters)
+    #
+    #     # Set the data
+    #     X_test = self.x_test
+    #     y_test = self.y_test
+    #
+    #     # --------------------------
+    #     # Test Discriminator
+    #     # --------------------------
+    #     self.logger.info("-- Evaluating Discriminator --")
+    #     # run the model
+    #     results = self.discriminator.evaluate(X_test, [tf.ones((len(y_test), 1)), y_test], verbose=0)
+    #     # Using the updated ordering:
+    #     d_loss_total = results[0]
+    #     d_loss_validity = results[1]
+    #     d_loss_class = results[2]
+    #     d_validity_acc = results[3]
+    #     d_validity_bin_acc = results[4]
+    #     d_validity_auc = results[5]
+    #     d_class_acc = results[6]
+    #     d_class_cat_acc = results[7]
+    #
+    #     d_eval_metrics = {
+    #         "Loss": f"{d_loss_total:.4f}",
+    #         "Validity Loss": f"{d_loss_validity:.4f}",
+    #         "Class Loss": f"{d_loss_class:.4f}",
+    #         "Validity Accuracy": f"{d_validity_acc * 100:.2f}%",
+    #         "Validity Binary Accuracy": f"{d_validity_bin_acc * 100:.2f}%",
+    #         "Validity AUC": f"{d_validity_auc * 100:.2f}%",
+    #         "Class Accuracy": f"{d_class_acc * 100:.2f}%",
+    #         "Class Categorical Accuracy": f"{d_class_cat_acc * 100:.2f}%"
+    #     }
+    #     self.logger.info(
+    #         f"Discriminator Total Loss: {d_loss_total:.4f} | Validity Loss: {d_loss_validity:.4f} | Class Loss: {d_loss_class:.4f}"
+    #     )
+    #     self.logger.info(
+    #         f"Validity Accuracy: {d_validity_acc * 100:.2f}%, Binary Accuracy: {d_validity_bin_acc * 100:.2f}%, AUC: {d_validity_auc * 100:.2f}%"
+    #     )
+    #     self.logger.info(
+    #         f"Class Accuracy: {d_class_acc * 100:.2f}%, Categorical Accuracy: {d_class_cat_acc * 100:.2f}%"
+    #     )
+    #
+    #     # --------------------------
+    #     # Test Generator (ACGAN)
+    #     # --------------------------
+    #     self.logger.info("-- Evaluating Generator --")
+    #
+    #     # get the noise samples
+    #     noise = tf.random.normal((len(y_test), self.latent_dim))
+    #     sampled_labels = tf.random.uniform((len(y_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
+    #
+    #     # run the model
+    #     g_loss = self.ACGAN.evaluate([noise, sampled_labels],
+    #                                  [tf.ones((len(y_test), 1)),
+    #                                   tf.one_hot(sampled_labels, depth=self.num_classes)],
+    #                                  verbose=0)
+    #
+    #     # Using the updated ordering for ACGAN:
+    #     g_loss_total = g_loss[0]
+    #     g_loss_validity = g_loss[1]
+    #     g_loss_class = g_loss[2]
+    #     g_validity_acc = g_loss[3]
+    #     g_validity_bin_acc = g_loss[4]
+    #     g_validity_auc = g_loss[5]
+    #     g_class_acc = g_loss[6]
+    #     g_class_cat_acc = g_loss[7]
+    #
+    #     g_eval_metrics = {
+    #         "Loss": f"{g_loss_total:.4f}",
+    #         "Validity Loss": f"{g_loss_validity:.4f}",
+    #         "Class Loss": f"{g_loss_class:.4f}",
+    #         "Validity Accuracy": f"{g_validity_acc * 100:.2f}%",
+    #         "Validity Binary Accuracy": f"{g_validity_bin_acc * 100:.2f}%",
+    #         "Validity AUC": f"{g_validity_auc * 100:.2f}%",
+    #         "Class Accuracy": f"{g_class_acc * 100:.2f}%",
+    #         "Class Categorical Accuracy": f"{g_class_cat_acc * 100:.2f}%"
+    #     }
+    #     self.logger.info(
+    #         f"Generator Total Loss: {g_loss_total:.4f} | Validity Loss: {g_loss_validity:.4f} | Class Loss: {g_loss_class:.4f}"
+    #     )
+    #     self.logger.info(
+    #         f"Validity Accuracy: {g_validity_acc * 100:.2f}%, Binary Accuracy: {g_validity_bin_acc * 100:.2f}%, AUC: {g_validity_auc * 100:.2f}%"
+    #     )
+    #     self.logger.info(
+    #         f"Class Accuracy: {g_class_acc * 100:.2f}%, Categorical Accuracy: {g_class_cat_acc * 100:.2f}%"
+    #     )
+    #
+    #     # --------------------------
+    #     # Test NIDS
+    #     # --------------------------
+    #     nids_eval_metrics = None
+    #     if self.nids is not None:
+    #         self.logger.info("-- Evaluating NIDS --")
+    #         # Prepare real test data (labeled as benign, 1)
+    #         X_real = X_test
+    #         y_real = np.ones((len(X_test),), dtype="int32")
+    #
+    #         # Generate fake test data (labeled as attack, 0)
+    #         noise = tf.random.normal((len(X_test), self.latent_dim))
+    #         fake_labels = tf.random.uniform((len(X_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
+    #         generated_samples = self.generator.predict([noise, fake_labels])
+    #         # Rescale generated samples from [-1, 1] to [0, 1]
+    #         X_fake = (generated_samples + 1) / 2
+    #         y_fake = np.zeros((len(X_test),), dtype="int32")
+    #
+    #         # Compute custom NIDS loss on real and fake outputs
+    #         real_output = self.nids.predict(X_real)
+    #         fake_output = self.nids.predict(X_fake)
+    #         custom_nids_loss = self.nids_loss(real_output, fake_output)
+    #
+    #         # Combine real and fake data for evaluation
+    #         X_combined = np.vstack([X_real, X_fake])
+    #         y_combined = np.hstack([y_real, y_fake])
+    #         nids_eval_results = self.nids.evaluate(X_combined, y_combined, verbose=0)
+    #         # Expected order: [loss, accuracy, precision, recall, auc, logcosh]
+    #
+    #         # Compute additional metrics
+    #         y_pred_probs = self.nids.predict(X_combined)
+    #         y_pred = (y_pred_probs > 0.5).astype("int32")
+    #         f1 = f1_score(y_combined, y_pred)
+    #         class_report = classification_report(
+    #             y_combined, y_pred, target_names=["Attack (Fake)", "Benign (Real)"]
+    #         )
+    #
+    #         nids_eval_metrics = {
+    #             "Custom NIDS Loss": f"{custom_nids_loss:.4f}",
+    #             "Loss": f"{nids_eval_results[0]:.4f}",
+    #             "Accuracy": f"{nids_eval_results[1]:.4f}",
+    #             "Precision": f"{nids_eval_results[2]:.4f}",
+    #             "Recall": f"{nids_eval_results[3]:.4f}",
+    #             "AUC": f"{nids_eval_results[4]:.4f}",
+    #             "LogCosh": f"{nids_eval_results[5]:.4f}",
+    #             "F1 Score": f"{f1:.4f}"
+    #         }
+    #         self.logger.info(f"NIDS Custom Loss: {custom_nids_loss:.4f}")
+    #         self.logger.info(
+    #             f"NIDS Evaluation -> Loss: {nids_eval_results[0]:.4f}, Accuracy: {nids_eval_results[1]:.4f}, "
+    #             f"Precision: {nids_eval_results[2]:.4f}, Recall: {nids_eval_results[3]:.4f}, "
+    #             f"AUC: {nids_eval_results[4]:.4f}, LogCosh: {nids_eval_results[5]:.4f}")
+    #         self.logger.info("NIDS Classification Report:")
+    #         self.logger.info(class_report)
+    #
+    #     # Log the overall evaluation metrics using our logging function
+    #     self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
+    #
+    #     return d_loss_total, len(self.x_test), {}

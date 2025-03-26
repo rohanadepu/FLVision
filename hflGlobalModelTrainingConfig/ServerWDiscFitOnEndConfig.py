@@ -1,91 +1,19 @@
 import flwr as fl
 import argparse
+import random
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 
 
-# loss based on correct classifications between normal, intrusive, and fake traffic
-def discriminator_loss(self, real_normal_output, real_intrusive_output, fake_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 0 for intrusive
-    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
-                                                                          real_intrusive_output)
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
-    mean_fake_loss = tf.reduce_mean(fake_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss + mean_fake_loss) / 3
-    return total_loss
-
-
-# Loss for intrusion training (normal and intrusive)
-def discriminator_loss_intrusion(real_normal_output, real_intrusive_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 0 for normal
-    real_intrusive_labels = tf.zeros((tf.shape(real_intrusive_output)[0],), dtype=tf.int32)  # Label 1 for intrusive
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-    real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(real_intrusive_labels,
-                                                                          real_intrusive_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_real_intrusive_loss = tf.reduce_mean(real_intrusive_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_real_intrusive_loss) / 2
-
-    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    # real_intrusive_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.ones_like(real_intrusive_output), real_intrusive_output)  # Label 1 for intrusive
-    # total_loss = real_normal_loss + real_intrusive_loss
-
-    return total_loss
-
-
-# Loss for synthetic training (normal and fake)
-def discriminator_loss_synthetic(real_normal_output, fake_output):
-    # Create labels matching the shape of the output logits
-    real_normal_labels = tf.ones((tf.shape(real_normal_output)[0],), dtype=tf.int32)  # Label 1 for normal
-    fake_labels = tf.fill([tf.shape(fake_output)[0]], 2)  # Label 2 for fake traffic
-
-    # Calculate sparse categorical cross-entropy loss for each group separately
-    real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(real_normal_labels, real_normal_output)
-
-    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(fake_labels, fake_output)
-
-    # Compute the mean for each loss group independently
-    mean_real_normal_loss = tf.reduce_mean(real_normal_loss)
-    mean_fake_loss = tf.reduce_mean(fake_loss)
-
-    # Total loss as the average of mean losses for each group
-    total_loss = (mean_real_normal_loss + mean_fake_loss) / 2
-
-    # real_normal_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(real_normal_output), real_normal_output)  # Label 0 for normal
-    # fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.fill(tf.shape(fake_output), 2), fake_output)  # Label 2 for fake
-    # total_loss = real_normal_loss + fake_loss
-
-    return total_loss
-
-
 # Custom FedAvg strategy with server-side model training and saving
 class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
-    def __init__(self, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
+    def __init__(self, discriminator, generator, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE, noise_dim, epochs, steps_per_epoch,
                  dataset_used, input_dim, **kwargs):
         super().__init__(**kwargs)
         self.input_dim = input_dim
         self.generator = generator  # Generator is fixed during discriminator training
         # create model
-        self.discriminator = create_discriminator(self.input_dim)
+        self.discriminator = discriminator
 
         self.x_train = x_train
         self.y_train = y_train
@@ -98,19 +26,108 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         self.noise_dim = noise_dim
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.dataset_used = dataset_used
+        self.dataset_used = dataset_used3
 
-        self.x_train_ds = tf.data.Dataset.from_tensor_slices(self.x_train).batch(self.BATCH_SIZE)
-        self.x_test_ds = tf.data.Dataset.from_tensor_slices(self.x_test).batch(self.BATCH_SIZE)
+        self.x_train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(self.BATCH_SIZE)
+        self.x_val_ds = tf.data.Dataset.from_tensor_slices((x_val, y_val)).batch(self.BATCH_SIZE)
+        self.x_test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(self.BATCH_SIZE)
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        self.disc_optimizer = Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.9)
 
-    def on_fit_end(self, server_round, aggregated_weights, failures):
-        # set aggregated weights
-        self.discriminator.set_weights(aggregated_weights)
+        self.precision = Precision()
+        self.recall = Recall()
+        self.accuracy = BinaryAccuracy()
 
-        # Create a TensorFlow dataset that includes both features and labels
-        train_data = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).batch(self.BATCH_SIZE)
+
+    def update_critic_metrics(self, real_output, fake_output, threshold=0.0):
+        """
+        Update classification metrics by thresholding raw scores.
+        Real samples are expected to have scores > threshold (label 1),
+        while fake samples should be below threshold (label 0).
+        """
+        # Convert scores to binary predictions based on the threshold.
+        real_preds = tf.cast(real_output > threshold, tf.int32)
+        fake_preds = tf.cast(fake_output > threshold, tf.int32)
+
+        # Create corresponding labels.
+        real_labels = tf.zeros_like(real_preds)
+        fake_labels = tf.ones_like(fake_preds)
+
+        # Concatenate predictions and labels.
+        all_preds = tf.concat([real_preds, fake_preds], axis=0)
+        all_labels = tf.concat([real_labels, fake_labels], axis=0)
+
+        # Update metrics.
+        self.accuracy.update_state(all_labels, all_preds)
+        self.precision.update_state(all_labels, all_preds)
+        self.recall.update_state(all_labels, all_preds)
+
+    def log_metrics(self, step, disc_loss):
+        # Retrieve critic (discriminator) metrics.
+        acc = self.accuracy.result().numpy()
+        prec = self.precision.result().numpy()
+        rec = self.recall.result().numpy()
+
+        print(f"Step {step}, D Loss: {disc_loss.numpy():.4f}")
+        print(f"Critic Metrics -- Accuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}")
+
+    def reset_metrics(self):
+        self.accuracy.reset_states()
+        self.precision.reset_states()
+        self.recall.reset_states()
+
+    # Sending training params to host
+    def get_parameters(self, config):
+        # Combine generator and discriminator weights into a single list
+        return self.discriminator.get_weights()
+
+    # Loss Function
+    def discriminator_loss(self, real_output, fake_output, gradient_penalty):
+        return tf.reduce_mean(fake_output) - tf.reduce_mean(
+            real_output) + 15.0 * gradient_penalty  # Increased from 10.0 to 15.0
+
+    def generator_loss(self, fake_output):
+        return -tf.reduce_mean(fake_output)
+
+    def gradient_penalty(self, discriminator, real_data, fake_data):
+        feature_dim = tf.shape(real_data)[1]
+
+        # Generate alpha and broadcast it
+        alpha = tf.random.uniform([tf.shape(real_data)[0], 1], 0., 1., dtype=tf.float32)
+        alpha = tf.broadcast_to(alpha, [tf.shape(real_data)[0], feature_dim])
+
+        real_data = tf.cast(real_data, tf.float32)
+        fake_data = tf.cast(fake_data, tf.float32)
+
+        interpolated = alpha * real_data + (1 - alpha) * fake_data
+
+        if random.random() < 0.01:  # Log occasionally
+            print(
+                f"Interpolated Mean: {tf.reduce_mean(interpolated).numpy()}, Std: {tf.math.reduce_std(interpolated).numpy()}")
+
+        with tf.GradientTape() as tape:
+            tape.watch(interpolated)
+            pred = discriminator(interpolated, training=True)
+
+        grads = tape.gradient(pred, [interpolated])[0]
+        grad_norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1]))
+
+        if random.random() < 0.01:
+            print(
+                f"Gradient Norm Mean: {tf.reduce_mean(grad_norm).numpy()}, Min: {tf.reduce_min(grad_norm).numpy()}, Max: {tf.reduce_max(grad_norm).numpy()}")
+
+        return tf.reduce_mean((grad_norm - 1.0) ** 2)
+
+    def aggregate_fit(self, server_round, results, failures):
+        # -- Set the model with global weights, Bring in the parameters for the global model --#
+        aggregated_parameters = super().aggregate_fit(server_round, results, failures)
+
+        if aggregated_parameters is not None:
+            print(f"Saving global model after round {server_round}...")
+            aggregated_weights = parameters_to_ndarrays(aggregated_parameters[0])
+            if len(aggregated_weights) == len(self.nids.get_weights()):
+                self.nids.set_weights(aggregated_weights)
+        # EoF Set global weights
 
         for epoch in range(self.epochs):
             for step, (real_data, real_labels) in enumerate(train_data.take(self.steps_per_epoch)):
