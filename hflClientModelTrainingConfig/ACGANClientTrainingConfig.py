@@ -57,7 +57,6 @@ class ACGanClient(fl.client.NumPyClient):
         self.GAN = GAN
         # Reconstruct the generator model from the merged model:
         self.generator = self.GAN.generator  # directly use the stored generator
-
         self.discriminator = self.GAN.discriminator  # directly use the stored discriminator
 
         self.nids = nids
@@ -73,12 +72,10 @@ class ACGanClient(fl.client.NumPyClient):
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
 
-        #-- Data
-        # Features
+        # -- Data
         self.x_train = x_train
         self.x_test = x_test
         self.x_val = x_val
-        # Categorical Labels
         self.y_train = y_train
         self.y_test = y_test
         self.y_val = y_val
@@ -203,8 +200,7 @@ class ACGanClient(fl.client.NumPyClient):
         self.GAN.set_weights(parameters)
 
         print("Discriminator Output:", self.discriminator.output_names)
-
-        # -- Model Compilations
+        # -- Model Compilations --#
         # Compile Discriminator separately (before freezing)
         self.discriminator.compile(
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
