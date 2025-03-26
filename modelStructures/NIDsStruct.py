@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LeakyReLU, Input, Add, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.layers import Dense, Dropout, Flatten, LeakyReLU, Input, Add, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 
@@ -164,6 +164,73 @@ def create_optimized_model(input_dim, l2_alpha=0.0001, dropout_rate=0.2):
 
     model = Model(inputs, outputs)
 
+    return model
+
+# -- Bishwas's Advanced NIDS Models
+
+def cnn_lstm_gru_model_binary(input_shape):
+    """Define and compile CNN-LSTM-GRU model."""
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+def cnn_lstm_gru_model_multiclass(input_shape):
+    """Define and compile CNN-LSTM-GRU model."""
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(15, activation='softmax')
+    ])
+
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+
+def cnn_lstm_gru_model_multiclass_dynamic(input_shape, num_classes):
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(num_classes, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):

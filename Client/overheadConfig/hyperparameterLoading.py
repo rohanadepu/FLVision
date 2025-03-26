@@ -20,6 +20,9 @@ def hyperparameterLoading(model_type, X_train_data, regularizationEnabled, DP_en
     latent_dim = None
     betas = None
     learning_rate = None
+    steps_per_epoch = None
+    BATCH_SIZE = None
+    input_dim = None
 
 
     if model_type == 'NIDS':
@@ -108,6 +111,21 @@ def hyperparameterLoading(model_type, X_train_data, regularizationEnabled, DP_en
         print("Betas:", betas)
         print("Learning Rate:", learning_rate)
 
+    # if models are adv nids
+    elif model_type == "NIDS-IOT-Binary":
+        input_dim = X_train_data.shape[1]  # dependant for feature size
+        BATCH_SIZE = 32
+
+    elif model_type =="NIDS-IOT-Multiclass":
+        input_dim = X_train_data.shape[1]  # dependant for feature size
+        BATCH_SIZE = 32
+
+    elif model_type == "NIDS-IOT-Multiclass-Dynamic":
+        input_dim = X_train_data.shape[1]  # dependant for feature size
+        BATCH_SIZE = 32
+        num_classes = 15
+
+    # If model types are gan
     elif model_type == 'GAN':
         BATCH_SIZE = 256
         noise_dim = 100

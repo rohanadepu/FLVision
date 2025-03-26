@@ -53,10 +53,11 @@ def main():
     parser = argparse.ArgumentParser(description='Select dataset, model selection, and to enable DP respectively')
 
     # -- Dataset Settings -- #
-    parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET"], default="CICIOT",
-                        help='Datasets to use: CICIOT, IOTBOTNET')
-    parser.add_argument('--dataset_processing', type=str, choices=["Default", "MM[-1,-1]", "AC-GAN"], default="Default",
-                        help='Datasets to use: Default, MM[-1,1], AC-GAN')
+    parser.add_argument('--dataset', type=str, choices=["CICIOT", "IOTBOTNET", "IOT"], default="CICIOT",
+                        help='Datasets to use: CICIOT, IOTBOTNET, IOT (different from IOTBOTNET)')
+    parser.add_argument('--dataset_processing', type=str, choices=["Default", "MM[-1,-1]", "AC-GAN, IOT", "IOT-MinMax"],
+                        default="Default",
+                        help='Datasets to use: Default, MM[-1,1], AC-GAN, IOT')
 
     # -- Training / Model Parameters -- #
     parser.add_argument('--trainingArea', type=str, choices=["Central", "Federated"], default="Central",
@@ -65,8 +66,8 @@ def main():
     parser.add_argument('--serverBased', action='store_true',
                         help='Only load the model structure and get the weights from the server')
 
-    parser.add_argument('--model_type', type=str, choices=["NIDS", "GAN", "WGAN-GP", "AC-GAN"],
-                        help='Please select NIDS ,GAN, WGAN-GP, or AC-GAN as the model type to train')
+    parser.add_argument('--model_type', type=str, choices=["NIDS", "NIDS-IOT-Binary", "NIDS-IOT-Multiclass", "NIDS-IOT-Multiclass-Dynamic", "GAN", "WGAN-GP", "AC-GAN"],
+                        help='Please select NIDS, NIDS-IOT-Binary, NIDS-IOT-Multiclass, NIDS-IOT-Multiclass-Dynamic, GAN, WGAN-GP, or AC-GAN as the model type to train')
 
     parser.add_argument('--model_training', type=str, choices=["NIDS", "Generator", "Discriminator", "Both"], default="Both",
                         help='Please select NIDS, Generator, Discriminator, Both as the sub-model type to train')
@@ -103,8 +104,15 @@ def main():
     train_type = args.model_training
     if model_type == "AC-GAN":
         dataset_processing = "AC-GAN"
-    if model_type == "NIDS":
+
+    if model_type == "NIDS" or model_type == "NIDS-IOT-Binary" or model_type == "NIDS-IOT-Multiclass" or model_type == "NIDS-IOT-Multiclass-Dynamic":
         train_type = "NIDS"
+
+    if model_type == "NIDS-IOT-Binary" or model_type == "NIDS-IOT-Multiclass" or model_type == "NIDS-IOT-Multiclass-Dynamic":
+        dataset_used = "IOT"
+    if dataset_processing == "IOT" or dataset_processing == "IOT-MinMax":
+        dataset_used = "IOT"
+
 
     # Training / Hyper Param
     epochs = args.epochs
@@ -214,7 +222,8 @@ def main():
         client.evaluate()
 
     # --- 8 Locally Save Model After Training ---#
-    client.save(save_name)
+
+
 
 if __name__ == "__main__":
     main()

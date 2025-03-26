@@ -60,6 +60,17 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                                    es_patience, restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
                                    metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
+    # if models are adv nids
+    elif model_type == "NIDS-IOT-Binary":
+        client = None
+
+    elif model_type == "NIDS-IOT-Multiclass":
+        client = None
+
+    elif model_type == "NIDS-IOT-Multiclass-Dynamic":
+        client = None
+
+    # if model are the GAN types
     elif model_type == 'GAN':
         if train_type == "Both":
             client = CentralBinaryGan(GAN, nids, X_train_data, X_val_data, y_train_data, y_val_data, X_test_data,
