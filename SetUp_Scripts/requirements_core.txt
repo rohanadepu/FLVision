@@ -12,7 +12,7 @@ annotated-types==0.7.0
 anyio==4.4.0
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0
-array_record==0.4.1
+array_record
 ascii-magic==2.3.0
 asttokens==2.4.1
 astunparse==1.6.3
