@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # --- Steps --- #
 
     # First, Create the folder structure for the datasets
-    create_folder_structure(base_directory)
+    # create_folder_structure(base_directory)
 
     # Second, clone the project into the node
     # clone_git_repo(git_repo_url, clone_dir)
