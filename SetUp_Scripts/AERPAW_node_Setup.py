@@ -56,10 +56,10 @@ if __name__ == "__main__":
 
     # --- Settings --- #
 
-    base_directory = "/root"  # Replace with your base directory path
-    requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements_core.txt"  # Replace with the path to your requirements_edge.txt
-    git_repo_url = "https://github.com/rohanadepu/FLVision.git"  # Replace with your Git repository URL
-    clone_dir = "/root/FLVision"
+    base_directory = "/home/cc"  # Replace with your base directory path
+    requirements_file_path = "/home/cc/HFL-DNN-GAN-IDS/SetUp_Scripts/requirements_core.txt"  # Replace with the path to your requirements_edge.txt
+    git_repo_url = "https://github.com/keko787/HFL-DNN-GAN-IDS.git"  # Replace with your Git repository URL
+    clone_dir = "/home/cc/HFL-DNN-GAN-IDS"
 
     # --- Steps --- #
 
