@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # --- Settings --- #
 
     base_directory = "/root"  # Replace with your base directory path
-    requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements_edge.txt"  # Replace with the path to your requirements_edge.txt
+    requirements_file_path = "/root/FLVision/SetUp_Scripts/requirements_core.txt"  # Replace with the path to your requirements_edge.txt
     git_repo_url = "https://github.com/rohanadepu/FLVision.git"  # Replace with your Git repository URL
     clone_dir = "/root/FLVision"
 
