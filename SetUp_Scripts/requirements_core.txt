@@ -36,7 +36,7 @@ click-plugins==1.1.1
 cloudpickle==3.0.0
 cmake==3.27.7
 colorama==0.4.6
-contourpy==1.2.0
+contourpy
 cryptography==42.0.8
 cycler==0.12.1
 Cython==3.0.5
