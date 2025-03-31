@@ -67,7 +67,7 @@ if __name__ == "__main__":
     create_folder_structure(base_directory)
 
     # Second, clone the project into the node
-    clone_git_repo(git_repo_url, clone_dir)
+    # clone_git_repo(git_repo_url, clone_dir)
 
     # third, install the dependencies from the project
     install_dependencies(requirements_file_path)
