@@ -43,9 +43,9 @@ from hflGlobalModelTrainingConfig.ServerLoadNSaveConfig import LoadSaveModelFedA
 
 # Fit on End configs
 from hflGlobalModelTrainingConfig.ServerNIDSFitOnEndConfig import NIDSFitOnEndStrategy
-# from hflGlobalModelTrainingConfig.ServerDiscBinaryFitOnEndConfig import DiscriminatorSyntheticStrategy
-# from hflGlobalModelTrainingConfig.ServerWDiscFitOnEndConfig import WDiscriminatorSyntheticStrategy
-# from hflGlobalModelTrainingConfig.ServerACDiscFitOnEndConfig import ACDiscriminatorSyntheticStrategy
+from hflGlobalModelTrainingConfig.ServerDiscBinaryFitOnEndConfig import DiscriminatorSyntheticStrategy
+from hflGlobalModelTrainingConfig.ServerWDiscFitOnEndConfig import WDiscriminatorSyntheticStrategy
+from hflGlobalModelTrainingConfig.ServerACDiscFitOnEndConfig import ACDiscriminatorSyntheticStrategy
 
 ################################################################################################################
 #                                                   Execute                                                   #
@@ -308,116 +308,77 @@ def main():
                         serverLoad = serverLoad,
                     )
                 )
-        #
-        #     # fit on end discriminator from GAN models
-        #     else:
-        #         # load model ??
-        #         # fit and save
-        #
-        #         # Discriminator advanced global synthetic training
-        #         if model_type == "GAN":
-        #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
-        #                 strategy=DiscriminatorSyntheticStrategy(
-        #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
-        #                     generator=generator,  # Pre-trained or newly created generator
-        #                     dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
-        #                     node="server_node_1",  # Server node identifier
-        #                     adversarialTrainingEnabled=True,  # Enable adversarial training
-        #                     earlyStopEnabled=True,  # Enable early stopping
-        #                     DP_enabled=False,  # Differential privacy enabled/disabled
-        #                     X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
-        #                     X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
-        #                     X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
-        #                     l2_norm_clip=1.0,  # L2 norm clipping for DP
-        #                     noise_multiplier=0.1,  # Noise multiplier for DP
-        #                     num_microbatches=32,  # Microbatches for DP
-        #                     batch_size=32,  # Training batch size
-        #                     epochs=10,  # Number of fine-tuning epochs
-        #                     steps_per_epoch=100,  # Training steps per epoch
-        #                     learning_rate=0.001,  # Optimizer learning rate
-        #                     synth_portion=0.3,  # Portion of synthetic data used
-        #                     adv_portion=0.3,  # Portion of adversarial data used
-        #                     metric_to_monitor_es="val_loss",  # Early stopping monitor metric
-        #                     es_patience=5,  # Early stopping patience
-        #                     restor_best_w=True,  # Restore best weights on early stopping
-        #                     metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
-        #                     l2lr_patience=3,  # Learning rate schedule patience
-        #                     save_best_only=True,  # Save best model only
-        #                     metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
-        #                     checkpoint_mode="max"  # Save best model based on max value of metric
-        #                 )
-        #             )
-        #
-        #         # WGAN-GP Discriminator advanced global synthetic training
-        #         elif model_type == "WGAN-GP":
-        #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
-        #                 strategy=WDiscriminatorSyntheticStrategy(
-        #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
-        #                     generator=generator,  # Pre-trained or newly created generator
-        #                     dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
-        #                     node="server_node_1",  # Server node identifier
-        #                     adversarialTrainingEnabled=True,  # Enable adversarial training
-        #                     earlyStopEnabled=True,  # Enable early stopping
-        #                     DP_enabled=False,  # Differential privacy enabled/disabled
-        #                     X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
-        #                     X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
-        #                     X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
-        #                     l2_norm_clip=1.0,  # L2 norm clipping for DP
-        #                     noise_multiplier=0.1,  # Noise multiplier for DP
-        #                     num_microbatches=32,  # Microbatches for DP
-        #                     batch_size=32,  # Training batch size
-        #                     epochs=10,  # Number of fine-tuning epochs
-        #                     steps_per_epoch=100,  # Training steps per epoch
-        #                     learning_rate=0.001,  # Optimizer learning rate
-        #                     synth_portion=0.3,  # Portion of synthetic data used
-        #                     adv_portion=0.3,  # Portion of adversarial data used
-        #                     metric_to_monitor_es="val_loss",  # Early stopping monitor metric
-        #                     es_patience=5,  # Early stopping patience
-        #                     restor_best_w=True,  # Restore best weights on early stopping
-        #                     metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
-        #                     l2lr_patience=3,  # Learning rate schedule patience
-        #                     save_best_only=True,  # Save best model only
-        #                     metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
-        #                     checkpoint_mode="max"  # Save best model based on max value of metric
-        #                 )
-        #             )
-        #
-        #         # AC Discriminator advanced global synthetic training
-        #         elif model_type == "AC-GAN":
-        #             fl.server.start_server(
-        #                 config=fl.server.ServerConfig(num_rounds=roundInput),
-        #                 strategy=ACDiscriminatorSyntheticStrategy(
-        #                     discriminator=discriminator,  # Pre-trained or newly created discriminator
-        #                     generator=generator,  # Pre-trained or newly created generator
-        #                     dataset_used="CICIOT",  # or "IOTBOTNET" depending on dataset
-        #                     node="server_node_1",  # Server node identifier
-        #                     adversarialTrainingEnabled=True,  # Enable adversarial training
-        #                     earlyStopEnabled=True,  # Enable early stopping
-        #                     DP_enabled=False,  # Differential privacy enabled/disabled
-        #                     X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
-        #                     X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
-        #                     X_val_data=X_val_data, y_val_data=y_val_data,  # Validation data
-        #                     l2_norm_clip=1.0,  # L2 norm clipping for DP
-        #                     noise_multiplier=0.1,  # Noise multiplier for DP
-        #                     num_microbatches=32,  # Microbatches for DP
-        #                     batch_size=32,  # Training batch size
-        #                     epochs=10,  # Number of fine-tuning epochs
-        #                     steps_per_epoch=100,  # Training steps per epoch
-        #                     learning_rate=0.001,  # Optimizer learning rate
-        #                     synth_portion=0.3,  # Portion of synthetic data used
-        #                     adv_portion=0.3,  # Portion of adversarial data used
-        #                     metric_to_monitor_es="val_loss",  # Early stopping monitor metric
-        #                     es_patience=5,  # Early stopping patience
-        #                     restor_best_w=True,  # Restore best weights on early stopping
-        #                     metric_to_monitor_l2lr="val_loss",  # Learning rate schedule monitor
-        #                     l2lr_patience=3,  # Learning rate schedule patience
-        #                     save_best_only=True,  # Save best model only
-        #                     metric_to_monitor_mc="val_accuracy",  # Model checkpoint monitor metric
-        #                     checkpoint_mode="max"  # Save best model based on max value of metric
-        #                 )
-        #             )
+
+            # fit on end (also save) discriminator from GAN models
+            else:
+                # Discriminator advanced global synthetic training
+                if model_type == "GAN":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=roundInput),
+                        strategy=DiscriminatorSyntheticStrategy(
+                            gan=GAN,
+                            generator=generator,
+                            discriminator=discriminator,
+                            x_train=X_train_data,
+                            x_val=X_val_data,
+                            y_train=y_train_data,
+                            y_val=y_val_data,
+                            x_test=X_test_data,
+                            y_test=y_test_data,
+                            BATCH_SIZE=BATCH_SIZE,
+                            noise_dim=noise_dim,
+                            epochs=epochs,
+                            steps_per_epoch=steps_per_epoch,
+                            dataset_used=dataset_used,
+                            input_dim=input_dim
+                            )
+                    )
+
+                # WGAN-GP Discriminator advanced global synthetic training
+                elif model_type == "WGAN-GP":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=roundInput),
+                        strategy=WDiscriminatorSyntheticStrategy(
+                            gan=GAN,
+                            nids=nids,
+                            x_train=X_train_data,
+                            x_val=X_val_data,
+                            y_train=y_train_data,
+                            y_val=y_val_data,
+                            x_test=X_test_data,
+                            y_test=y_test_data,
+                            BATCH_SIZE=BATCH_SIZE,
+                            noise_dim=noise_dim,
+                            epochs=epochs,
+                            steps_per_epoch=steps_per_epoch,
+                            dataset_used=dataset_used,
+                            input_dim=input_dim,
+                        )
+                    )
+
+                # AC Discriminator advanced global synthetic training
+                elif model_type == "AC-GAN":
+                    fl.server.start_server(
+                        config=fl.server.ServerConfig(num_rounds=roundInput),
+                        strategy=ACDiscriminatorSyntheticStrategy(
+                            GAN=GAN,
+                            nids=nids,
+                            x_train=X_train_data,
+                            x_val=X_val_data,
+                            y_train=y_train_data,
+                            y_val=y_val_data,
+                            x_test=X_test_data,
+                            y_test=y_test_data,
+                            BATCH_SIZE=BATCH_SIZE,
+                            noise_dim=noise_dim,
+                            latent_dim=latent_dim,
+                            num_classes=num_classes,
+                            input_dim=input_dim,
+                            epochs=epochs,
+                            steps_per_epoch=steps_per_epoch,
+                            learning_rate=learning_rate,
+                            log_file="training.log")
+                    )
 
 if __name__ == "__main__":
     main()

@@ -168,7 +168,7 @@ def main():
     nids, discriminator, generator, GAN = modelCreateLoad(model_type, train_type, pretrainedNids, pretrainedGan,
                                                           pretrainedGenerator, pretrainedDiscriminator, dataset_used,
                                                           input_dim, noise_dim, regularizationEnabled, DP_enabled,
-                                                         l2_alpha, latent_dim, num_classes)
+                                                          l2_alpha, latent_dim, num_classes)
     # --- 5A Load Training Config ---#
     if TrainingArea == "Federated":
         if server_based is True:  # Receive the global model weights initially to train with
@@ -180,6 +180,7 @@ def main():
                                             num_microbatches, metric_to_monitor_es, es_patience,
                                             restor_best_w, metric_to_monitor_l2lr, l2lr_patience, save_best_only,
                                             metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
+
         else:  # Use a pretrained model or receive model from peers.
             client = modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                             earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled,
@@ -222,7 +223,7 @@ def main():
         client.evaluate()
 
     # --- 8 Locally Save Model After Training ---#
-
+    #     client.save()
 
 
 if __name__ == "__main__":
