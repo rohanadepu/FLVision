@@ -131,7 +131,7 @@ def build_AC_discriminator(input_dim, num_classes):
     shared = LeakyReLU(0.2)(shared)
 
     # Split into two branches:
-    validity = Dense (1, activation='sigmoid', name="validity")(shared)
+    validity = Dense(1, activation='sigmoid', name="validity")(shared)
 
     # You could add additional layers for class prediction
     class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)

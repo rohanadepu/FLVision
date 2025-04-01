@@ -81,7 +81,7 @@ class DiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
 
 
     def aggregate_fit(self, server_round, results, failures):
-        # -- Set the model with global weights, Bring in the parameters for the global model --#
+        # -- Set the model with global weights, Bring in the parameters for the global model -- #
         aggregated_parameters = super().aggregate_fit(server_round, results, failures)
 
         if aggregated_parameters is not None:
