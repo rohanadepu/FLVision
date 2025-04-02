@@ -99,14 +99,14 @@ class CentralACGan:
 
         #-- Model Compilations
         # Compile Discriminator separately (before freezing)
-        self.discriminator.compile(
-            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
-            optimizer=self.disc_optimizer,
-            metrics={
-                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
-                'class': ['accuracy', 'categorical_accuracy']
-            }
-        )
+        # self.discriminator.compile(
+        #     loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+        #     optimizer=self.disc_optimizer,
+        #     metrics={
+        #         'validity': ['accuracy', 'binary_accuracy', 'AUC'],
+        #         'class': ['accuracy', 'categorical_accuracy']
+        #     }
+        # )
 
         # Freeze Discriminator only for AC-GAN training
         self.discriminator.trainable = False
@@ -239,6 +239,22 @@ class CentralACGan:
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
+
+        # 1. First, make sure discriminator is trainable for individual training
+        self.discriminator.trainable = True
+        # Ensure all layers within discriminator are trainable
+        for layer in self.discriminator.layers:
+            layer.trainable = True
+
+        # 2. Re-compile discriminator with trainable weights
+        self.discriminator.compile(
+            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+            optimizer=self.disc_optimizer,
+            metrics={
+                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
+                'class': ['accuracy', 'categorical_accuracy']
+            }
+        )
 
         # Log model settings at the start
         self.log_model_settings()
