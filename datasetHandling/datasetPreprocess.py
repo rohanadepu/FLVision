@@ -448,9 +448,9 @@ def preprocess_AC_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data
     print(y_test_data.head())
 
     # Convert labels to categorical format
-    y_train_categorical = to_categorical(y_train_data, num_classes=3)
-    y_val_categorical = to_categorical(y_val_data, num_classes=3)
-    y_test_categorical = to_categorical(y_test_data, num_classes=3)
+    y_train_categorical = to_categorical(y_train_data, num_classes=2)
+    y_val_categorical = to_categorical(y_val_data, num_classes=2)
+    y_test_categorical = to_categorical(y_test_data, num_classes=2)
 
     # Debug: Display label shapes and a sample after conversion
     print("\nAfter to_categorical conversion:")
