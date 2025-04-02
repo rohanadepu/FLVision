@@ -27,6 +27,7 @@ from sklearn.metrics import f1_score, classification_report
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
+from collections import Counter
 import pandas as pd
 import matplotlib.pyplot as plt
 from numpy import expand_dims
@@ -195,7 +196,7 @@ class CentralACGan:
         self.logger.info(f"Learning Rate (Discriminator): {self.disc_optimizer.learning_rate}")
         self.logger.info("=" * 50)
 
-    def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None):
+    def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None, fusion_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
         self.logger.info("Discriminator Metrics:")
@@ -208,9 +209,13 @@ class CentralACGan:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
                 self.logger.info(f"  {key}: {value}")
+        if fusion_metrics is not None:
+            self.logger.info("Probabilistic Fusion Metrics:")
+            for key, value in fusion_metrics.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None):
+    def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None, fusion_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
@@ -222,6 +227,10 @@ class CentralACGan:
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
+                self.logger.info(f"  {key}: {value}")
+        if fusion_eval is not None:
+            self.logger.info("Probabilistic Fusion Evaluation:")
+            for key, value in fusion_eval.items():
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
@@ -243,10 +252,11 @@ class CentralACGan:
 
             print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
+
             # --------------------------
             # Train Discriminator
             # --------------------------
-
+            # -- Source the real data -- #
             # Sample a batch of real data
             idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
             real_data = tf.gather(X_train, idx)
@@ -258,15 +268,16 @@ class CentralACGan:
             else:
                 real_labels_onehot = real_labels
 
+            # -- Generate fake data -- #
             # Sample the noise data
             noise = tf.random.normal((self.batch_size, self.latent_dim))
             fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
             fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-            # Generate fake data
+            # generate data from noise and desired labels
             generated_data = self.generator.predict([noise, fake_labels])
 
-            # Train discriminator on real and fake data
+            # -- Train discriminator on real and fake data -- #
             d_loss_real = self.discriminator.train_on_batch(real_data, [valid, real_labels_onehot])
             d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake, fake_labels_onehot])
             d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
@@ -293,14 +304,13 @@ class CentralACGan:
             # --------------------------
             # Train Generator (AC-GAN)
             # --------------------------
-
-            # Generate noise and label inputs for ACGAN
+            # -- Generate noise and label inputs for ACGAN -- #
             noise = tf.random.normal((self.batch_size, self.latent_dim))
             sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
                                                dtype=tf.int32)
             sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
 
-            # Train ACGAN with sampled noise data
+            # -- Train ACGAN with sampled noise data -- #
             g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid, sampled_labels_onehot])
 
             # Collect generator metrics
@@ -327,15 +337,26 @@ class CentralACGan:
             # --------------------------
             if epoch % 1 == 0:
                 self.logger.info(f"=== Epoch {epoch} Validation ===")
+                # -- GAN Validation --#
                 d_val_loss, d_val_metrics = self.validation_disc()
                 g_val_loss, g_val_metrics = self.validation_gen()
+
+                # -- Probabilistic Fusion Validation -- #
+                self.logger.info("=== Probabilistic Fusion Validation ===")
+                fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
+                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+
+                # Log distribution of classifications
+                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['class_distribution']}")
+
+                # -- NIDS Validation -- #
                 nids_val_metrics = None
                 if self.nids is not None:
                     nids_custom_loss, nids_val_metrics = self.validation_NIDS()
                     self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
-                # Log the metrics for this epoch using our new logging method
-                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics)
+                # -- Log the metrics for epoch -- #
+                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
                 self.logger.info(
                     f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
 
@@ -361,6 +382,121 @@ class CentralACGan:
         # sum up total loss
         total_loss = real_loss + fake_loss
         return total_loss.numpy()
+
+    # -- Probabilistic Fusion Methods -- #
+    def probabilistic_fusion(self, input_data):
+        """
+        Apply probabilistic fusion to combine validity and class predictions.
+        Returns combined probabilities for all four possible outcomes.
+        """
+        # Get discriminator predictions
+        validity_scores, class_predictions = self.discriminator.predict(input_data)
+
+        total_samples = len(input_data)
+        results = []
+
+        for i in range(total_samples):
+            # Validity probabilities: P(valid) and P(invalid)
+            p_valid = validity_scores[i][0]  # Probability of being valid/real
+            p_invalid = 1 - p_valid  # Probability of being invalid/fake
+
+            # Class probabilities: assuming 2 classes (benign=0, attack=1)
+            p_benign = class_predictions[i][0]  # Probability of being benign
+            p_attack = class_predictions[i][1]  # Probability of being attack
+
+            # Calculate joint probabilities for all combinations
+            p_valid_benign = p_valid * p_benign
+            p_valid_attack = p_valid * p_attack
+            p_invalid_benign = p_invalid * p_benign
+            p_invalid_attack = p_invalid * p_attack
+
+            # Store all probabilities in a dictionary
+            probabilities = {
+                "valid_benign": p_valid_benign,
+                "valid_attack": p_valid_attack,
+                "invalid_benign": p_invalid_benign,
+                "invalid_attack": p_invalid_attack
+            }
+
+            # Find the most likely outcome
+            most_likely = max(probabilities, key=probabilities.get)
+
+            # For analysis, add the actual probabilities alongside the classification
+            result = {
+                "classification": most_likely,
+                "probabilities": probabilities
+            }
+
+            results.append(result)
+
+        return results
+
+    def validate_with_probabilistic_fusion(self, validation_data, validation_labels=None):
+        """
+        Evaluate model using probabilistic fusion and calculate metrics if labels are available.
+        """
+        fusion_results = self.probabilistic_fusion(validation_data)
+
+        # Extract classifications
+        classifications = [result["classification"] for result in fusion_results]
+
+        # Count occurrences of each class
+        class_distribution = Counter(classifications)
+        self.logger.info(f"Predicted Class Distribution: {dict(class_distribution)}")
+
+        # If we have ground truth labels, calculate accuracy
+        if validation_labels is not None:
+            correct_predictions = 0
+            for i, result in enumerate(fusion_results):
+                # Get the true label (assuming 0=benign, 1=attack)
+                if isinstance(validation_labels, np.ndarray) and validation_labels.ndim > 1:
+                    true_class_idx = np.argmax(validation_labels[i])
+                else:
+                    true_class_idx = validation_labels[i]
+
+                true_class = "benign" if true_class_idx == 0 else "attack"
+
+                # For validation data (which is real), expected validity is "valid"
+                true_validity = "valid"  # Since validation data is real data
+
+                # Construct the true combined label
+                true_combined = f"{true_validity}_{true_class}"
+
+                # Check if prediction matches
+                if result["classification"] == true_combined:
+                    correct_predictions += 1
+
+            accuracy = correct_predictions / len(validation_data)
+            self.logger.info(f"Accuracy: {accuracy:.4f}")
+
+            metrics = {
+                "accuracy": accuracy,
+                "total_samples": len(validation_data),
+                "correct_predictions": correct_predictions,
+                "class_distribution": dict(class_distribution)
+            }
+
+            return classifications, metrics
+
+        return classifications, {"class_distribution": dict(class_distribution)}
+
+    def analyze_fusion_results(self, fusion_results):
+        """Analyze the distribution of probabilities from fusion results"""
+        # Extract probabilities for each category
+        valid_benign_probs = [r["probabilities"]["valid_benign"] for r in fusion_results]
+        valid_attack_probs = [r["probabilities"]["valid_attack"] for r in fusion_results]
+        invalid_benign_probs = [r["probabilities"]["invalid_benign"] for r in fusion_results]
+        invalid_attack_probs = [r["probabilities"]["invalid_attack"] for r in fusion_results]
+
+        # Calculate summary statistics
+        categories = ["Valid Benign", "Valid Attack", "Invalid Benign", "Invalid Attack"]
+        all_probs = [valid_benign_probs, valid_attack_probs, invalid_benign_probs, invalid_attack_probs]
+
+        for cat, probs in zip(categories, all_probs):
+            self.logger.info(
+                f"{cat}: Mean={np.mean(probs):.4f}, Median={np.median(probs):.4f}, Max={np.max(probs):.4f}")
+
+        # You could add additional visualizations or analysis here
 
     # -- Validate -- #
     def validation_disc(self):
@@ -693,6 +829,7 @@ class CentralACGan:
         # Log the overall evaluation metrics using our logging function
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
 
+    # -- Saving Models -- #
     def save(self, save_name):
         # Save each submodel separately
         self.generator.save(f"../pretrainedModels/generator_local_ACGAN_{save_name}.h5")

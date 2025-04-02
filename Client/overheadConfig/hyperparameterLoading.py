@@ -148,7 +148,7 @@ def hyperparameterLoading(model_type, X_train_data, regularizationEnabled, DP_en
         steps_per_epoch = len(X_train_data) // BATCH_SIZE
         input_dim = X_train_data.shape[1]
         # num_classes = len(np.unique(y_train_categorical))
-        num_classes = 3
+        num_classes = 2
 
         if regularizationEnabled:
             l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
