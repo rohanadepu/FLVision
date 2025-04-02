@@ -182,10 +182,10 @@ def build_AC_discriminator(input_dim, num_classes):
     validity_branch = Dropout(0.4)(validity_branch)
 
     # residual connection to validity branch
-    validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
-    validity_branch1 = BatchNormalization()(validity_branch1)
-    validity_branch1 = LeakyReLU(0.2)(validity_branch1)
-    validity_branch = Add()([validity_branch, validity_branch1])
+    # validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    # validity_branch1 = BatchNormalization()(validity_branch1)
+    # validity_branch1 = LeakyReLU(0.2)(validity_branch1)
+    # validity_branch = Add()([validity_branch, validity_branch1])
 
     # layers to validity branch
     validity_branch = Dense(32, kernel_regularizer=l2(0.002))(validity_branch)
@@ -249,10 +249,10 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
     validity_branch = Dropout(0.4)(validity_branch)
 
     # residual connection to validity branch
-    validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
-    validity_branch1 = BatchNormalization()(validity_branch1)
-    validity_branch1 = LeakyReLU(0.2)(validity_branch1)
-    validity_branch = Add()([validity_branch, validity_branch1])
+    # validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    # validity_branch1 = BatchNormalization()(validity_branch1)
+    # validity_branch1 = LeakyReLU(0.2)(validity_branch1)
+    # validity_branch = Add()([validity_branch, validity_branch1])
 
     validity_branch = Dense(32, kernel_regularizer=l2(0.002))(validity_branch)
     validity_branch = BatchNormalization()(validity_branch)
