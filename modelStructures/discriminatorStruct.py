@@ -113,7 +113,7 @@ def build_AC_discriminator_V0(input_dim, num_classes):
     return Model(data_input, [validity, label_output], name="Discriminator")
 
 
-def build_AC_discriminator(input_dim, num_classes):
+def build_AC_discriminator_ver_2(input_dim, num_classes):
     data_input = Input(shape=(input_dim,))
 
     x = Dense(512, kernel_regularizer=l2(0.001))(data_input)
@@ -153,6 +153,140 @@ def build_AC_discriminator(input_dim, num_classes):
     class_branch = LeakyReLU(0.2)(class_branch)
 
     label_output = Dense(num_classes, activation='softmax', name="class")(class_branch)
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+def build_AC_discriminator(input_dim, num_classes):
+    data_input = Input(shape=(input_dim,))
+
+    # Increase regularization and dropout in initial layers
+    x = Dense(512, kernel_regularizer=l2(0.002))(data_input)  # Increased regularization
+    x = BatchNormalization(momentum=0.8)(x)  # Adjust batch norm momentum
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.4)(x)  # Increased dropout
+
+    x = Dense(256, kernel_regularizer=l2(0.002))(x)
+    x = BatchNormalization(momentum=0.8)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.4)(x)
+
+    shared = Dense(128, kernel_regularizer=l2(0.002))(x)
+    shared = BatchNormalization()(shared)
+    shared = LeakyReLU(0.2)(shared)
+
+    # Create a dedicated validity branch (instead of just a single layer)
+    validity_branch = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    validity_branch = BatchNormalization()(validity_branch)
+    validity_branch = LeakyReLU(0.2)(validity_branch)
+    validity_branch = Dropout(0.4)(validity_branch)
+
+    # Add a residual connection to validity branch
+    validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    validity_branch1 = BatchNormalization()(validity_branch1)
+    validity_branch1 = LeakyReLU(0.2)(validity_branch1)
+    validity_branch = Add()([validity_branch, validity_branch1])
+
+    # Add more layers to validity branch
+    validity_branch = Dense(32, kernel_regularizer=l2(0.002))(validity_branch)
+    validity_branch = BatchNormalization()(validity_branch)
+    validity_branch = LeakyReLU(0.2)(validity_branch)
+
+    # Final sigmoid activation for validity
+    validity = Dense(1, activation='sigmoid', name="validity")(validity_branch)
+
+    # Class branch remains mostly the same
+    class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch1 = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch1 = BatchNormalization()(class_branch1)
+    class_branch1 = LeakyReLU(0.2)(class_branch1)
+
+    class_branch = Add()([class_branch, class_branch1])
+
+    class_branch = Dense(32, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch = Dense(16, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    label_output = Dense(num_classes, activation='softmax', name="class")(class_branch)
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+def build_AC_discriminator_ver_3b(input_dim, num_classes):
+    from tensorflow.keras.layers import Input, Dense, BatchNormalization, LeakyReLU, Dropout, Add, Concatenate
+    from tensorflow.keras.models import Model
+    from tensorflow.keras.regularizers import l2
+
+    data_input = Input(shape=(input_dim,))
+
+    # Increase regularization and dropout in initial layers
+    x = Dense(512, kernel_regularizer=l2(0.002))(data_input)
+    x = BatchNormalization(momentum=0.8)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.4)(x)
+
+    x = Dense(256, kernel_regularizer=l2(0.002))(x)
+    x = BatchNormalization(momentum=0.8)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.4)(x)
+
+    shared = Dense(128, kernel_regularizer=l2(0.002))(x)
+    shared = BatchNormalization()(shared)
+    shared = LeakyReLU(0.2)(shared)
+
+    # Create validity branch
+    validity_branch = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    validity_branch = BatchNormalization()(validity_branch)
+    validity_branch = LeakyReLU(0.2)(validity_branch)
+    validity_branch = Dropout(0.4)(validity_branch)
+
+    # Add residual connection to validity branch
+    validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
+    validity_branch1 = BatchNormalization()(validity_branch1)
+    validity_branch1 = LeakyReLU(0.2)(validity_branch1)
+    validity_branch = Add()([validity_branch, validity_branch1])
+
+    validity_branch = Dense(32, kernel_regularizer=l2(0.002))(validity_branch)
+    validity_branch = BatchNormalization()(validity_branch)
+    validity_branch = LeakyReLU(0.2)(validity_branch)
+
+    # Class branch
+    class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch1 = Dense(64, kernel_regularizer=l2(0.001))(shared)
+    class_branch1 = BatchNormalization()(class_branch1)
+    class_branch1 = LeakyReLU(0.2)(class_branch1)
+
+    class_branch = Add()([class_branch, class_branch1])
+
+    class_branch = Dense(32, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch = LeakyReLU(0.2)(class_branch)
+
+    class_branch = Dense(16, kernel_regularizer=l2(0.001))(class_branch)
+    class_branch = BatchNormalization()(class_branch)
+    class_branch_features = LeakyReLU(0.2)(class_branch)
+
+    # Regular class output
+    label_output = Dense(num_classes, activation='softmax', name="class")(class_branch_features)
+
+    # Option: Consider combining validity and class information for final validity output
+    # Combine validity and class information for final validity output
+    combined = Concatenate()([validity_branch, class_branch_features])
+    combined = Dense(32, kernel_regularizer=l2(0.002))(combined)
+    combined = BatchNormalization()(combined)
+    combined = LeakyReLU(0.2)(combined)
+    combined = Dropout(0.3)(combined)
+    validity = Dense(1, activation='sigmoid', name="validity")(combined)
 
     return Model(data_input, [validity, label_output], name="Discriminator")
 
