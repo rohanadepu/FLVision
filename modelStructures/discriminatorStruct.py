@@ -175,19 +175,19 @@ def build_AC_discriminator(input_dim, num_classes):
     shared = BatchNormalization()(shared)
     shared = LeakyReLU(0.2)(shared)
 
-    # Create a dedicated validity branch (instead of just a single layer)
+    # -- validity branch (instead of just a single layer from ver 2)
     validity_branch = Dense(64, kernel_regularizer=l2(0.002))(shared)
     validity_branch = BatchNormalization()(validity_branch)
     validity_branch = LeakyReLU(0.2)(validity_branch)
     validity_branch = Dropout(0.4)(validity_branch)
 
-    # Add a residual connection to validity branch
+    # residual connection to validity branch
     validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
     validity_branch1 = BatchNormalization()(validity_branch1)
     validity_branch1 = LeakyReLU(0.2)(validity_branch1)
     validity_branch = Add()([validity_branch, validity_branch1])
 
-    # Add more layers to validity branch
+    # layers to validity branch
     validity_branch = Dense(32, kernel_regularizer=l2(0.002))(validity_branch)
     validity_branch = BatchNormalization()(validity_branch)
     validity_branch = LeakyReLU(0.2)(validity_branch)
@@ -195,11 +195,12 @@ def build_AC_discriminator(input_dim, num_classes):
     # Final sigmoid activation for validity
     validity = Dense(1, activation='sigmoid', name="validity")(validity_branch)
 
-    # Class branch remains mostly the same
+    # -- Class branch (remains mostly the same based on ver 2)
     class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)
     class_branch = BatchNormalization()(class_branch)
     class_branch = LeakyReLU(0.2)(class_branch)
 
+    # residual connection to validity branch
     class_branch1 = Dense(64, kernel_regularizer=l2(0.001))(shared)
     class_branch1 = BatchNormalization()(class_branch1)
     class_branch1 = LeakyReLU(0.2)(class_branch1)
@@ -226,7 +227,7 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
 
     data_input = Input(shape=(input_dim,))
 
-    # Increase regularization and dropout in initial layers
+    # Increase regularization and dropout in initial layers based on ver 2
     x = Dense(512, kernel_regularizer=l2(0.002))(data_input)
     x = BatchNormalization(momentum=0.8)(x)
     x = LeakyReLU(0.2)(x)
@@ -241,13 +242,13 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
     shared = BatchNormalization()(shared)
     shared = LeakyReLU(0.2)(shared)
 
-    # Create validity branch
+    # -- validity branch
     validity_branch = Dense(64, kernel_regularizer=l2(0.002))(shared)
     validity_branch = BatchNormalization()(validity_branch)
     validity_branch = LeakyReLU(0.2)(validity_branch)
     validity_branch = Dropout(0.4)(validity_branch)
 
-    # Add residual connection to validity branch
+    # residual connection to validity branch
     validity_branch1 = Dense(64, kernel_regularizer=l2(0.002))(shared)
     validity_branch1 = BatchNormalization()(validity_branch1)
     validity_branch1 = LeakyReLU(0.2)(validity_branch1)
@@ -257,11 +258,12 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
     validity_branch = BatchNormalization()(validity_branch)
     validity_branch = LeakyReLU(0.2)(validity_branch)
 
-    # Class branch
+    # -- Class branch
     class_branch = Dense(64, kernel_regularizer=l2(0.001))(shared)
     class_branch = BatchNormalization()(class_branch)
     class_branch = LeakyReLU(0.2)(class_branch)
 
+    # residual connection to class branch
     class_branch1 = Dense(64, kernel_regularizer=l2(0.001))(shared)
     class_branch1 = BatchNormalization()(class_branch1)
     class_branch1 = LeakyReLU(0.2)(class_branch1)
@@ -279,7 +281,7 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
     # Regular class output
     label_output = Dense(num_classes, activation='softmax', name="class")(class_branch_features)
 
-    # Option: Consider combining validity and class information for final validity output
+    # Optional layer (3b): Consider combining validity and class information for final validity output
     # Combine validity and class information for final validity output
     combined = Concatenate()([validity_branch, class_branch_features])
     combined = Dense(32, kernel_regularizer=l2(0.002))(combined)
