@@ -223,7 +223,7 @@ def main():
         client.evaluate()
 
     # --- 8 Locally Save Model After Training ---#
-        client.save()
+        client.save(save_name)
 
 
 if __name__ == "__main__":
