@@ -401,7 +401,7 @@ def preprocess_AC_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data
     print(test_data.shape)
 
     # initiate scaler and colums to scale
-    scaler = MinMaxScaler(feature_range=(-1, 1))
+    scaler = MinMaxScaler(feature_range=(0, 1))
 
     # make variable for releavant col for ciciot
     relevant_num_cols = train_data.columns.difference([label_column])
