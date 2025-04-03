@@ -292,6 +292,7 @@ def build_AC_discriminator_ver_3b(input_dim, num_classes):
 
     return Model(data_input, [validity, label_output], name="Discriminator")
 
+
 def build_AC_discriminator(input_dim, num_classes):
     """
     AC-GAN version 4 discriminator with better validity detection capabilities.
@@ -376,7 +377,6 @@ def build_AC_discriminator(input_dim, num_classes):
 
 
 # WGAN
-
 def create_W_discriminator_binary_optimized(input_dim):
     """
     Optimized Discriminator Model for WGAN-GP
