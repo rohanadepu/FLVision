@@ -86,10 +86,10 @@ class CentralACGan:
         #-- Optimizers
         # LR decay
         lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0001, decay_steps=15000, decay_rate=0.95, staircase=True)
+            initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
 
         lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0001, decay_steps=15000, decay_rate=0.95, staircase=True)
+            initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
 
         # Compile optimizer
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
