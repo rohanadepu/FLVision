@@ -62,7 +62,6 @@ def modelCreateLoad(modelType, train_type, pretrainedNids, pretrainedGan, pretra
 
                 nids = create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha)
 
-
     elif modelType == 'NIDS-IOT-Binary':
         if pretrainedNids:
             print(f"Loading pretrained NIDS from {pretrainedNids}")
