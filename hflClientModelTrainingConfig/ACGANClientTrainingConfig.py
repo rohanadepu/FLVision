@@ -210,7 +210,7 @@ class ACGanClient(fl.client.NumPyClient):
                 'class': ['accuracy', 'categorical_accuracy']
             }
         )
-
+        #!kevin we may need to lose the AC GAN recompile but not the disc recompile
         # Freeze Discriminator only for AC-GAN training
         self.discriminator.trainable = False
 
