@@ -259,9 +259,21 @@ class CentralACGan:
         # Log model settings at the start
         self.log_model_settings()
 
-        valid = tf.ones((self.batch_size, 1))
-        fake = tf.zeros((self.batch_size, 1))
+        # -- Apply label smoothing -- #
+        smoothing_factor = 0.1
+        # Create smoothed labels for discriminator training
+        # Real samples target: 0.9 instead of 1.0
+        valid_smooth = tf.ones((self.batch_size, 1)) * (1 - smoothing_factor)
+        # Fake samples target: 0.1 instead of 0.0
+        fake_smooth = tf.zeros((self.batch_size, 1)) + smoothing_factor
 
+        # For generator training, we use a slightly different smoothing
+        # to keep the generator from becoming too confident
+        valid_smooth_gen = tf.ones((self.batch_size, 1)) * 0.9  # Slightly less than 1.0
+
+        self.logger.info(f"Using label smoothing with factor: {smoothing_factor}")
+
+        # -- Training Loop -- #
         for epoch in range(self.epochs):
             print("Discriminator Metrics:",self.discriminator.metrics_names)
             print("ACGAN Metrics:", self.ACGAN.metrics_names)
@@ -294,8 +306,8 @@ class CentralACGan:
             generated_data = self.generator.predict([noise, fake_labels])
 
             # -- Train discriminator on real and fake data -- #
-            d_loss_real = self.discriminator.train_on_batch(real_data, [valid, real_labels_onehot])
-            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake, fake_labels_onehot])
+            d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
+            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
             d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
             # Collect discriminator metrics
@@ -327,7 +339,7 @@ class CentralACGan:
             sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
 
             # -- Train ACGAN with sampled noise data -- #
-            g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid, sampled_labels_onehot])
+            g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
 
             # Collect generator metrics
             g_metrics = {
@@ -366,7 +378,7 @@ class CentralACGan:
                 self.logger.info(f"Predicted Class Distribution: {fusion_metrics['class_distribution']}")
 
                 # Analyze Fusion Results
-                self.analyze_fusion_results(fusion_results)
+                # self.analyze_fusion_results(fusion_results)
 
                 # -- NIDS Validation -- #
                 nids_val_metrics = None
