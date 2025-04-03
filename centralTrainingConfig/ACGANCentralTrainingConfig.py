@@ -264,7 +264,7 @@ class CentralACGan:
 
         for epoch in range(self.epochs):
             print("Discriminator Metrics:",self.discriminator.metrics_names)
-            print("ACGAN Metrics:",self.ACGAN.metrics_names)
+            print("ACGAN Metrics:", self.ACGAN.metrics_names)
 
             print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
@@ -365,6 +365,9 @@ class CentralACGan:
                 # Log distribution of classifications
                 self.logger.info(f"Predicted Class Distribution: {fusion_metrics['class_distribution']}")
 
+                # Analyze Fusion Results
+                self.analyze_fusion_results(fusion_results)
+
                 # -- NIDS Validation -- #
                 nids_val_metrics = None
                 if self.nids is not None:
@@ -416,7 +419,7 @@ class CentralACGan:
             p_valid = validity_scores[i][0]  # Probability of being valid/real
             p_invalid = 1 - p_valid  # Probability of being invalid/fake
 
-            # Class probabilities: assuming 2 classes (benign=0, attack=1)
+            # Class probabilities: 2 classes (benign=0, attack=1)
             p_benign = class_predictions[i][0]  # Probability of being benign
             p_attack = class_predictions[i][1]  # Probability of being attack
 
