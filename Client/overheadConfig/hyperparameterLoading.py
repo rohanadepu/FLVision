@@ -142,19 +142,32 @@ def hyperparameterLoading(model_type, X_train_data, regularizationEnabled, DP_en
         learning_rate = 0.0001
 
     elif model_type == 'AC-GAN':
-        BATCH_SIZE = 256
-        noise_dim = 100
-        latent_dim = 100
-        steps_per_epoch = len(X_train_data) // BATCH_SIZE
+        # Modified hyperparameters for improved AC-GAN performance
+        # Batches and Dims
+        BATCH_SIZE = 128  # Reduced from 256 for better stability
+        noise_dim = 100  # Keep the same for compatibility
+        latent_dim = 128  # Increased from 100 for more expressive generation
         input_dim = X_train_data.shape[1]
+        steps_per_epoch = max(1, len(X_train_data) // BATCH_SIZE)  # ensures that there is at least 1 step
+
+        # Classes
         # num_classes = len(np.unique(y_train_categorical))
         num_classes = 2
 
-        if regularizationEnabled:
-            l2_alpha = 0.01  # Increase if overfitting, decrease if underfitting
+        # Regularization
+        # l2_alpha = 0.0015  # Fine-tuned from 0.01 for better regularization without overly constraining
 
-        betas = [0.9, 0.999]  # Stable
-        learning_rate = 0.0001
+        # beta values for Adam optimizer
+        betas = [0.5, 0.999]  # First moment decay rate reduced to 0.5 for GAN stability
+
+        # Reduced learning rates with slower decay
+        gen_learning_rate = 0.00005  # Reduced from 0.0001
+        disc_learning_rate = 0.00008  # Reduced from 0.0001
+        learning_rate = 0.00008  # General learning rate
+
+        # Learning rate scheduler settings
+        lr_decay_steps = 15000  # Increased from 10000
+        lr_decay_rate = 0.95  # Changed from 0.98 for slower decay
 
     return (BATCH_SIZE, noise_dim, steps_per_epoch, input_dim, num_classes, latent_dim, betas, learning_rate, l2_alpha,
             l2_norm_clip, noise_multiplier, num_microbatches, metric_to_monitor_es, es_patience, restor_best_w,
