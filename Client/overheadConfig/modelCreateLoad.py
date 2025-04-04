@@ -45,6 +45,11 @@ def modelCreateLoad(modelType, train_type, pretrainedNids, pretrainedGan, pretra
     generator = None
     GAN = None
 
+    if pretrainedNids:
+        print(f"Loading pretrained NIDS from {pretrainedNids}")
+        with tf.keras.utils.custom_object_scope({'LogCosh': LogCosh}):
+            nids = tf.keras.models.load_model(pretrainedNids)
+
     if modelType == 'NIDS':
         # Optionally load the pretrained nids model
         if pretrainedNids:
