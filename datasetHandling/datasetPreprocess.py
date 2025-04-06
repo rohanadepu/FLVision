@@ -579,6 +579,8 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
 
     # DEBUG DISPLAY After
     print("\nTest Data After Normalization:")
+    # Convert back to DataFrame with original column names
+    test_data = pd.DataFrame(normalized_data, columns=test_data.columns)
     print(test_data.head())
     print(test_data.shape)
 
