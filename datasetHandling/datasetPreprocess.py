@@ -575,7 +575,9 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
     scaler.fit(test_data)
 
     # Normalize data
-    test_data = scaler.transform(test_data)
+    # Transform data and preserve DataFrame structure
+    # Get the normalized data as a numpy array
+    normalized_data = scaler.transform(test_data)
 
     # DEBUG DISPLAY After
     print("\nTest Data After Normalization:")
