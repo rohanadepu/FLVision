@@ -187,6 +187,10 @@ def preprocess_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=No
     print("\n=== Data Assigned ===\n")
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
 
+#
+# Categorical
+#
+
 
 def preprocess_dataset_label_encoder(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
                        all_attacks_test=None, irrelevant_features_ciciot=None, relevant_features_iotbotnet=None):
@@ -314,6 +318,10 @@ def preprocess_dataset_label_encoder(dataset_used, ciciot_train_data=None, cicio
 
     print("\n=== Data Assigned ===\n")
     return X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data
+
+#
+# AC GAN
+#
 
 
 def preprocess_AC_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data=None, all_attacks_train=None,
@@ -474,6 +482,10 @@ def preprocess_AC_dataset(dataset_used, ciciot_train_data=None, ciciot_test_data
     print("\n=== Data Assigned ===\n")
     return X_train_data, X_val_data, y_train_categorical, y_val_categorical, X_test_data, y_test_categorical
 
+#
+# Time Series
+#
+
 
 # Time-series transformation using sliding window
 def create_sliding_window(X, y, time_steps):
@@ -530,3 +542,60 @@ def preprocess_timeseries_dataset(X, y, time_steps=10, test_size=0.2, val_size=0
     )
 
     return X_train, X_val, X_test, y_train, y_val, y_test
+
+#
+# Live Data
+#
+
+
+def preprocess_live_dataset(live_data=None, irrelevant_features=None):
+
+    # --- 1 Feature Selection ---#
+    print(f"\n=== Selecting Features for Live Data ===\n")
+
+    # Drop the irrelevant features (Feature selection)
+    print(irrelevant_features)
+    live_data = live_data.drop(columns=irrelevant_features)
+
+    test_data = live_data
+
+    print("=== Features Selected ===")
+
+    # --- 2 Normalizing (Skip encoding because data there are no labels) ---#
+    print("\n=== Normalizing ===\n")
+
+    # DEBUG DISPLAY Before
+    print("\nTest Data Before Normalization:")
+    print(test_data.head())
+    print(test_data.shape)
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+
+    # fit scaler
+    scaler.fit(test_data)
+
+    # Normalize data
+    test_data = scaler.transform(test_data)
+
+    # DEBUG DISPLAY After
+    print("\nTest Data After Normalization:")
+    print(test_data.head())
+    print(test_data.shape)
+
+    print("\n=== Data Normalized ===\n")
+
+    # --- 4 Assigning and Splitting ---#
+    print("\n=== Assigning Data to Models ===\n")
+
+    # Split into Train & Validation data
+    X_test_data, X_val_data = train_test_split(test_data, test_size=0.2, random_state=47)
+
+    # Print dataset distributions
+    print(f"\nValidation label distribution:")
+    print(pd.Series(X_val_data).value_counts())
+    print(f"\nTest label distribution:")
+    print(pd.Series(X_test_data).value_counts())
+
+    print("\n=== Data Assigned ===\n")
+    return X_val_data, X_test_data
+
