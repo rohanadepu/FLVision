@@ -595,10 +595,13 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
     X_test_data, X_val_data = train_test_split(test_data, test_size=0.2, random_state=47)
 
     # Print dataset distributions
-    print(f"\nValidation label distribution:")
-    print(pd.Series(X_val_data).value_counts())
-    print(f"\nTest label distribution:")
-    print(pd.Series(X_test_data).value_counts())
+    print(f"\nValidation data information:")
+    print(f"Shape: {X_val_data.shape}")
+    print(f"Column types: {X_val_data.dtypes}")
+
+    print(f"\nTest data information:")
+    print(f"Shape: {X_test_data.shape}")
+    print(f"Column types: {X_test_data.dtypes}")
 
     print("\n=== Data Assigned ===\n")
     return X_val_data, X_test_data
