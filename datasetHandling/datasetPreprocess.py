@@ -556,8 +556,7 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
     # Drop the irrelevant features (Feature selection)
     print(irrelevant_features)
     live_data = live_data.drop(columns=irrelevant_features)
-
-    test_data = live_data
+    X_live_data = live_data
 
     print("=== Features Selected ===")
 
@@ -566,43 +565,35 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
 
     # DEBUG DISPLAY Before
     print("\nTest Data Before Normalization:")
-    print(test_data.head())
-    print(test_data.shape)
+    print(X_live_data.head())
+    print(X_live_data.shape)
 
     scaler = MinMaxScaler(feature_range=(0, 1))
 
     # fit scaler
-    scaler.fit(test_data)
+    scaler.fit(X_live_data)
 
     # Normalize data
     # Transform data and preserve DataFrame structure
     # Get the normalized data as a numpy array
-    normalized_data = scaler.transform(test_data)
+    normalized_data = scaler.transform(X_live_data)
 
     # DEBUG DISPLAY After
     print("\nTest Data After Normalization:")
     # Convert back to DataFrame with original column names
-    test_data = pd.DataFrame(normalized_data, columns=test_data.columns)
+    test_data = pd.DataFrame(normalized_data, columns=X_live_data.columns)
     print(test_data.head())
     print(test_data.shape)
 
     print("\n=== Data Normalized ===\n")
 
-    # --- 4 Assigning and Splitting ---#
-    print("\n=== Assigning Data to Models ===\n")
-
-    # Split into Train & Validation data
-    X_test_data, X_val_data = train_test_split(test_data, test_size=0.2, random_state=47)
-
+    # --- 4 Assigning ---#
+    print("\n=== Assigning Data to Model ===\n")
     # Print dataset distributions
-    print(f"\nValidation data information:")
-    print(f"Shape: {X_val_data.shape}")
-    print(f"Column types: {X_val_data.dtypes}")
-
-    print(f"\nTest data information:")
-    print(f"Shape: {X_test_data.shape}")
-    print(f"Column types: {X_test_data.dtypes}")
+    print(f"\n Live Validation / Test Data Information:")
+    print(f"Shape: {X_live_data.shape}")
+    print(f"Column types: {X_live_data.dtypes}")
 
     print("\n=== Data Assigned ===\n")
-    return X_val_data, X_test_data
+    return X_live_data
 

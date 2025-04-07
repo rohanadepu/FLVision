@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten, LeakyReLU, Input, Add, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU
+from tensorflow.keras.layers import Dense, Dropout, Flatten, LeakyReLU, Input, Add, BatchNormalization, LSTM, Conv1D, MaxPooling1D, GRU, Reshape, SeparableConv1D, ReLU
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 
@@ -120,52 +120,6 @@ def create_realtime_GRU_CICIOT_Model(input_dim, regularizationEnabled, DP_enable
 
     return model
 
-
-# ---                   CICIOT Models                   --- #
-
-def create_optimized_model(input_dim, l2_alpha=0.0001, dropout_rate=0.2):
-    """
-    Optimized deep learning model:
-    - Uses LeakyReLU instead of ReLU.
-    - Reduces dropout rate for better feature retention.
-    - Adds residual (skip) connections for stability.
-    - Keeps L2 regularization for weight decay.
-    """
-
-    inputs = Input(shape=(input_dim,))
-
-    x = Dense(128, kernel_regularizer=l2(l2_alpha))(inputs)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(dropout_rate)(x)
-
-    residual = Dense(64, kernel_regularizer=l2(l2_alpha))(x)  # Residual path
-    residual = BatchNormalization()(residual)
-    residual = LeakyReLU(alpha=0.1)(residual)
-
-    x = Dense(64, kernel_regularizer=l2(l2_alpha))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(dropout_rate)(x)
-
-    x = Add()([x, residual])  # Adding residual connection
-
-    x = Dense(32, kernel_regularizer=l2(l2_alpha))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(dropout_rate)(x)
-
-    x = Dense(16, kernel_regularizer=l2(l2_alpha))(x)
-    x = BatchNormalization()(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dropout(dropout_rate)(x)
-
-    outputs = Dense(1, activation='sigmoid')(x)
-
-    model = Model(inputs, outputs)
-
-    return model
-
 # -- Bishwas's Advanced NIDS Models
 
 def cnn_lstm_gru_model_binary(input_shape):
@@ -232,6 +186,179 @@ def cnn_lstm_gru_model_multiclass_dynamic(input_shape, num_classes):
     ])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
+
+
+# ---                   CICIOT Models                   --- #
+
+def create_high_performance_nids(input_dim=21):
+    """
+    High-performance CNN-RNN hybrid for optimal detection accuracy.
+    Uses CNN feature extraction followed by GRU→LSTM for temporal analysis.
+
+    Estimated size: ~200-250K parameters
+    """
+    # Input layer for tabular data
+    inputs = Input(shape=(input_dim,))
+
+    # Reshape for CNN processing
+    x = Reshape((input_dim, 1))(inputs)
+
+    # CNN feature extraction
+    x = Conv1D(64, kernel_size=3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Conv1D(128, kernel_size=3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+
+    # GRU → LSTM sequence (as recommended)
+    x = GRU(64, return_sequences=True)(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.3)(x)
+
+    x = LSTM(48, return_sequences=False)(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.3)(x)
+
+    # Classification head
+    x = Dense(32, kernel_initializer='he_normal')(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(0.3)(x)
+
+    outputs = Dense(1, activation='sigmoid')(x)
+
+    model = Model(inputs, outputs)
+
+    # model.compile(
+    #     optimizer='adam',
+    #     loss='binary_crossentropy',
+    #     metrics=['accuracy', 'AUC', 'Precision', 'Recall']
+    # )
+
+    return model
+
+
+def create_balanced_nids(input_dim=21):
+    """
+    Balanced model with efficient CNN feature extraction and GRU for temporal analysis.
+    Good trade-off between detection capability and resource usage.
+
+    Estimated size: ~50-80K parameters
+    """
+
+    # Input and reshape
+    inputs = Input(shape=(input_dim,))
+    x = Reshape((input_dim, 1))(inputs)
+
+    # Efficient CNN with separable convolution
+    x = SeparableConv1D(32, kernel_size=3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    # Single efficient GRU layer
+    x = GRU(40, activation='tanh', recurrent_activation='sigmoid')(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.3)(x)
+
+    # Simple classification head
+    x = Dense(24)(x)
+    x = BatchNormalization()(x)
+    x = ReLU()(x)
+    x = Dropout(0.2)(x)
+
+    outputs = Dense(1, activation='sigmoid')(x)
+
+    model = Model(inputs, outputs)
+    # model.compile(
+    #     optimizer='adam',
+    #     loss='binary_crossentropy',
+    #     metrics=['accuracy', 'AUC']
+    # )
+
+    return model
+
+
+def create_lightweight_nids(input_dim=21):
+    """
+    Extremely lightweight model for resource-constrained devices.
+    Uses a single GRU layer with minimal dense processing.
+
+    Estimated size: ~8-12K parameters
+    """
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense, Dropout, GRU, BatchNormalization
+
+    model = Sequential([
+        # Direct GRU processing of tabular data
+        GRU(24, input_shape=(input_dim, 1), activation='tanh',
+            recurrent_activation='sigmoid', return_sequences=False),
+        BatchNormalization(),
+
+        # Minimal classification layer
+        Dense(16, activation='relu'),
+        Dropout(0.2),
+        Dense(1, activation='sigmoid')
+    ])
+
+    # Use a more efficient optimizer
+    optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+    model.compile(
+        optimizer=optimizer,
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+
+    return model
+
+
+def create_optimized_model(input_dim, l2_alpha=0.0001, dropout_rate=0.2):
+    """
+    Optimized deep learning model:
+    - Uses LeakyReLU instead of ReLU.
+    - Reduces dropout rate for better feature retention.
+    - Adds residual (skip) connections for stability.
+    - Keeps L2 regularization for weight decay.
+    """
+
+    inputs = Input(shape=(input_dim,))
+
+    x = Dense(128, kernel_regularizer=l2(l2_alpha))(inputs)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    residual = Dense(64, kernel_regularizer=l2(l2_alpha))(x)  # Residual path
+    residual = BatchNormalization()(residual)
+    residual = LeakyReLU(alpha=0.1)(residual)
+
+    x = Dense(64, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Add()([x, residual])  # Adding residual connection
+
+    x = Dense(32, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Dense(16, kernel_regularizer=l2(l2_alpha))(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = Dropout(dropout_rate)(x)
+
+    outputs = Dense(1, activation='sigmoid')(x)
+
+    model = Model(inputs, outputs)
+
+    return model
+
 
 def create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
 

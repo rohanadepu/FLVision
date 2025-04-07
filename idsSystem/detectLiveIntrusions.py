@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
         # This would need to be modified based on how you actually get live data
         # For now, we're assuming the datasetLoadProcess function can handle live data
-        X_val_data, X_test_data = datasetLoadProcess(dataset_used, dataset_processing)
+        X_test_data = datasetLoadProcess(dataset_used, dataset_processing)
 
         # Predict and Take Action without ground truth
         predict_and_act(model, X_test_data, y_data=None, threshold=args.threshold)

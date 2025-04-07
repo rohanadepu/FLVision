@@ -60,8 +60,8 @@ def datasetLoadProcess(dataset_used, dataset_preprocessing):
     elif dataset_preprocessing == "LIVEDATA":
         # Handle data passing through Initializing empty values
         print("Warning: ONLY X_VALIDATION AND X_TEST AVAILABLE FOR LIVEDATA DATASET")
-        X_val_data, X_test_data = preprocess_live_dataset(live_data, irrelevant_features_live)
-        return X_val_data, X_test_data
+        X_test_data = preprocess_live_dataset(live_data, irrelevant_features_live)
+        return X_test_data
 
     elif dataset_preprocessing == "MM[-1,1]":
         X_train_data, X_val_data, y_train_data, y_val_data, X_test_data, y_test_data = preprocess_dataset(
