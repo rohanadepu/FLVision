@@ -205,7 +205,7 @@ class CentralNidsClient:
         f1 = f1_score(self.y_test_data, y_pred)
 
         # Compute class-wise precision & recall
-        class_report = classification_report(self.y_test_data, y_pred, target_names=["Attack", "Benign"])
+        class_report = classification_report(self.y_test_data, y_pred, target_names=["Benign", "Attack"])
 
         # Save metrics to file
         logName1 = self.evaluationLog
