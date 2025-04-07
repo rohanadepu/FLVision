@@ -581,9 +581,9 @@ def preprocess_live_dataset(live_data=None, irrelevant_features=None):
     # DEBUG DISPLAY After
     print("\nTest Data After Normalization:")
     # Convert back to DataFrame with original column names
-    test_data = pd.DataFrame(normalized_data, columns=X_live_data.columns)
-    print(test_data.head())
-    print(test_data.shape)
+    X_live_data = pd.DataFrame(normalized_data, columns=X_live_data.columns)
+    print(X_live_data.head())
+    print(X_live_data.shape)
 
     print("\n=== Data Normalized ===\n")
 
