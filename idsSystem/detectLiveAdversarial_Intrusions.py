@@ -233,6 +233,7 @@ def predict_and_act(models, X_data, y_data=None, threshold=0.5, ensemble_method=
     # Get indices of detected intrusions
     intrusion_indices = np.where(ensemble_pred == 0)[0]  # 0 = Attack
 
+    # === Model Evaluations ===
     # For test mode with ground truth labels
     if y_data is not None:
         # Basic evaluation for each model
@@ -261,6 +262,7 @@ def predict_and_act(models, X_data, y_data=None, threshold=0.5, ensemble_method=
         logging.info(
             f"ENSEMBLE Metrics - Accuracy: {ens_acc:.4f}, Precision: {ens_precision:.4f}, Recall: {ens_recall:.4f}, F1: {ens_f1:.4f}")
 
+    # === Take Action ===
         # Take action with ground truth for validation
         take_action_with_validation(intrusion_indices, y_data)
     else:
