@@ -278,7 +278,7 @@ class CentralACGan:
             print("Discriminator Metrics:",self.discriminator.metrics_names)
             print("ACGAN Metrics:", self.ACGAN.metrics_names)
 
-            print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
+            print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
 
             # --------------------------
