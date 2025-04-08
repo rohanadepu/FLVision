@@ -424,7 +424,7 @@ if __name__ == "__main__":
         print(f"📡 Loading Live Data Stream...")
 
         # This would need to be modified based on how you actually get live data
-        X_val_data, X_test_data = datasetLoadProcess(dataset_used, dataset_processing)
+        X_test_data = datasetLoadProcess(dataset_used, dataset_processing)
 
         # Predict and Take Action without ground truth
         predict_and_act(models, X_test_data, y_data=None, threshold=args.threshold, ensemble_method=args.ensemble)
