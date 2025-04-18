@@ -240,13 +240,13 @@ class CentralACGan:
             X_train = self.x_train
             y_train = self.y_train
 
-        # 1. First, make sure discriminator is trainable for individual training
+        # -- make sure discriminator is trainable for individual training -- #
         self.discriminator.trainable = True
         # Ensure all layers within discriminator are trainable
         for layer in self.discriminator.layers:
             layer.trainable = True
 
-        # 2. Re-compile discriminator with trainable weights
+        # -- Re-compile discriminator with trainable weights -- #
         self.discriminator.compile(
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
             optimizer=self.disc_optimizer,
@@ -269,7 +269,8 @@ class CentralACGan:
 
         # For generator training, we use a slightly different smoothing
         # to keep the generator from becoming too confident
-        valid_smooth_gen = tf.ones((self.batch_size, 1)) * 0.9  # Slightly less than 1.0
+        gen_smoothing_factor = 0.15
+        valid_smooth_gen = tf.ones((self.batch_size, 1)) * (1 - gen_smoothing_factor)  # Slightly less than 1.0
 
         self.logger.info(f"Using label smoothing with factor: {smoothing_factor}")
 
