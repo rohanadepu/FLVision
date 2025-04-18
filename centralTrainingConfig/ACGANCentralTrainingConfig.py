@@ -260,19 +260,22 @@ class CentralACGan:
         self.log_model_settings()
 
         # -- Apply label smoothing -- #
-        smoothing_factor = 0.15
+
         # Create smoothed labels for discriminator training
-        # Real samples target: 0.9 instead of 1.0
-        valid_smooth = tf.ones((self.batch_size, 1)) * (1 - smoothing_factor)
-        # Fake samples target: 0.1 instead of 0.0
-        fake_smooth = tf.zeros((self.batch_size, 1)) + smoothing_factor
+        valid_smoothing_factor = 0.15
+        valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
+
+        fake_smoothing_factor = 0.1
+        fake_smooth = tf.zeros((self.batch_size, 1)) + fake_smoothing_factor
 
         # For generator training, we use a slightly different smoothing
         # to keep the generator from becoming too confident
-        gen_smoothing_factor = 0.15
+        gen_smoothing_factor = 0.1
         valid_smooth_gen = tf.ones((self.batch_size, 1)) * (1 - gen_smoothing_factor)  # Slightly less than 1.0
 
-        self.logger.info(f"Using label smoothing with factor: {smoothing_factor}")
+        self.logger.info(f"Using valid label smoothing with factor: {valid_smoothing_factor}")
+        self.logger.info(f"Using fake label smoothing with factor: {fake_smoothing_factor}")
+        self.logger.info(f"Using gen label smoothing with factor: {gen_smoothing_factor}")
 
         # -- Training Loop -- #
         for epoch in range(self.epochs):
