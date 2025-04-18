@@ -484,6 +484,7 @@ class CentralACGan:
         if validation_labels is not None:
             correct_predictions = 0
             correct_classifications = []
+            true_classifications = []
 
             for i, result in enumerate(fusion_results):
                 # Get the true label (assuming 0=benign, 1=attack)
@@ -500,6 +501,9 @@ class CentralACGan:
                 # Construct the true combined label
                 true_combined = f"{true_validity}_{true_class}"
 
+                # Add to true classifications list
+                true_classifications.append(true_combined)
+
                 # Check if prediction matches
                 if result["classification"] == true_combined:
                     correct_predictions += 1
@@ -507,6 +511,10 @@ class CentralACGan:
 
             # Count distribution of correctly classified samples
             correct_class_distribution = Counter(correct_classifications)
+
+            # Count distribution of true classes
+            true_class_distribution = Counter(true_classifications)
+            self.logger.info(f"True Class Distribution: {dict(true_class_distribution)}")
 
             accuracy = correct_predictions / len(validation_data)
             self.logger.info(f"Accuracy: {accuracy:.4f}")
@@ -516,7 +524,8 @@ class CentralACGan:
                 "total_samples": len(validation_data),
                 "correct_predictions": correct_predictions,
                 "predicted_class_distribution": dict(predicted_class_distribution),
-                "correct_class_distribution": dict(correct_class_distribution)
+                "correct_class_distribution": dict(correct_class_distribution),
+                "true_class_distribution": dict(true_class_distribution)
             }
 
             return classifications, metrics
