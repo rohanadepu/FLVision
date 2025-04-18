@@ -476,12 +476,14 @@ class CentralACGan:
         classifications = [result["classification"] for result in fusion_results]
 
         # Count occurrences of each class
-        class_distribution = Counter(classifications)
-        self.logger.info(f"Predicted Class Distribution: {dict(class_distribution)}")
+        predicted_class_distribution = Counter(classifications)
+        self.logger.info(f"Predicted Class Distribution: {dict(predicted_class_distribution)}")
 
         # If we have ground truth labels, calculate accuracy
         if validation_labels is not None:
             correct_predictions = 0
+            correct_classifications = []
+
             for i, result in enumerate(fusion_results):
                 # Get the true label (assuming 0=benign, 1=attack)
                 if isinstance(validation_labels, np.ndarray) and validation_labels.ndim > 1:
@@ -500,6 +502,10 @@ class CentralACGan:
                 # Check if prediction matches
                 if result["classification"] == true_combined:
                     correct_predictions += 1
+                    correct_classifications.append(result["classification"])
+
+            # Count distribution of correctly classified samples
+            correct_class_distribution = Counter(correct_classifications)
 
             accuracy = correct_predictions / len(validation_data)
             self.logger.info(f"Accuracy: {accuracy:.4f}")
@@ -508,12 +514,13 @@ class CentralACGan:
                 "accuracy": accuracy,
                 "total_samples": len(validation_data),
                 "correct_predictions": correct_predictions,
-                "class_distribution": dict(class_distribution)
+                "predicted_class_distribution": dict(predicted_class_distribution),
+                "correct_class_distribution": dict(correct_class_distribution)
             }
 
             return classifications, metrics
 
-        return classifications, {"class_distribution": dict(class_distribution)}
+        return classifications, {"predicted_class_distribution": dict(predicted_class_distribution)}
 
     def analyze_fusion_results(self, fusion_results):
         """Analyze the distribution of probabilities from fusion results"""
