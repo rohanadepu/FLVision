@@ -379,7 +379,8 @@ class CentralACGan:
                 self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 
                 # Log distribution of classifications
-                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['class_distribution']}")
+                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
+                self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
 
                 # Analyze Fusion Results
                 # self.analyze_fusion_results(fusion_results)
