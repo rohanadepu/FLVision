@@ -598,6 +598,7 @@ class CentralACGan:
             f"Class Accuracy: {d_loss_real[6] * 100:.2f}%, "
             f"Class Categorical Accuracy: {d_loss_real[7] * 100:.2f}%"
         )
+        print("-----------")
         self.logger.info(
             f"Fake Data -> Total Loss: {d_loss_fake[0]:.4f}, "
             f"Validity Loss: {d_loss_fake[1]:.4f}, "
