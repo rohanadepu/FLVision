@@ -260,7 +260,7 @@ class CentralACGan:
         self.log_model_settings()
 
         # -- Apply label smoothing -- #
-        smoothing_factor = 0.1
+        smoothing_factor = 0.15
         # Create smoothed labels for discriminator training
         # Real samples target: 0.9 instead of 1.0
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - smoothing_factor)
