@@ -381,6 +381,7 @@ class CentralACGan:
                 # Log distribution of classifications
                 self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
                 self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
+                self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
 
                 # Analyze Fusion Results
                 # self.analyze_fusion_results(fusion_results)
