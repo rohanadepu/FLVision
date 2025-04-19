@@ -158,7 +158,7 @@ class CentralNidsClient:
         # Record start time
         start_time = time.time()
 
-        # Train Model
+        # Train Model (TRAINING LOOP HERE)
         history = self.model.fit(self.X_train_data, self.y_train_data,
                                  validation_data=(self.X_val_data, self.y_val_data),
                                  epochs=self.epochs, batch_size=self.batch_size,

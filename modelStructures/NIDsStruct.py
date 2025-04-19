@@ -11,184 +11,7 @@ time_steps = 50  # Length of time-series window
 dropout_rate = 0.4
 
 
-def create_auto_feature_extraction_realtime_LSTM_Model(input_dim, l2_alpha, dropout_rate, time_steps):
-    # Build the enhanced model
-    model = tf.keras.Sequential([
-        # Input layer for time-series data
-        tf.keras.layers.Input(shape=(time_steps, input_dim)),
-
-        # 1D Convolutional Layer for feature extraction
-        Conv1D(filters=64, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-
-        # Another Conv1D Layer
-        Conv1D(filters=128, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-
-        # Recurrent Layer (LSTM)
-        LSTM(100, return_sequences=False, activation='tanh', kernel_regularizer=l2(l2_alpha)),
-        Dropout(dropout_rate),
-
-        # Fully connected layers
-        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
-
-        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
-
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
-
-        # Output layer for binary classification
-        Dense(1, activation='sigmoid')
-    ])
-
-    return model
-
-
-def create_auto_feature_extraction_realtime_GRU_Model(input_dim, l2_alpha, dropout_rate, time_steps):
-    # Build the real-time sequential model
-    model = Sequential([
-        # Input layer for real-time time-series data
-        tf.keras.layers.Input(shape=(time_steps, input_dim)),
-
-        # 1D Convolutional Layer for feature extraction
-        Conv1D(filters=64, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-
-        # Another Conv1D Layer
-        Conv1D(filters=128, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-
-        # GRU Layer (lighter than LSTM for real-time application)
-        GRU(50, return_sequences=False, activation='tanh', kernel_regularizer=l2(l2_alpha)),
-        Dropout(dropout_rate),
-
-        # Fully connected layers for classification
-        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
-
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
-
-        # Output layer for binary classification
-        Dense(1, activation='sigmoid')
-    ])
-
-    return model
-
-def create_realtime_GRU_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
-
-    # with regularization
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input
-
-        # GRU to capture temporal dependencies
-        GRU(50, return_sequences=False, activation='tanh'),
-
-        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.4),  # Dropout layer with 50% dropout rate
-
-        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.4),
-
-        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.4),
-
-        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.4),
-
-        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
-        BatchNormalization(),
-        Dropout(0.4),
-
-        Dense(1, activation='sigmoid')
-    ])
-
-    return model
-
-# -- Bishwas's Advanced NIDS Models
-
-def cnn_lstm_gru_model_binary(input_shape):
-    """Define and compile CNN-LSTM-GRU model."""
-    model = Sequential([
-        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
-        MaxPooling1D(pool_size=2),
-
-        Conv1D(filters=64, kernel_size=3, activation='relu'),
-        MaxPooling1D(pool_size=2),
-
-        LSTM(64, return_sequences=True),
-        GRU(64, return_sequences=False),
-
-        Flatten(),
-
-        Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(1, activation='sigmoid')
-    ])
-
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
-
-def cnn_lstm_gru_model_multiclass(input_shape):
-    """Define and compile CNN-LSTM-GRU model."""
-    model = Sequential([
-        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
-        MaxPooling1D(pool_size=2),
-
-        Conv1D(filters=64, kernel_size=3, activation='relu'),
-        MaxPooling1D(pool_size=2),
-
-        LSTM(64, return_sequences=True),
-        GRU(64, return_sequences=False),
-
-        Flatten(),
-
-        Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(15, activation='softmax')
-    ])
-
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    return model
-
-
-def cnn_lstm_gru_model_multiclass_dynamic(input_shape, num_classes):
-    model = Sequential([
-        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
-        MaxPooling1D(pool_size=2),
-
-        Conv1D(filters=64, kernel_size=3, activation='relu'),
-        MaxPooling1D(pool_size=2),
-
-        LSTM(64, return_sequences=True),
-        GRU(64, return_sequences=False),
-
-        Flatten(),
-
-        Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(num_classes, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
-
-
-# ---                   CICIOT Models                   --- #
+# ---                 Default / CICIOT Models                   --- #
 
 def create_high_performance_nids(input_dim=21):
     """
@@ -313,6 +136,34 @@ def create_lightweight_nids(input_dim=21):
         metrics=['accuracy']
     )
 
+    return model
+
+
+def create_optimized_NIDS_model(input_dim, l2_alpha=0.0001):
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(input_dim,)),
+
+        # First block - wider with less regularization
+        Dense(128, activation='leaky_relu', kernel_regularizer=l2(l2_alpha * 0.5)),
+        BatchNormalization(),
+        Dropout(0.2),
+
+        # Second block
+        Dense(64, activation='leaky_relu', kernel_regularizer=l2(l2_alpha * 0.75)),
+        Dropout(0.3),
+
+        # Third block
+        Dense(32, activation='leaky_relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.3),
+
+        # Fourth block
+        Dense(16, activation='leaky_relu', kernel_regularizer=l2(l2_alpha)),
+        Dropout(0.4),
+
+        # Output
+        Dense(1, activation='sigmoid')
+    ])
     return model
 
 
@@ -497,3 +348,181 @@ def create_IOTBOTNET_Model(input_dim, regularizationEnabled, l2_alpha):
         ])
 
     return model
+
+# -- Real Time models -- #
+def create_auto_feature_extraction_realtime_LSTM_Model(input_dim, l2_alpha, dropout_rate, time_steps):
+    # Build the enhanced model
+    model = tf.keras.Sequential([
+        # Input layer for time-series data
+        tf.keras.layers.Input(shape=(time_steps, input_dim)),
+
+        # 1D Convolutional Layer for feature extraction
+        Conv1D(filters=64, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        MaxPooling1D(pool_size=2),
+
+        # Another Conv1D Layer
+        Conv1D(filters=128, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        MaxPooling1D(pool_size=2),
+
+        # Recurrent Layer (LSTM)
+        LSTM(100, return_sequences=False, activation='tanh', kernel_regularizer=l2(l2_alpha)),
+        Dropout(dropout_rate),
+
+        # Fully connected layers
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+
+        # Output layer for binary classification
+        Dense(1, activation='sigmoid')
+    ])
+
+    return model
+
+
+def create_auto_feature_extraction_realtime_GRU_Model(input_dim, l2_alpha, dropout_rate, time_steps):
+    # Build the real-time sequential model
+    model = Sequential([
+        # Input layer for real-time time-series data
+        tf.keras.layers.Input(shape=(time_steps, input_dim)),
+
+        # 1D Convolutional Layer for feature extraction
+        Conv1D(filters=64, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        MaxPooling1D(pool_size=2),
+
+        # Another Conv1D Layer
+        Conv1D(filters=128, kernel_size=3, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        MaxPooling1D(pool_size=2),
+
+        # GRU Layer (lighter than LSTM for real-time application)
+        GRU(50, return_sequences=False, activation='tanh', kernel_regularizer=l2(l2_alpha)),
+        Dropout(dropout_rate),
+
+        # Fully connected layers for classification
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+
+        # Output layer for binary classification
+        Dense(1, activation='sigmoid')
+    ])
+
+    return model
+
+def create_realtime_GRU_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha):
+
+    # with regularization
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(1, input_dim)),  # For real-time step input
+
+        # GRU to capture temporal dependencies
+        GRU(50, return_sequences=False, activation='tanh'),
+
+        Dense(64, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),  # Dropout layer with 50% dropout rate
+
+        Dense(32, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(16, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(8, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(4, activation='relu', kernel_regularizer=l2(l2_alpha)),
+        BatchNormalization(),
+        Dropout(0.4),
+
+        Dense(1, activation='sigmoid')
+    ])
+
+    return model
+
+# -- Bishwas's Advanced NIDS Models
+
+def cnn_lstm_gru_model_binary(input_shape):
+    """Define and compile CNN-LSTM-GRU model."""
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+def cnn_lstm_gru_model_multiclass(input_shape):
+    """Define and compile CNN-LSTM-GRU model."""
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(15, activation='softmax')
+    ])
+
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+
+def cnn_lstm_gru_model_multiclass_dynamic(input_shape, num_classes):
+    model = Sequential([
+        Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=64, kernel_size=3, activation='relu'),
+        MaxPooling1D(pool_size=2),
+
+        LSTM(64, return_sequences=True),
+        GRU(64, return_sequences=False),
+
+        Flatten(),
+
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(num_classes, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+

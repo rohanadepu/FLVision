@@ -31,7 +31,7 @@ from sklearn.utils import shuffle
 # import seaborn as sns
 # import pickle
 # import joblib
-from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model, cnn_lstm_gru_model_multiclass, cnn_lstm_gru_model_binary, cnn_lstm_gru_model_multiclass_dynamic
+from modelStructures.NIDsStruct import create_CICIOT_Model, create_IOTBOTNET_Model, cnn_lstm_gru_model_multiclass, cnn_lstm_gru_model_binary, cnn_lstm_gru_model_multiclass_dynamic, create_optimized_NIDS_model
 from modelStructures.discriminatorStruct import create_discriminator_binary, create_discriminator_binary_optimized, create_discriminator_binary, build_AC_discriminator, create_discriminator
 from modelStructures.generatorStruct import create_generator, create_generator_optimized, build_AC_generator
 from modelStructures.ganStruct import create_model, load_GAN_model, create_model_binary, create_model_binary_optimized, create_model_W_binary, load_and_merge_ACmodels, create_model_AC
@@ -60,8 +60,8 @@ def modelCreateLoad(modelType, train_type, pretrainedNids, pretrainedGan, pretra
             if dataset_used == "CICIOT":
                 print("No pretrained discriminator provided. Creating a new mdoel.")
 
-                nids = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
-
+                # nids = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
+                nids = create_optimized_NIDS_model(input_dim)
             elif dataset_used == "IOTBOTNET":
                 print("No pretrained discriminator provided. Creating a new model.")
 
