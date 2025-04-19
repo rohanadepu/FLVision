@@ -252,7 +252,7 @@ def reduce_attack_samples(data, attack_ratio):
 def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_sample_size=10,
                training_dataset_size=2200000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
-    # INIT Critical Variables
+    # -- INIT Critical Variables -- #
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
     training_benign_size = training_dataset_size // 2
@@ -360,5 +360,6 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
         print("Testing Data Sample:")
         print(ciciot_test_data.head())
 
+    # -- Return -- #
     # Provide irrelevant features as well for future feature extraction
     return ciciot_train_data, ciciot_test_data, IRRELEVANT_FEATURES
