@@ -252,7 +252,7 @@ def reduce_attack_samples(data, attack_ratio):
 def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_sample_size=10,
                training_dataset_size=2200000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
-    # INIT
+    # INIT Critical Variables
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
     training_benign_size = training_dataset_size // 2
@@ -281,9 +281,11 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
     if verbose:
         print("\n-- Loading Training Data --\n")
 
+    # INIT DF and counter
     ciciot_train_data = pd.DataFrame()
     train_benign_count = 0
 
+    # TRAIN LOADING LOOP
     for file in train_files:
 
         # break loop once limit is reached
@@ -293,11 +295,14 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
         if verbose:
             print(f"\nTraining dataset sample: {file}")
 
+        # load balanced data sample based on the label mapping, set limit, files, and current loaded amount in the dataset
         data, benign_count = load_and_balance_data_stratified(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    train_benign_count, benign_size_limits['train'])
 
+        # load the dataset sample to the overall dataset pool
         ciciot_train_data = pd.concat([ciciot_train_data, data])
 
+        # Update counter
         train_benign_count += benign_count
 
         if verbose:
@@ -310,22 +315,28 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
     if verbose:
         print("\n-- Loading Testing Data --\n")
 
+    # INIT DF and counter
     ciciot_test_data = pd.DataFrame()
     test_benign_count = 0
 
+    # TEST LOADING LOOP
     for file in test_files:
 
+        # break loop once limit is reached
         if test_benign_count >= benign_size_limits['test']:
             break
 
         if verbose:
             print(f"\nTesting dataset sample: {file}")
 
+        # load balanced data sample based on the label mapping, set limit, files, and current loaded amount in the dataset
         data, benign_count = load_and_balance_data_stratified(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    test_benign_count, benign_size_limits['test'])
 
+        # load the dataset sample to the overall dataset pool
         ciciot_test_data = pd.concat([ciciot_test_data, data])
 
+        # Update counter
         test_benign_count += benign_count
 
         if verbose:
@@ -337,6 +348,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
     if verbose:
         print("\nReducing Attack Samples in Testing Data to", attack_percentage, "%\n")
 
+    # Undersample attack class for test data
     ciciot_test_data = reduce_attack_samples(ciciot_test_data, attack_ratio)
 
     if verbose:
@@ -348,4 +360,5 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
         print("Testing Data Sample:")
         print(ciciot_test_data.head())
 
+    # Provide irrelevant features as well for future feature extraction
     return ciciot_train_data, ciciot_test_data, IRRELEVANT_FEATURES
