@@ -136,14 +136,16 @@ def load_and_balance_data(file_path, label_class_dict, current_benign_size, beni
     if len(benign_samples) > remaining_benign_quota:
         benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
 
+    # calculates the smallest amount to use
     min_samples = min(len(attack_samples), len(benign_samples))
+    # samples and combines data
     balanced_data = pd.concat([attack_samples.sample(min_samples, random_state=47),
                                benign_samples.sample(min_samples, random_state=47)])
 
     return balanced_data, len(benign_samples)
 
 
-def load_and_balance_data_stratified(file_path, label_class_dict, current_benign_size, benign_size_limit):
+def load_and_balance_data_stratified(file_path, label_class_dict, current_benign_size, benign_size_limit, verbose=True):
     # Load the data
     data = pd.read_csv(file_path)
 
@@ -155,39 +157,79 @@ def load_and_balance_data_stratified(file_path, label_class_dict, current_benign
     remaining_benign_quota = benign_size_limit - current_benign_size
     benign_samples = data[data['label'] == 'Benign']
 
-    # Sample benign if needed
-    if len(benign_samples) > remaining_benign_quota:
-        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
-
     # Get attack samples
     attack_samples = data[data['label'] == 'Attack']
+    total_attack_samples = len(attack_samples)
+
+    if verbose:
+        print(f"\nTotal attack samples in file: {total_attack_samples}")
+        print(f"Attack types distribution:")
+        attack_type_counts = attack_samples['original_label'].value_counts()
+        for attack_type, count in attack_type_counts.items():
+            print(f"  - {attack_type}: {count} samples")
+
+    # Sample benign if needed
+    original_benign_count = len(benign_samples)
+    if len(benign_samples) > remaining_benign_quota:
+        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
+        if verbose:
+            print(
+                f"\nBenign samples reduced from {original_benign_count} to {len(benign_samples)} (undersampled by {original_benign_count - len(benign_samples)} samples)")
+
     min_samples = min(len(attack_samples), len(benign_samples))
+
+    if verbose:
+        if total_attack_samples > min_samples:
+            print(
+                f"\nAttack samples will be undersampled from {total_attack_samples} to {min_samples} (reduction of {total_attack_samples - min_samples} samples, {((total_attack_samples - min_samples) / total_attack_samples) * 100:.2f}%)")
+        else:
+            print(f"\nNo undersampling needed for attack samples ({total_attack_samples} samples)")
 
     # Stratified sampling of attack samples based on original label
     attack_stratified = pd.DataFrame()
     attack_types = attack_samples['original_label'].value_counts(normalize=True)
 
+    if verbose:
+        print("\nStratified sampling of attack types:")
+
     for attack_type, proportion in attack_types.items():
         type_samples = attack_samples[attack_samples['original_label'] == attack_type]
+        original_type_count = len(type_samples)
+
         # Calculate sample size to maintain original distribution
         sample_size = min(int(min_samples * proportion), len(type_samples))
+
         attack_stratified = pd.concat([
             attack_stratified,
             type_samples.sample(sample_size, random_state=47)
         ])
 
+        if verbose:
+            if original_type_count > sample_size:
+                print(
+                    f"  - {attack_type}: {original_type_count} → {sample_size} samples (undersampled by {original_type_count - sample_size} samples, {((original_type_count - sample_size) / original_type_count) * 100:.2f}%)")
+            else:
+                print(f"  - {attack_type}: {original_type_count} samples (no undersampling)")
+
     # If stratified sampling didn't yield enough samples, add more randomly
     if len(attack_stratified) < min_samples:
         remaining = min_samples - len(attack_stratified)
         remaining_attacks = attack_samples[~attack_samples.index.isin(attack_stratified.index)]
+
         if len(remaining_attacks) > 0:
-            attack_stratified = pd.concat([
-                attack_stratified,
-                remaining_attacks.sample(min(remaining, len(remaining_attacks)), random_state=47)
-            ])
+            additional_samples = remaining_attacks.sample(min(remaining, len(remaining_attacks)), random_state=47)
+            attack_stratified = pd.concat([attack_stratified, additional_samples])
+
+            if verbose:
+                print(f"\nAdded {len(additional_samples)} additional attack samples randomly to reach target balance")
 
     # Combine the datasets
     balanced_data = pd.concat([attack_stratified, benign_samples])
+
+    if verbose:
+        print(f"\nFinal balanced data: {len(balanced_data)} total samples")
+        print(f"  - Attack samples: {len(attack_stratified)}")
+        print(f"  - Benign samples: {len(benign_samples)}")
 
     # Drop the temporary column
     balanced_data = balanced_data.drop('original_label', axis=1)
@@ -261,6 +303,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
         if verbose:
             print(
                 f"Benign Traffic Train Samples | Samples in File: {benign_count} | Total: {train_benign_count} | LIMIT: {benign_size_limits['train']}")
+            print(f"Total Samples: {train_benign_count * 2} | Total LIMIT: {benign_size_limits['train'] * 2}")
 
     #--- Load Test Data Samples from files ---#
 
@@ -288,6 +331,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_s
         if verbose:
             print(
                 f"Benign Traffic Test Samples | Samples in File: {benign_count} | Total: {test_benign_count} | LIMIT: {benign_size_limits['test']}")
+            print(f"Total Samples: {test_benign_count * 2} | Total LIMIT: {benign_size_limits['test'] * 2}")
 
     # --- Reduce attack samples in test data  ---#
     if verbose:
