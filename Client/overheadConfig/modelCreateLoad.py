@@ -60,8 +60,8 @@ def modelCreateLoad(modelType, train_type, pretrainedNids, pretrainedGan, pretra
             if dataset_used == "CICIOT":
                 print("No pretrained discriminator provided. Creating a new mdoel.")
 
-                # nids = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
-                nids = create_optimized_NIDS_model(input_dim)
+                nids = create_CICIOT_Model(input_dim, regularizationEnabled, DP_enabled, l2_alpha)
+                # nids = create_optimized_NIDS_model(input_dim)
             elif dataset_used == "IOTBOTNET":
                 print("No pretrained discriminator provided. Creating a new model.")
 
