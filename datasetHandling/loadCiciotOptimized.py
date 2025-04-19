@@ -2,6 +2,8 @@ import os
 import random
 import pandas as pd
 from sklearn.utils import shuffle
+from sklearn.cluster import KMeans
+
 
 #---                 Constants               ---#
 
@@ -141,6 +143,58 @@ def load_and_balance_data(file_path, label_class_dict, current_benign_size, beni
     return balanced_data, len(benign_samples)
 
 
+def load_and_balance_data_stratified(file_path, label_class_dict, current_benign_size, benign_size_limit):
+    # Load the data
+    data = pd.read_csv(file_path)
+
+    # Keep original labels before mapping
+    data['original_label'] = data['label']
+    data = map_labels(data, label_class_dict)
+
+    # Calculate remaining benign quota
+    remaining_benign_quota = benign_size_limit - current_benign_size
+    benign_samples = data[data['label'] == 'Benign']
+
+    # Sample benign if needed
+    if len(benign_samples) > remaining_benign_quota:
+        benign_samples = benign_samples.sample(remaining_benign_quota, random_state=47)
+
+    # Get attack samples
+    attack_samples = data[data['label'] == 'Attack']
+    min_samples = min(len(attack_samples), len(benign_samples))
+
+    # Stratified sampling of attack samples based on original label
+    attack_stratified = pd.DataFrame()
+    attack_types = attack_samples['original_label'].value_counts(normalize=True)
+
+    for attack_type, proportion in attack_types.items():
+        type_samples = attack_samples[attack_samples['original_label'] == attack_type]
+        # Calculate sample size to maintain original distribution
+        sample_size = min(int(min_samples * proportion), len(type_samples))
+        attack_stratified = pd.concat([
+            attack_stratified,
+            type_samples.sample(sample_size, random_state=47)
+        ])
+
+    # If stratified sampling didn't yield enough samples, add more randomly
+    if len(attack_stratified) < min_samples:
+        remaining = min_samples - len(attack_stratified)
+        remaining_attacks = attack_samples[~attack_samples.index.isin(attack_stratified.index)]
+        if len(remaining_attacks) > 0:
+            attack_stratified = pd.concat([
+                attack_stratified,
+                remaining_attacks.sample(min(remaining, len(remaining_attacks)), random_state=47)
+            ])
+
+    # Combine the datasets
+    balanced_data = pd.concat([attack_stratified, benign_samples])
+
+    # Drop the temporary column
+    balanced_data = balanced_data.drop('original_label', axis=1)
+
+    return balanced_data, len(benign_samples)
+
+
 def reduce_attack_samples(data, attack_ratio):
 
     attack_samples = data[data['label'] == 'Attack'].sample(frac=attack_ratio, random_state=47)
@@ -153,8 +207,8 @@ def reduce_attack_samples(data, attack_ratio):
 ###################################################################################
 #               Load Config for CICIOT 2023 Dataset                            #
 ###################################################################################
-def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_sample_size=10,
-               training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
+def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_sample_size=10,
+               training_dataset_size=2200000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
     # INIT
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
@@ -197,7 +251,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
         if verbose:
             print(f"\nTraining dataset sample: {file}")
 
-        data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
+        data, benign_count = load_and_balance_data_stratified(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    train_benign_count, benign_size_limits['train'])
 
         ciciot_train_data = pd.concat([ciciot_train_data, data])
@@ -224,7 +278,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
         if verbose:
             print(f"\nTesting dataset sample: {file}")
 
-        data, benign_count = load_and_balance_data(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
+        data, benign_count = load_and_balance_data_stratified(os.path.join(DATASET_DIRECTORY, file), DICT_2CLASSES,
                                                    test_benign_count, benign_size_limits['test'])
 
         ciciot_test_data = pd.concat([ciciot_test_data, data])
