@@ -249,8 +249,8 @@ def reduce_attack_samples(data, attack_ratio):
 ###################################################################################
 #               Load Config for CICIOT 2023 Dataset                            #
 ###################################################################################
-def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=40, test_sample_size=10,
-               training_dataset_size=2200000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
+def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_sample_size=10,
+               training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
 
     # -- INIT Critical Variables -- #
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
