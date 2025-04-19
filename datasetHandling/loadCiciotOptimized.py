@@ -250,10 +250,11 @@ def reduce_attack_samples(data, attack_ratio):
 #               Load Config for CICIOT 2023 Dataset                            #
 ###################################################################################
 def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_sample_size=10,
-               training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1):
+               training_dataset_size=220000, testing_dataset_size=80000, attack_eval_samples_ratio=0.1, random_seed=47):
 
     # -- INIT Critical Variables -- #
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
+
 
     training_benign_size = training_dataset_size // 2
     testing_benign_size = testing_dataset_size // 2
@@ -269,8 +270,16 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
 
     # List and sorts the files in the dataset directory
     csv_filepaths = sorted([filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')])
-    train_files = random.sample(csv_filepaths, train_sample_size)
-    test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
+
+    # select files randomly or predetermined
+    if random_seed is not None:
+        # Create a random state object from the seed
+        random_state = random.Random(random_seed)
+        train_files = random.sample(csv_filepaths, train_sample_size)
+        test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
+    else:
+        train_files = random.sample(csv_filepaths, train_sample_size)
+        test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
 
     if verbose:
         print("\nTraining Sets:\n", train_files, "\n")

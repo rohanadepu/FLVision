@@ -32,8 +32,8 @@ def datasetLoadProcess(dataset_used, dataset_preprocessing):
     if dataset_used == "CICIOT":
         print("Loading CICIOT")
         # Load CICIOT data
-        ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT(train_sample_size=80, test_sample_size=20,
-               training_dataset_size=600000, testing_dataset_size=120000, attack_eval_samples_ratio=0.3)
+        ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT(train_sample_size=100, test_sample_size=25,
+               training_dataset_size=800000, testing_dataset_size=200000, attack_eval_samples_ratio=0.3)
 
     # load iotbotnet data if selected
     elif dataset_used == "IOTBOTNET":
