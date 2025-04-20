@@ -120,7 +120,7 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
 
 
 # Example usage with default values
-fig = plot_attack_detection_performance()
+# fig = plot_attack_detection_performance()
 
 # Example with custom values
 # fig = plot_attack_detection_performance(
@@ -133,5 +133,12 @@ fig = plot_attack_detection_performance()
 #     attack_types=["DDoS", "Mirai", "Recon", "Spoofing", "Web", "BruteForce"],
 #     attack_detection_rates=[96.5, 88.2, 92.7, 75.4, 89.1, 94.3]
 # )
+
+fig = plot_attack_detection_performance(
+    true_positives=0,
+    true_negatives=711,
+    false_positives=36,
+    false_negatives=0,
+)
 
 plt.show()
