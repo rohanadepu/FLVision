@@ -126,8 +126,8 @@ class CentralACGan:
             loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
             optimizer=self.gen_optimizer,
             metrics={
-                'Discriminator': ['accuracy', 'binary_accuracy', 'AUC'],
-                'Discriminator_1': ['accuracy', 'categorical_accuracy']
+                'Discriminator': ['binary_accuracy', 'AUC'],
+                'Discriminator_1': ['categorical_accuracy']
             }
         )
 
@@ -251,8 +251,8 @@ class CentralACGan:
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
             optimizer=self.disc_optimizer,
             metrics={
-                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
-                'class': ['accuracy', 'categorical_accuracy']
+                'validity': ['binary_accuracy', 'AUC'],
+                'class': ['categorical_accuracy']
             }
         )
 
@@ -319,19 +319,17 @@ class CentralACGan:
                 "Total Loss": f"{d_loss[0]:.4f}",
                 "Validity Loss": f"{d_loss[1]:.4f}",
                 "Class Loss": f"{d_loss[2]:.4f}",
-                "Validity Accuracy": f"{d_loss[3] * 100:.2f}%",
-                "Validity Binary Accuracy": f"{d_loss[4] * 100:.2f}%",
-                "Validity AUC": f"{d_loss[5] * 100:.2f}%",
-                "Class Accuracy": f"{d_loss[6] * 100:.2f}%",
-                "Class Categorical Accuracy": f"{d_loss[7] * 100:.2f}%"
+                "Validity Binary Accuracy": f"{d_loss[3] * 100:.2f}%",
+                "Validity AUC": f"{d_loss[4] * 100:.2f}%",
+                "Class Categorical Accuracy": f"{d_loss[5] * 100:.2f}%"
             }
             self.logger.info("Training Discriminator")
             self.logger.info(
                 f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
             self.logger.info(
-                f"Validity Accuracy: {d_loss[3] * 100:.2f}%, Binary Accuracy: {d_loss[4] * 100:.2f}%, AUC: {d_loss[5] * 100:.2f}%")
+                f"Validity Binary Accuracy: {d_loss[3] * 100:.2f}%, AUC: {d_loss[4] * 100:.2f}%")
             self.logger.info(
-                f"Class Accuracy: {d_loss[6] * 100:.2f}%, Categorical Accuracy: {d_loss[7] * 100:.2f}%")
+                f"Class Categorical Accuracy: {d_loss[5] * 100:.2f}%")
 
             # --------------------------
             # Train Generator (AC-GAN)
@@ -350,19 +348,17 @@ class CentralACGan:
                 "Total Loss": f"{g_loss[0]:.4f}",
                 "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
                 "Class Loss": f"{g_loss[2]:.4f}",  # This is Discriminator_1_loss
-                "Validity Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_accuracy
-                "Validity Binary Accuracy": f"{g_loss[4] * 100:.2f}%",  # Discriminator_binary_accuracy
-                "Validity AUC": f"{g_loss[5] * 100:.2f}%",  # Discriminator_auc
-                "Class Accuracy": f"{g_loss[6] * 100:.2f}%",  # Discriminator_1_accuracy
-                "Class Categorical Accuracy": f"{g_loss[7] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
+                "Validity Binary Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_binary_accuracy
+                "Validity AUC": f"{g_loss[4] * 100:.2f}%",  # Discriminator_auc
+                "Class Categorical Accuracy": f"{g_loss[5] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
             }
             self.logger.info("Training Generator with ACGAN FLOW")
             self.logger.info(
                 f"AC-GAN Generator Total Loss: {g_loss[0]:.4f} | Validity Loss: {g_loss[1]:.4f} | Class Loss: {g_loss[2]:.4f}")
             self.logger.info(
-                f"Validity Accuracy: {g_loss[3] * 100:.2f}%, Binary Accuracy: {g_loss[4] * 100:.2f}%, AUC: {g_loss[5] * 100:.2f}%")
+                f"Validity Binary Accuracy: {g_loss[3] * 100:.2f}%, AUC: {g_loss[4] * 100:.2f}%")
             self.logger.info(
-                f"Class Accuracy: {g_loss[6] * 100:.2f}%, Categorical Accuracy: {g_loss[7] * 100:.2f}%")
+                f"Class Categorical Accuracy: {g_loss[5] * 100:.2f}%")
 
             # --------------------------
             # Validation every 1 epochs
@@ -592,22 +588,18 @@ class CentralACGan:
             f"Real Data -> Total Loss: {d_loss_real[0]:.4f}, "
             f"Validity Loss: {d_loss_real[1]:.4f}, "
             f"Class Loss: {d_loss_real[2]:.4f}, "
-            f"Validity Accuracy: {d_loss_real[3] * 100:.2f}%, "
-            f"Validity Binary Accuracy: {d_loss_real[4] * 100:.2f}%, "
-            f"Validity AUC: {d_loss_real[5] * 100:.2f}%, "
-            f"Class Accuracy: {d_loss_real[6] * 100:.2f}%, "
-            f"Class Categorical Accuracy: {d_loss_real[7] * 100:.2f}%"
+            f"Validity Binary Accuracy: {d_loss_real[3] * 100:.2f}%, "
+            f"Validity AUC: {d_loss_real[4] * 100:.2f}%, "
+            f"Class Categorical Accuracy: {d_loss_real[5] * 100:.2f}%"
         )
         print("-----------")
         self.logger.info(
             f"Fake Data -> Total Loss: {d_loss_fake[0]:.4f}, "
             f"Validity Loss: {d_loss_fake[1]:.4f}, "
             f"Class Loss: {d_loss_fake[2]:.4f}, "
-            f"Validity Accuracy: {d_loss_fake[3] * 100:.2f}%, "
-            f"Validity Binary Accuracy: {d_loss_fake[4] * 100:.2f}%, "
-            f"Validity AUC: {d_loss_fake[5] * 100:.2f}%, "
-            f"Class Accuracy: {d_loss_fake[6] * 100:.2f}%, "
-            f"Class Categorical Accuracy: {d_loss_fake[7] * 100:.2f}%"
+            f"Validity Binary Accuracy: {d_loss_fake[3] * 100:.2f}%, "
+            f"Validity AUC: {d_loss_fake[4] * 100:.2f}%, "
+            f"Class Categorical Accuracy: {d_loss_fake[5] * 100:.2f}%"
         )
         self.logger.info(f"Average Discriminator Loss: {avg_total_loss:.4f}")
 
@@ -615,19 +607,15 @@ class CentralACGan:
             "Real Total Loss": f"{d_loss_real[0]:.4f}",
             "Real Validity Loss": f"{d_loss_real[1]:.4f}",
             "Real Class Loss": f"{d_loss_real[2]:.4f}",
-            "Real Validity Accuracy": f"{d_loss_real[3] * 100:.2f}%",
-            "Real Validity Binary Accuracy": f"{d_loss_real[4] * 100:.2f}%",
-            "Real Validity AUC": f"{d_loss_real[5] * 100:.2f}%",
-            "Real Class Accuracy": f"{d_loss_real[6] * 100:.2f}%",
-            "Real Class Categorical Accuracy": f"{d_loss_real[7] * 100:.2f}%",
+            "Real Validity Binary Accuracy": f"{d_loss_real[3] * 100:.2f}%",
+            "Real Validity AUC": f"{d_loss_real[4] * 100:.2f}%",
+            "Real Class Categorical Accuracy": f"{d_loss_real[5] * 100:.2f}%",
             "Fake Total Loss": f"{d_loss_fake[0]:.4f}",
             "Fake Validity Loss": f"{d_loss_fake[1]:.4f}",
             "Fake Class Loss": f"{d_loss_fake[2]:.4f}",
-            "Fake Validity Accuracy": f"{d_loss_fake[3] * 100:.2f}%",
-            "Fake Validity Binary Accuracy": f"{d_loss_fake[4] * 100:.2f}%",
-            "Fake Validity AUC": f"{d_loss_fake[5] * 100:.2f}%",
-            "Fake Class Accuracy": f"{d_loss_fake[6] * 100:.2f}%",
-            "Fake Class Categorical Accuracy": f"{d_loss_fake[7] * 100:.2f}%",
+            "Fake Validity Binary Accuracy": f"{d_loss_fake[3] * 100:.2f}%",
+            "Fake Validity AUC": f"{d_loss_fake[4] * 100:.2f}%",
+            "Fake Class Categorical Accuracy": f"{d_loss_fake[5] * 100:.2f}%",
             "Average Total Loss": f"{avg_total_loss:.4f}"
         }
         return avg_total_loss, metrics
@@ -656,20 +644,18 @@ class CentralACGan:
         self.logger.info(
             f"Total Loss: {g_loss[0]:.4f}, Validity Loss: {g_loss[1]:.4f}, Class Loss: {g_loss[2]:.4f}")
         self.logger.info(
-            f"Validity Accuracy: {g_loss[3] * 100:.2f}%, Binary Accuracy: {g_loss[4] * 100:.2f}%, AUC: {g_loss[5] * 100:.2f}%")
+            f"Validity Binary Accuracy: {g_loss[3] * 100:.2f}%, AUC: {g_loss[4] * 100:.2f}%")
         self.logger.info(
-            f"Class Accuracy: {g_loss[6] * 100:.2f}%, Categorical Accuracy: {g_loss[7] * 100:.2f}%")
+            f"Class Categorical Accuracy: {g_loss[5] * 100:.2f}%")
 
         # Create a metrics dictionary with the full set of metrics
         g_metrics = {
             "Total Loss": f"{g_loss[0]:.4f}",
             "Validity Loss": f"{g_loss[1]:.4f}",
             "Class Loss": f"{g_loss[2]:.4f}",
-            "Validity Accuracy": f"{g_loss[3] * 100:.2f}%",
-            "Validity Binary Accuracy": f"{g_loss[4] * 100:.2f}%",
-            "Validity AUC": f"{g_loss[5] * 100:.2f}%",
-            "Class Accuracy": f"{g_loss[6] * 100:.2f}%",
-            "Class Categorical Accuracy": f"{g_loss[7] * 100:.2f}%"
+            "Validity Binary Accuracy": f"{g_loss[3] * 100:.2f}%",
+            "Validity AUC": f"{g_loss[4] * 100:.2f}%",
+            "Class Categorical Accuracy": f"{g_loss[5] * 100:.2f}%"
         }
         return g_loss[0], g_metrics
 
@@ -754,30 +740,26 @@ class CentralACGan:
         d_loss_total = results[0]
         d_loss_validity = results[1]
         d_loss_class = results[2]
-        d_validity_acc = results[3]
-        d_validity_bin_acc = results[4]
-        d_validity_auc = results[5]
-        d_class_acc = results[6]
-        d_class_cat_acc = results[7]
+        d_validity_bin_acc = results[3]
+        d_validity_auc = results[4]
+        d_class_cat_acc = results[5]
 
         d_eval_metrics = {
             "Loss": f"{d_loss_total:.4f}",
             "Validity Loss": f"{d_loss_validity:.4f}",
             "Class Loss": f"{d_loss_class:.4f}",
-            "Validity Accuracy": f"{d_validity_acc * 100:.2f}%",
             "Validity Binary Accuracy": f"{d_validity_bin_acc * 100:.2f}%",
             "Validity AUC": f"{d_validity_auc * 100:.2f}%",
-            "Class Accuracy": f"{d_class_acc * 100:.2f}%",
             "Class Categorical Accuracy": f"{d_class_cat_acc * 100:.2f}%"
         }
         self.logger.info(
             f"Discriminator Total Loss: {d_loss_total:.4f} | Validity Loss: {d_loss_validity:.4f} | Class Loss: {d_loss_class:.4f}"
         )
         self.logger.info(
-            f"Validity Accuracy: {d_validity_acc * 100:.2f}%, Binary Accuracy: {d_validity_bin_acc * 100:.2f}%, AUC: {d_validity_auc * 100:.2f}%"
+            f"Validity Binary Accuracy: {d_validity_bin_acc * 100:.2f}%, AUC: {d_validity_auc * 100:.2f}%"
         )
         self.logger.info(
-            f"Class Accuracy: {d_class_acc * 100:.2f}%, Categorical Accuracy: {d_class_cat_acc * 100:.2f}%"
+            f"Class Categorical Accuracy: {d_class_cat_acc * 100:.2f}%"
         )
 
         # --------------------------
@@ -799,30 +781,26 @@ class CentralACGan:
         g_loss_total = g_loss[0]
         g_loss_validity = g_loss[1]
         g_loss_class = g_loss[2]
-        g_validity_acc = g_loss[3]
-        g_validity_bin_acc = g_loss[4]
-        g_validity_auc = g_loss[5]
-        g_class_acc = g_loss[6]
-        g_class_cat_acc = g_loss[7]
+        g_validity_bin_acc = g_loss[3]
+        g_validity_auc = g_loss[4]
+        g_class_cat_acc = g_loss[5]
 
         g_eval_metrics = {
             "Loss": f"{g_loss_total:.4f}",
             "Validity Loss": f"{g_loss_validity:.4f}",
             "Class Loss": f"{g_loss_class:.4f}",
-            "Validity Accuracy": f"{g_validity_acc * 100:.2f}%",
             "Validity Binary Accuracy": f"{g_validity_bin_acc * 100:.2f}%",
             "Validity AUC": f"{g_validity_auc * 100:.2f}%",
-            "Class Accuracy": f"{g_class_acc * 100:.2f}%",
             "Class Categorical Accuracy": f"{g_class_cat_acc * 100:.2f}%"
         }
         self.logger.info(
             f"Generator Total Loss: {g_loss_total:.4f} | Validity Loss: {g_loss_validity:.4f} | Class Loss: {g_loss_class:.4f}"
         )
         self.logger.info(
-            f"Validity Accuracy: {g_validity_acc * 100:.2f}%, Binary Accuracy: {g_validity_bin_acc * 100:.2f}%, AUC: {g_validity_auc * 100:.2f}%"
+            f"Validity Binary Accuracy: {g_validity_bin_acc * 100:.2f}%, AUC: {g_validity_auc * 100:.2f}%"
         )
         self.logger.info(
-            f"Class Accuracy: {g_class_acc * 100:.2f}%, Categorical Accuracy: {g_class_cat_acc * 100:.2f}%"
+            f"Class Categorical Accuracy: {g_class_cat_acc * 100:.2f}%"
         )
 
         # --------------------------

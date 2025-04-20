@@ -144,7 +144,7 @@ def hyperparameterLoading(model_type, X_train_data, regularizationEnabled, DP_en
     elif model_type == 'AC-GAN':
         # Modified hyperparameters for improved AC-GAN performance
         # Batches and Dims
-        BATCH_SIZE = 768  # OG 256; recommend 512 - 768 - 1024; (128, 256, 512, 768, 1024)
+        BATCH_SIZE = 512  # OG 256; recommend 512 - 768 - 1024; (128, 256, 512, 768, 1024)
         noise_dim = 100  # Keep the same for compatibility
         latent_dim = 256  # OG 100; range 128 - 512; recomend 256 - 512; (128, 256, 512)
         input_dim = X_train_data.shape[1]
