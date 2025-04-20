@@ -98,7 +98,7 @@ def load_data(file_path, current_size=None, data_limit=None):
 ###################################################################################
 #               Load Config for CICIOT 2023 Dataset                            #
 ###################################################################################
-def loadLiveCaptureData(verbose=True, sample_size=1, dataset_size=100):
+def loadLiveCaptureData(verbose=True, sample_size=2, dataset_size=1000):
 
     # INIT
     DATASET_DIRECTORY = '../../datasets/LIVEDATA/CSV'
