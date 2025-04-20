@@ -35,7 +35,7 @@ def generate_samples_for_specific_class(generator, num_samples, latent_dim, clas
     # Generate fake data
     generated_data = generator.predict([noise, labels])
 
-    return generated_data, labels
+    return generated_data, labels.numpy()  # Convert to NumPy array here
 
 
 def evaluate_samples(discriminator, generated_data, sampled_labels, num_classes, class_names=None):
@@ -45,6 +45,9 @@ def evaluate_samples(discriminator, generated_data, sampled_labels, num_classes,
     # If class names not provided, use default numbering
     if class_names is None:
         class_names = [f'Class {i}' for i in range(num_classes)]
+
+    # Ensure labels are in the right format
+    sampled_labels = np.array(sampled_labels)
 
     # Convert labels to one-hot encoding
     sampled_labels_onehot = tf.one_hot(sampled_labels, depth=num_classes)
@@ -57,10 +60,10 @@ def evaluate_samples(discriminator, generated_data, sampled_labels, num_classes,
 
     # Create DataFrame for easier analysis
     results_df = pd.DataFrame({
-        'true_label': sampled_labels.numpy(),
+        'true_label': sampled_labels,  # Already a NumPy array
         'predicted_label': predicted_class_indices,
         'validity_score': validity.flatten(),
-        'true_class_name': [class_names[int(i)] for i in sampled_labels.numpy()],
+        'true_class_name': [class_names[int(i)] for i in sampled_labels],
         'predicted_class_name': [class_names[int(i)] for i in predicted_class_indices]
     })
 
@@ -101,7 +104,9 @@ def analyze_class_distribution(results_df, num_classes, class_names=None):
     cm = confusion_matrix(results_df['true_label'], results_df['predicted_label'])
 
     # Normalize confusion matrix by row (true label)
-    cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    with np.errstate(divide='ignore', invalid='ignore'):  # Handle division by zero
+        cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        cm_norm = np.nan_to_num(cm_norm)  # Replace NaN with 0
 
     return distribution_df, accuracy, cm, cm_norm
 
@@ -268,12 +273,12 @@ def main():
 
         # Analyze and save class-specific samples
         gen_df, class_stats = analyze_network_traffic_features(
-            generated_data, labels.numpy(), class_names, None
+            generated_data, labels, class_names, None
         )
 
         # Save class-specific samples
         samples_df = pd.DataFrame(generated_data)
-        samples_df['class'] = labels.numpy()
+        samples_df['class'] = labels
         samples_df['class_name'] = class_names[class_label]
         samples_file = os.path.join(args.output_dir, f'generated_samples_class_{class_label}.csv')
         samples_df.to_csv(samples_file, index=False)
@@ -283,10 +288,16 @@ def main():
         for stats in class_stats:
             print(f"\nStatistics for {stats['class_name']} (first 5 features):")
             print(f"  Sample count: {stats['count']}")
-            print("  Means:", stats['means'][:5].values)
-            print("  Stds: ", stats['stds'][:5].values)
-            print("  Mins: ", stats['mins'][:5].values)
-            print("  Maxs: ", stats['maxs'][:5].values)
+            if len(stats['means']) >= 5:
+                print("  Means:", stats['means'][:5].values)
+                print("  Stds: ", stats['stds'][:5].values)
+                print("  Mins: ", stats['mins'][:5].values)
+                print("  Maxs: ", stats['maxs'][:5].values)
+            else:
+                print("  Means:", stats['means'].values)
+                print("  Stds: ", stats['stds'].values)
+                print("  Mins: ", stats['mins'].values)
+                print("  Maxs: ", stats['maxs'].values)
 
     # Combine all generated data and labels
     all_generated_data = np.vstack(all_generated_data)
