@@ -203,6 +203,8 @@ def main():
 
         # --- 6/7A Train & Evaluate Model ---#
         fl.client.start_client(server_address=server_address, client=client.to_client())
+
+        client.save(save_name)
         # -- EOF Federated TRAINING -- #
 
         # --- 5B Load Training Config ---#
