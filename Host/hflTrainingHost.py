@@ -283,6 +283,8 @@ def main():
                         dataset_used=dataset_used,  # or "IOTBOTNET" depending on dataset
                         node=node,  # Server node identifier
                         earlyStopEnabled=earlyStopEnabled,  # Enable early stopping
+                        lrSchedRedEnabled=lrSchedRedEnabled,
+                        modelCheckpointEnabled=modelCheckpointEnabled,
                         DP_enabled=DP_enabled,  # Differential privacy enabled/disabled
                         X_train_data=X_train_data, y_train_data=y_train_data,  # Server-side training data
                         X_test_data=X_test_data, y_test_data=y_test_data,  # Test data
