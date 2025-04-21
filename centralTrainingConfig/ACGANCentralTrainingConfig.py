@@ -138,7 +138,6 @@ class CentralACGan:
 
     # -- logging Functions -- #
 
-
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
         self.logger = logging.getLogger("CentralACGan")
