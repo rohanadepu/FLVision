@@ -88,7 +88,7 @@ def build_AC_generator_ver_0(latent_dim, num_classes, input_dim):
     return Model([noise_input, label_input], output, name="ACGenerator")
 
 
-def build_improved_AC_generator(latent_dim, num_classes, input_dim):
+def build_AC_generator(latent_dim, num_classes, input_dim):
     noise_input = Input(shape=(latent_dim,))
     label_input = Input(shape=(1,), dtype='int32')
 
