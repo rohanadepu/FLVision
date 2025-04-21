@@ -609,3 +609,7 @@ class CentralACGenerator:
 
         # Log the overall evaluation metrics using our logging function
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics)
+
+    def save(self, save_name):
+        # Save each submodel separately
+        self.generator.save(f"../pretrainedModels/generator_local_ACGAN_{save_name}.h5")
