@@ -98,9 +98,9 @@ def modelFederatedTrainingConfigLoad(nids, discriminator, generator, GAN, datase
         elif train_type == "Generator":
             client = None
         elif train_type == "Discriminator":
-            client = ACDiscriminatorClient(discriminator, X_train_data, X_val_data, y_train_data,
-                                           y_val_data, X_test_data, y_test_data, BATCH_SIZE,
-                                           noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch,
-                                           learning_rate)
+            client = ACDiscriminatorClient(discriminator=discriminator, x_train=X_train_data, x_val=X_val_data, y_train=y_train_data,
+                                           y_val=y_val_data, x_test=X_test_data, y_test=y_test_data, BATCH_SIZE=BATCH_SIZE,
+                                           num_classes=num_classes, input_dim=input_dim, epochs=epochs, steps_per_epoch=steps_per_epoch,
+                                           learning_rate=learning_rate, use_class_labels=True)
 
     return client
