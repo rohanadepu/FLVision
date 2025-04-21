@@ -54,37 +54,23 @@ class CentralACGan:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
                  log_file="training.log"):
-        # -- models
+        #-- models
         self.generator = generator
         self.discriminator = discriminator
         self.nids = nids
 
-        # -- I/O Specs for models
+        #-- I/O Specs for models
         self.batch_size = BATCH_SIZE
         self.noise_dim = noise_dim
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.input_dim = input_dim
 
-        # -- training duration
-        self.max_epochs = epochs  # Store the maximum possible epochs
-        self.epochs = min(25, epochs)  # Start with 25 epochs for progressive training
+        #-- training duration
+        self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
-        self.disc_gen_ratio = 2
 
-        # -- Early stopping parameters
-        self.early_stop_patience = 12  # Number of epochs to wait for improvement
-        self.min_delta = 0.001  # Minimum change to count as improvement
-
-        # -- Best model tracking
-        self.best_val_loss = float('inf')
-        self.best_val_acc = 0.0
-        self.best_disc_weights = None
-        self.best_gen_weights = None
-        self.patience_counter = 0
-        self.best_epoch = 0
-
-        # -- Data
+        #-- Data
         # Features
         self.x_train = x_train
         self.x_test = x_test
@@ -97,7 +83,7 @@ class CentralACGan:
         # -- Setup Logging
         self.setup_logger(log_file)
 
-        # -- Optimizers
+        #-- Optimizers
         # LR decay
         lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.00001, decay_steps=10000, decay_rate=0.97, staircase=False)
@@ -111,7 +97,7 @@ class CentralACGan:
 
         print("Discriminator Output:", self.discriminator.output_names)
 
-        # -- Model Compilations
+        #-- Model Compilations
         # Compile Discriminator separately (before freezing)
         # self.discriminator.compile(
         #     loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
@@ -150,6 +136,7 @@ class CentralACGan:
         return self.ACGAN
 
     # -- logging Functions -- #
+
 
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
@@ -248,25 +235,10 @@ class CentralACGan:
         self.logger.info("=" * 50)
 
     # -- Train -- #
-    def fit(self, X_train=None, y_train=None, checkpoint_dir="../pretrainedModels/checkpoints/"):
-        """
-        Train the AC-GAN model with early stopping and progressive training.
-
-        Parameters:
-        -----------
-        X_train : array-like, optional
-            Training data features. If None, uses self.x_train.
-        y_train : array-like, optional
-            Training data labels. If None, uses self.y_train.
-        checkpoint_dir : str, default="../pretrainedModels/checkpoints/"
-            Directory to save model checkpoints during training.
-        """
+    def fit(self, X_train=None, y_train=None):
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
-
-        # Create checkpoint directory if it doesn't exist
-        os.makedirs(checkpoint_dir, exist_ok=True)
 
         # -- make sure discriminator is trainable for individual training -- #
         self.discriminator.trainable = True
@@ -288,6 +260,8 @@ class CentralACGan:
         self.log_model_settings()
 
         # -- Apply label smoothing -- #
+
+        # Create smoothed labels for discriminator training
         valid_smoothing_factor = 0.15
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
 
@@ -303,133 +277,92 @@ class CentralACGan:
         self.logger.info(f"Using fake label smoothing with factor: {fake_smoothing_factor}")
         self.logger.info(f"Using gen label smoothing with factor: {gen_smoothing_factor}")
 
-        # Early stopping and progressive training setup
-        self.logger.info(
-            f"Initial training phase: {self.epochs} epochs with early stopping patience: {self.early_stop_patience}")
-        self.logger.info(f"Maximum possible epochs: {self.max_epochs}")
-
-        # Reset early stopping tracking variables
-        self.best_val_loss = float('inf')
-        self.best_val_acc = 0.0
-        self.patience_counter = 0
-        self.best_epoch = 0
-        self.best_disc_weights = None
-        self.best_gen_weights = None
-
         # -- Training Loop -- #
-        total_epochs_trained = 0
-        training_phase = 1
+        for epoch in range(self.epochs):
+            print("Discriminator Metrics:",self.discriminator.metrics_names)
+            print("ACGAN Metrics:", self.ACGAN.metrics_names)
 
-        while total_epochs_trained < self.max_epochs:
-            remaining_epochs = self.max_epochs - total_epochs_trained
-            phase_epochs = min(self.epochs, remaining_epochs)
+            print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
+            self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
 
-            if phase_epochs <= 0:
-                break
+            # --------------------------
+            # Train Discriminator
+            # --------------------------
+            # -- Source the real data -- #
+            # Sample a batch of real data
+            idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
+            real_data = tf.gather(X_train, idx)
+            real_labels = tf.gather(y_train, idx)
 
-            self.logger.info(f"\n=== Starting Training Phase {training_phase} ===")
-            self.logger.info(f"Epochs for this phase: {phase_epochs}")
-            self.logger.info(f"Total epochs trained so far: {total_epochs_trained}")
-            self.logger.info(f"Maximum epochs: {self.max_epochs}")
+            # Ensure labels are one-hot encoded
+            if len(real_labels.shape) == 1:
+                real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
+            else:
+                real_labels_onehot = real_labels
 
-            # Train for this phase
-            for epoch in range(phase_epochs):
-                current_epoch = total_epochs_trained + epoch
-                print(f'\n=== Epoch {current_epoch + 1}/{self.max_epochs} (Phase {training_phase}) ===\n')
-                self.logger.info(f'=== Epoch {current_epoch}/{self.max_epochs} (Phase {training_phase}) ===')
+            # -- Generate fake data -- #
+            # Sample the noise data
+            noise = tf.random.normal((self.batch_size, self.latent_dim))
+            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
+            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-                # Track metrics for logging
-                d_loss_avg = 0
-                d_validity_acc_avg = 0
-                d_class_acc_avg = 0
+            # generate data from noise and desired labels
+            generated_data = self.generator.predict([noise, fake_labels])
 
-                # --------------------------
-                # Train Discriminator
-                # --------------------------
-                for d_iter in range(self.disc_gen_ratio):
-                    # -- Source the real data -- #
-                    idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
-                    real_data = tf.gather(X_train, idx)
-                    real_labels = tf.gather(y_train, idx)
+            # -- Train discriminator on real and fake data -- #
+            d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
+            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
+            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
-                    # Ensure labels are one-hot encoded
-                    if len(real_labels.shape) == 1:
-                        real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
-                    else:
-                        real_labels_onehot = real_labels
+            # Collect discriminator metrics
+            d_metrics = {
+                "Total Loss": f"{d_loss[0]:.4f}",
+                "Validity Loss": f"{d_loss[1]:.4f}",
+                "Class Loss": f"{d_loss[2]:.4f}",
+                "Validity Binary Accuracy": f"{d_loss[3] * 100:.2f}%",
+                "Class Categorical Accuracy": f"{d_loss[4] * 100:.2f}%"
+            }
+            self.logger.info("Training Discriminator")
+            self.logger.info(
+                f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
+            self.logger.info(
+                f"Validity Binary Accuracy: {d_loss[3] * 100:.2f}%")
+            self.logger.info(
+                f"Class Categorical Accuracy: {d_loss[4] * 100:.2f}%")
 
-                    # -- Generate fake data -- #
-                    noise = tf.random.normal((self.batch_size, self.latent_dim))
-                    fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
-                                                    dtype=tf.int32)
-                    fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+            # --------------------------
+            # Train Generator (AC-GAN)
+            # --------------------------
+            # -- Generate noise and label inputs for ACGAN -- #
+            noise = tf.random.normal((self.batch_size, self.latent_dim))
+            sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
+                                               dtype=tf.int32)
+            sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
 
-                    # Generate data from noise and desired labels
-                    generated_data = self.generator.predict([noise, fake_labels])
+            # -- Train ACGAN with sampled noise data -- #
+            g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
 
-                    # -- Train discriminator on real and fake data -- #
-                    d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
-                    d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
-                    d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
+            # Collect generator metrics
+            g_metrics = {
+                "Total Loss": f"{g_loss[0]:.4f}",
+                "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
+                "Class Loss": f"{g_loss[2]:.4f}",  # This is Discriminator_1_loss
+                "Validity Binary Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_binary_accuracy
+                "Class Categorical Accuracy": f"{g_loss[4] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
+            }
+            self.logger.info("Training Generator with ACGAN FLOW")
+            self.logger.info(
+                f"AC-GAN Generator Total Loss: {g_loss[0]:.4f} | Validity Loss: {g_loss[1]:.4f} | Class Loss: {g_loss[2]:.4f}")
+            self.logger.info(
+                f"Validity Binary Accuracy: {g_loss[3] * 100:.2f}%")
+            self.logger.info(
+                f"Class Categorical Accuracy: {g_loss[4] * 100:.2f}%")
 
-                    # Accumulate metrics for averaging
-                    d_loss_avg += d_loss[0]
-                    d_validity_acc_avg += d_loss[3]
-                    d_class_acc_avg += d_loss[4]
-
-                    # Log the last iteration metrics
-                    if d_iter == self.disc_gen_ratio - 1:
-                        # Average the metrics over all iterations
-                        d_loss_avg /= self.disc_gen_ratio
-                        d_validity_acc_avg /= self.disc_gen_ratio
-                        d_class_acc_avg /= self.disc_gen_ratio
-
-                        # Collect discriminator metrics
-                        d_metrics = {
-                            "Total Loss": f"{d_loss_avg:.4f}",
-                            "Validity Loss": f"{d_loss[1]:.4f}",
-                            "Class Loss": f"{d_loss[2]:.4f}",
-                            "Validity Binary Accuracy": f"{d_validity_acc_avg * 100:.2f}%",
-                            "Class Categorical Accuracy": f"{d_class_acc_avg * 100:.2f}%"
-                        }
-                        self.logger.info(f"Training Discriminator ({self.disc_gen_ratio} iterations)")
-                        self.logger.info(
-                            f"Discriminator Avg Total Loss: {d_loss_avg:.4f} | Last Valid Loss: {d_loss[1]:.4f} | Last Class Loss: {d_loss[2]:.4f}")
-                        self.logger.info(
-                            f"Avg Validity Binary Accuracy: {d_validity_acc_avg * 100:.2f}%")
-                        self.logger.info(
-                            f"Avg Class Categorical Accuracy: {d_class_acc_avg * 100:.2f}%")
-                # --------------------------
-                # Train Generator (AC-GAN)
-                # --------------------------
-                # -- Generate noise and label inputs for ACGAN -- #
-                noise = tf.random.normal((self.batch_size, self.latent_dim))
-                sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
-                                                   dtype=tf.int32)
-                sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
-
-                # -- Train ACGAN with sampled noise data -- #
-                g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
-
-                # Collect generator metrics
-                g_metrics = {
-                    "Total Loss": f"{g_loss[0]:.4f}",
-                    "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
-                    "Class Loss": f"{g_loss[2]:.4f}",  # This is Discriminator_1_loss
-                    "Validity Binary Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_binary_accuracy
-                    "Class Categorical Accuracy": f"{g_loss[4] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
-                }
-                self.logger.info("Training Generator with ACGAN FLOW")
-                self.logger.info(
-                    f"AC-GAN Generator Total Loss: {g_loss[0]:.4f} | Validity Loss: {g_loss[1]:.4f} | Class Loss: {g_loss[2]:.4f}")
-                self.logger.info(
-                    f"Validity Binary Accuracy: {g_loss[3] * 100:.2f}%")
-                self.logger.info(
-                    f"Class Categorical Accuracy: {g_loss[4] * 100:.2f}%")
-
-                # --------------------------
-                # Validation & Early Stopping
-                # --------------------------
+            # --------------------------
+            # Validation every 1 epochs
+            # --------------------------
+            if epoch % 1 == 0:
+                self.logger.info(f"=== Epoch {epoch} Validation ===")
                 # -- GAN Validation --#
                 d_val_loss, d_val_metrics = self.validation_disc()
                 g_val_loss, g_val_metrics = self.validation_gen()
@@ -437,13 +370,15 @@ class CentralACGan:
                 # -- Probabilistic Fusion Validation -- #
                 self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
                 fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
-                fusion_accuracy = fusion_metrics['accuracy']
-                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_accuracy * 100:.2f}%")
+                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 
                 # Log distribution of classifications
                 self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
                 self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
                 self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
+
+                # Analyze Fusion Results
+                # self.analyze_fusion_results(fusion_results)
 
                 # -- NIDS Validation -- #
                 nids_val_metrics = None
@@ -452,110 +387,10 @@ class CentralACGan:
                     self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
                 # -- Log the metrics for epoch -- #
-                self.log_epoch_metrics(current_epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
+                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
+                self.logger.info(
+                    f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, G Loss: {g_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
 
-                # -- Check if this is the best model so far -- #
-                # We use a combined metric: discriminator validation accuracy + fusion accuracy
-                # Higher is better
-                combined_disc_val_accuracy = float(d_val_metrics["Real Validity Binary Accuracy"].rstrip('%')) / 100
-                combined_metric = combined_disc_val_accuracy + fusion_accuracy
-
-                if combined_metric > self.best_val_acc:
-                    # Record new best
-                    self.best_val_acc = combined_metric
-                    self.best_epoch = current_epoch
-                    self.patience_counter = 0
-                    self.logger.info(f"New best model found! Combined accuracy: {combined_metric:.4f}")
-
-                    # Save best weights
-                    self.best_disc_weights = self.discriminator.get_weights()
-                    self.best_gen_weights = self.generator.get_weights()
-
-                    # Save checkpoint
-                    checkpoint_path = os.path.join(checkpoint_dir,
-                                                   f"best_models_phase{training_phase}_epoch{current_epoch}")
-                    os.makedirs(checkpoint_path, exist_ok=True)
-                    self.discriminator.save(os.path.join(checkpoint_path, "discriminator.h5"))
-                    self.generator.save(os.path.join(checkpoint_path, "generator.h5"))
-                    self.logger.info(f"Saved best models to {checkpoint_path}")
-                else:
-                    # Increment patience counter
-                    self.patience_counter += 1
-                    self.logger.info(f"No improvement. Patience: {self.patience_counter}/{self.early_stop_patience}")
-
-                    # Check for early stopping
-                    if self.patience_counter >= self.early_stop_patience:
-                        self.logger.info(f"Early stopping triggered after {current_epoch + 1} epochs")
-                        self.logger.info(
-                            f"Best model was at epoch {self.best_epoch} with combined accuracy: {self.best_val_acc:.4f}")
-
-                        # Restore best weights
-                        if self.best_disc_weights is not None and self.best_gen_weights is not None:
-                            self.discriminator.set_weights(self.best_disc_weights)
-                            self.generator.set_weights(self.best_gen_weights)
-                            self.logger.info("Restored weights from best epoch")
-
-                        break  # Exit the epoch loop early
-
-            # Update total epochs trained
-            total_epochs_trained += epoch + 1
-
-            # Check if we've reached the maximum epochs
-            if total_epochs_trained >= self.max_epochs:
-                self.logger.info(f"Reached maximum epochs ({self.max_epochs}). Training complete.")
-                break
-
-            # Check if early stopping was triggered
-            if self.patience_counter >= self.early_stop_patience:
-                # Progressive training: decide whether to continue
-                remaining_epochs = self.max_epochs - total_epochs_trained
-
-                if remaining_epochs > 0:
-                    # Reset patience counter for next phase
-                    self.patience_counter = 0
-
-                    # Evaluate if metrics are still good enough to continue
-                    if self.best_val_acc > 0.75:  # Example threshold - continue if accuracy is good
-                        self.logger.info(
-                            f"Performance still improving (acc={self.best_val_acc:.4f}). Starting next training phase.")
-                        self.epochs = min(25, remaining_epochs)  # Next block of max 25 epochs
-                        training_phase += 1
-                    else:
-                        self.logger.info(
-                            f"Performance plateau reached (acc={self.best_val_acc:.4f}). Stopping training.")
-                        break
-                else:
-                    self.logger.info("No remaining epochs available. Training complete.")
-                    break
-            else:
-                # If we completed all epochs in this phase without early stopping
-                remaining_epochs = self.max_epochs - total_epochs_trained
-
-                if remaining_epochs > 0:
-                    self.logger.info(f"Completed phase {training_phase} without early stopping. Starting next phase.")
-                    self.epochs = min(25, remaining_epochs)
-                    training_phase += 1
-                else:
-                    self.logger.info("Maximum epochs reached. Training complete.")
-                    break
-
-        # Final summary
-        self.logger.info("\n=== Training Summary ===")
-        self.logger.info(f"Total epochs trained: {total_epochs_trained} out of maximum {self.max_epochs}")
-        self.logger.info(f"Best model found at epoch {self.best_epoch} with combined accuracy: {self.best_val_acc:.4f}")
-
-        # Restore best model if needed
-        if total_epochs_trained > 0 and self.best_disc_weights is not None and self.best_gen_weights is not None:
-            self.discriminator.set_weights(self.best_disc_weights)
-            self.generator.set_weights(self.best_gen_weights)
-            self.logger.info("Final models are using weights from the best epoch")
-
-        return {
-            "epochs_trained": total_epochs_trained,
-            "best_epoch": self.best_epoch,
-            "best_accuracy": self.best_val_acc,
-            "phases_completed": training_phase
-        }
         # -- Loss Calculation -- #
 
     def nids_loss(self, real_output, fake_output):
@@ -1015,49 +850,6 @@ class CentralACGan:
 
     # -- Saving Models -- #
     def save(self, save_name):
-        """
-        Save trained models with information about the best epoch.
-
-        Parameters:
-        -----------
-        save_name : str
-            Base name to use for saving the models
-        """
-        # Save each submodel separately with best epoch info
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        best_epoch_info = f"_epoch{self.best_epoch}_acc{self.best_val_acc:.4f}"
-
-        generator_path = f"../pretrainedModels/generator_local_ACGAN_{save_name}{best_epoch_info}.h5"
-        discriminator_path = f"../pretrainedModels/discriminator_local_ACGAN_{save_name}{best_epoch_info}.h5"
-
-        self.generator.save(generator_path)
-        self.discriminator.save(discriminator_path)
-
-        self.logger.info(f"Saved generator to: {generator_path}")
-        self.logger.info(f"Saved discriminator to: {discriminator_path}")
-
-        # Save training metadata
-        metadata = {
-            "timestamp": timestamp,
-            "best_epoch": self.best_epoch,
-            "best_accuracy": float(self.best_val_acc),
-            "total_epochs": self.max_epochs,
-            "epochs_trained": self.best_epoch + 1,
-            "model_paths": {
-                "generator": generator_path,
-                "discriminator": discriminator_path
-            }
-        }
-
-        metadata_path = f"../pretrainedModels/ACGAN_{save_name}_metadata.json"
-        with open(metadata_path, 'w') as f:
-            import json
-            json.dump(metadata, f, indent=4)
-
-        self.logger.info(f"Saved training metadata to: {metadata_path}")
-
-        return {
-            "generator_path": generator_path,
-            "discriminator_path": discriminator_path,
-            "metadata_path": metadata_path
-        }
+        # Save each submodel separately
+        self.generator.save(f"../pretrainedModels/generator_local_ACGAN_{save_name}.h5")
+        self.discriminator.save(f"../pretrainedModels/discriminator_local_ACGAN_{save_name}.h5")
