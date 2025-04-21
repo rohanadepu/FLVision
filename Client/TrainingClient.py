@@ -134,8 +134,8 @@ def main():
 
     # Save/Record Param
     save_name = args.save_name
-    evaluationLog = f"Evaluation_{timestamp}.log"
-    trainingLog = f"Training_{timestamp}.log"
+    evaluationLog = timestamp
+    trainingLog = timestamp
     node = 1
 
     # -- Display selected arguments --#
