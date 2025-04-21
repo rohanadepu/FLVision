@@ -51,8 +51,7 @@ from sklearn.utils import shuffle
 
 class CentralACGenerator:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
-                 noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
-                 log_file="training.log"):
+                 noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, log_file="training.log"):
         #-- models
         self.generator = generator
         self.discriminator = discriminator
@@ -197,9 +196,6 @@ class CentralACGenerator:
     def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
-        self.logger.info("Discriminator Metrics:")
-        for key, value in d_metrics.items():
-            self.logger.info(f"  {key}: {value}")
         self.logger.info("Generator Metrics:")
         for key, value in g_metrics.items():
             self.logger.info(f"  {key}: {value}")
@@ -212,9 +208,6 @@ class CentralACGenerator:
     def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
-        self.logger.info("Discriminator Evaluation:")
-        for key, value in d_eval.items():
-            self.logger.info(f"  {key}: {value}")
         self.logger.info("Generator Evaluation:")
         for key, value in g_eval.items():
             self.logger.info(f"  {key}: {value}")
