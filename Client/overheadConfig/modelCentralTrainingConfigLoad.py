@@ -39,6 +39,9 @@ from centralTrainingConfig.WGANBinaryCentralTrainingConfig import CentralBinaryW
 from centralTrainingConfig.WGenBinaryCentralTrainingConfig import CentralBinaryWGen
 from centralTrainingConfig.WDiscBinaryCentralTrainingConfig import CentralBinaryWDisc
 from centralTrainingConfig.ACGANCentralTrainingConfig import CentralACGan
+from centralTrainingConfig.ACGenCentralTrainingConfig import CentralACGenerator
+from centralTrainingConfig.ACDiscREALCentralTrainingConfig import CentralACDiscREAL
+from centralTrainingConfig.ACDiscCentralTrainingConfig import CentralACDisc
 
 def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_used, model_type, train_type,
                                    earlyStopEnabled, DP_enabled, lrSchedRedEnabled, modelCheckpointEnabled, X_train_data,
@@ -106,8 +109,10 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                               y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                               noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
-            client = None
+            client = CentralACGenerator
         elif train_type == "Discriminator":
-            client = None
+            client = CentralACDiscREAL
+            # optionally use discriminator that uses centralized training with fake data as well
+            # client = CentralACDisc
 
     return client

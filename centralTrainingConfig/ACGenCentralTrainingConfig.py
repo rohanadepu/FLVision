@@ -49,7 +49,7 @@ from sklearn.utils import shuffle
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
 
-class CentralACGan:
+class CentralACGenerator:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
                  log_file="training.log"):
