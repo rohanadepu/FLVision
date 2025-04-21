@@ -118,12 +118,6 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         """Logs model names, structures, and hyperparameters."""
         self.logger.info("=== Model Settings ===")
 
-        self.logger.info("Generator Model Summary:")
-        generator_summary = []
-        self.generator.summary(print_fn=lambda x: generator_summary.append(x))
-        for line in generator_summary:
-            self.logger.info(line)
-
         self.logger.info("Discriminator Model Summary:")
         discriminator_summary = []
         self.discriminator.summary(print_fn=lambda x: discriminator_summary.append(x))
@@ -156,9 +150,6 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         self.logger.info("Discriminator Metrics:")
         for key, value in d_metrics.items():
             self.logger.info(f"  {key}: {value}")
-        self.logger.info("Generator Metrics:")
-        for key, value in g_metrics.items():
-            self.logger.info(f"  {key}: {value}")
         if nids_metrics is not None:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
@@ -171,10 +162,6 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
-        if g_eval is not None:
-            self.logger.info("Generator Evaluation:")
-            for key, value in g_eval.items():
-                self.logger.info(f"  {key}: {value}")
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
