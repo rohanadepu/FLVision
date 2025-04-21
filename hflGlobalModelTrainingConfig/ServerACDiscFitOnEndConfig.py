@@ -207,8 +207,8 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
             optimizer=self.disc_optimizer,
             metrics={
-                'validity': ['accuracy', 'binary_accuracy', 'AUC'],
-                'class': ['accuracy', 'categorical_accuracy']
+                'validity': ['binary_accuracy'],
+                'class': ['categorical_accuracy']
             }
         )
 
@@ -295,7 +295,7 @@ class ACDiscriminatorSyntheticStrategy(fl.server.strategy.FedAvg):
                 d_val_loss, d_val_metrics = self.validation_disc()
 
                 # -- Probabilistic Fusion Validation -- #
-                self.logger.info("=== Probabilistic Fusion Validation ===")
+                self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
                 fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
                 self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 

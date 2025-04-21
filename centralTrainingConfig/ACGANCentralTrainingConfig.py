@@ -805,8 +805,7 @@ class CentralACGan:
             noise = tf.random.normal((len(X_test), self.latent_dim))
             fake_labels = tf.random.uniform((len(X_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
             generated_samples = self.generator.predict([noise, fake_labels])
-            # Rescale generated samples from [-1, 1] to [0, 1]
-            X_fake = (generated_samples + 1) / 2
+            X_fake = generated_samples
             y_fake = np.zeros((len(X_test),), dtype="int32")
 
             # Compute custom NIDS loss on real and fake outputs

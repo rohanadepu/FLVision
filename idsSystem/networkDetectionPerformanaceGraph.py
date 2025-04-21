@@ -2,22 +2,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_attack_detection_performance(true_positives=85, true_negatives=90, false_positives=10, false_negatives=15,
+def plot_attack_detection_performance(true_positives=14.86, true_negatives=16.61, false_positives=8.24,
+                                      false_negatives=7.67,
                                       model_name="NIDS Model", dataset="CICIOT",
-                                      attack_types=None, attack_detection_rates=None):
+                                      attack_types=None, attack_detection_rates=None,
+                                      use_log_scale=True):
     """
     Create a bar chart showing the performance metrics for network attack detection.
 
     Parameters:
     -----------
-    true_positives : int
-        Number of correctly identified attacks
-    true_negatives : int
-        Number of correctly identified normal traffic
-    false_positives : int
-        Number of normal traffic incorrectly labeled as attacks
-    false_negatives : int
-        Number of attacks incorrectly labeled as normal traffic
+    true_positives : float
+        Number of correctly identified attacks (log₂ scale if use_log_scale=True)
+    true_negatives : float
+        Number of correctly identified normal traffic (log₂ scale if use_log_scale=True)
+    false_positives : float
+        Number of normal traffic incorrectly labeled as attacks (log₂ scale if use_log_scale=True)
+    false_negatives : float
+        Number of attacks incorrectly labeled as normal traffic (log₂ scale if use_log_scale=True)
     model_name : str
         Name of the model used for detection
     dataset : str
@@ -26,14 +28,27 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
         List of attack types to show detection rates for
     attack_detection_rates : list of float, optional
         List of detection rates corresponding to attack_types
+    use_log_scale : bool
+        Whether the provided values are in log₂ scale
     """
 
-    # Calculate metrics
-    total = true_positives + true_negatives + false_positives + false_negatives
-    accuracy = 100 * (true_positives + true_negatives) / total
-    precision = 100 * true_positives / (true_positives + false_positives) if (
-                                                                                         true_positives + false_positives) > 0 else 0
-    recall = 100 * true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    # Convert log values to actual counts if necessary
+    if use_log_scale:
+        tp_actual = 2 ** true_positives
+        tn_actual = 2 ** true_negatives
+        fp_actual = 2 ** false_positives
+        fn_actual = 2 ** false_negatives
+    else:
+        tp_actual = true_positives
+        tn_actual = true_negatives
+        fp_actual = false_positives
+        fn_actual = false_negatives
+
+    # Calculate metrics based on actual counts
+    total = tp_actual + tn_actual + fp_actual + fn_actual
+    accuracy = 100 * (tp_actual + tn_actual) / total
+    precision = 100 * tp_actual / (tp_actual + fp_actual) if (tp_actual + fp_actual) > 0 else 0
+    recall = 100 * tp_actual / (tp_actual + fn_actual) if (tp_actual + fn_actual) > 0 else 0
     f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
     # Set up figure and primary axis for main metrics
@@ -44,20 +59,33 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
 
     # Create grouped bar chart for TP, TN, FP, FN
     categories = ['True\nPositives', 'True\nNegatives', 'False\nPositives', 'False\nNegatives']
+
+    # Use the log values for the bar chart
     values = [true_positives, true_negatives, false_positives, false_negatives]
     colors = ['#2ecc71', '#3498db', '#e74c3c', '#f39c12']
 
     bars1 = ax1.bar(categories, values, color=colors, width=0.6)
 
-    # Add data labels to the bars
-    for bar in bars1:
+    # Add data labels to the bars - show both log value and actual value
+    for bar, log_val, actual in zip(bars1, values, [tp_actual, tn_actual, fp_actual, fn_actual]):
         height = bar.get_height()
+        # Format actual values for better readability
+        if actual >= 1000:
+            actual_str = f"{actual / 1000:.1f}K"
+        else:
+            actual_str = f"{int(actual)}"
+
         ax1.text(bar.get_x() + bar.get_width() / 2., height + 0.1,
-                 f'{int(height)}', ha='center', va='bottom', fontweight='bold')
+                 f'log₂: {log_val:.2f}\n(≈{actual_str})', ha='center', va='bottom', fontweight='bold')
 
     # Set labels and title
-    ax1.set_ylabel('Count', fontsize=12)
+    ax1.set_ylabel('log₂ Count', fontsize=12)
+    ax1.set_title('Confusion Matrix (log₂ scale)', fontsize=14, pad=20)
     ax1.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Increase the top margin to make room for labels
+    y_max = max(values) * 1.15  # Add 15% extra space at the top
+    ax1.set_ylim(0, y_max)
 
     # Second subplot for performance metrics
     ax2 = plt.subplot2grid((2, 2), (0, 1))
@@ -77,6 +105,7 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
 
     # Set labels and title
     ax2.set_ylabel('Percentage (%)', fontsize=12)
+    ax2.set_title('Performance Metrics', fontsize=14, pad=20)
     ax2.set_ylim(0, 110)  # Set y-axis to go from 0 to 110 to make room for text
     ax2.grid(axis='y', linestyle='--', alpha=0.7)
 
@@ -111,7 +140,20 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
         if len(attack_types) > 5:
             plt.setp(ax3.get_xticklabels(), rotation=45, ha='right')
 
+    # Add overall title with dataset and model information
+    plt.suptitle(f'Attack Detection Performance: {model_name} on {dataset} Dataset', fontsize=16, y=0.98)
 
+    # Print the exact values used for reference
+    print(f"Log₂ Values Used:")
+    print(f"True Positives (log₂): {true_positives:.2f} → Actual: {int(tp_actual)}")
+    print(f"True Negatives (log₂): {true_negatives:.2f} → Actual: {int(tn_actual)}")
+    print(f"False Positives (log₂): {false_positives:.2f} → Actual: {int(fp_actual)}")
+    print(f"False Negatives (log₂): {false_negatives:.2f} → Actual: {int(fn_actual)}")
+    print(f"\nPerformance Metrics:")
+    print(f"Accuracy: {accuracy:.2f}%")
+    print(f"Precision: {precision:.2f}%")
+    print(f"Recall: {recall:.2f}%")
+    print(f"F1 Score: {f1_score:.2f}%")
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
@@ -119,26 +161,15 @@ def plot_attack_detection_performance(true_positives=85, true_negatives=90, fals
     return fig
 
 
-# Example usage with default values
-# fig = plot_attack_detection_performance()
-
-# Example with custom values
-# fig = plot_attack_detection_performance(
-#     true_positives=120,
-#     true_negatives=150,
-#     false_positives=8,
-#     false_negatives=12,
-#     model_name="WGAN-GP Federated Model",
-#     dataset="IOTBOTNET",
-#     attack_types=["DDoS", "Mirai", "Recon", "Spoofing", "Web", "BruteForce"],
-#     attack_detection_rates=[96.5, 88.2, 92.7, 75.4, 89.1, 94.3]
-# )
-
+# Example using the exact log base 2 values:
 fig = plot_attack_detection_performance(
-    true_positives=0,
-    true_negatives=711,
-    false_positives=36,
-    false_negatives=0,
+    true_positives=14.86,  # log₂(29700) ≈ 14.86
+    true_negatives=16.61,  # log₂(99796) ≈ 16.61
+    false_positives=8.24,  # log₂(303) ≈ 8.24
+    false_negatives=7.67,  # log₂(204) ≈ 7.67
+    model_name="ACGAN Federated Model",
+    dataset="CICIOT",
+    use_log_scale=True  # Indicate that we're using log₂ values
 )
 
 plt.show()
