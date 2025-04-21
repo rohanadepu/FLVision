@@ -69,6 +69,7 @@ class CentralACGan:
         #-- training duration
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
+        self.disc_gen_ratio = 3
 
         #-- Data
         # Features
@@ -285,51 +286,66 @@ class CentralACGan:
             print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
 
+            # Track metrics for logging
+            d_loss_avg = 0
+            d_validity_acc_avg = 0
+            d_class_acc_avg = 0
+
             # --------------------------
             # Train Discriminator
             # --------------------------
-            # -- Source the real data -- #
-            # Sample a batch of real data
-            idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
-            real_data = tf.gather(X_train, idx)
-            real_labels = tf.gather(y_train, idx)
+            for d_iter in range(self.disc_gen_ratio):
+                # -- Source the real data -- #
+                idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
+                real_data = tf.gather(X_train, idx)
+                real_labels = tf.gather(y_train, idx)
 
-            # Ensure labels are one-hot encoded
-            if len(real_labels.shape) == 1:
-                real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
-            else:
-                real_labels_onehot = real_labels
+                # Ensure labels are one-hot encoded
+                if len(real_labels.shape) == 1:
+                    real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
+                else:
+                    real_labels_onehot = real_labels
 
-            # -- Generate fake data -- #
-            # Sample the noise data
-            noise = tf.random.normal((self.batch_size, self.latent_dim))
-            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
-            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+                # -- Generate fake data -- #
+                noise = tf.random.normal((self.batch_size, self.latent_dim))
+                fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
+                fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-            # generate data from noise and desired labels
-            generated_data = self.generator.predict([noise, fake_labels])
+                # Generate data from noise and desired labels
+                generated_data = self.generator.predict([noise, fake_labels])
 
-            # -- Train discriminator on real and fake data -- #
-            d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
-            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
-            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
+                # -- Train discriminator on real and fake data -- #
+                d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
+                d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
+                d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
 
-            # Collect discriminator metrics
-            d_metrics = {
-                "Total Loss": f"{d_loss[0]:.4f}",
-                "Validity Loss": f"{d_loss[1]:.4f}",
-                "Class Loss": f"{d_loss[2]:.4f}",
-                "Validity Binary Accuracy": f"{d_loss[3] * 100:.2f}%",
-                "Class Categorical Accuracy": f"{d_loss[4] * 100:.2f}%"
-            }
-            self.logger.info("Training Discriminator")
-            self.logger.info(
-                f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
-            self.logger.info(
-                f"Validity Binary Accuracy: {d_loss[3] * 100:.2f}%")
-            self.logger.info(
-                f"Class Categorical Accuracy: {d_loss[4] * 100:.2f}%")
+                # Accumulate metrics for averaging
+                d_loss_avg += d_loss[0]
+                d_validity_acc_avg += d_loss[3]
+                d_class_acc_avg += d_loss[4]
 
+                # Log the last iteration metrics
+                if d_iter == self.disc_gen_ratio - 1:
+                    # Average the metrics over all iterations
+                    d_loss_avg /= self.disc_gen_ratio
+                    d_validity_acc_avg /= self.disc_gen_ratio
+                    d_class_acc_avg /= self.disc_gen_ratio
+
+                    # Collect discriminator metrics
+                    d_metrics = {
+                        "Total Loss": f"{d_loss_avg:.4f}",
+                        "Validity Loss": f"{d_loss[1]:.4f}",
+                        "Class Loss": f"{d_loss[2]:.4f}",
+                        "Validity Binary Accuracy": f"{d_validity_acc_avg * 100:.2f}%",
+                        "Class Categorical Accuracy": f"{d_class_acc_avg * 100:.2f}%"
+                    }
+                    self.logger.info(f"Training Discriminator ({self.disc_gen_ratio} iterations)")
+                    self.logger.info(
+                        f"Discriminator Avg Total Loss: {d_loss_avg:.4f} | Last Valid Loss: {d_loss[1]:.4f} | Last Class Loss: {d_loss[2]:.4f}")
+                    self.logger.info(
+                        f"Avg Validity Binary Accuracy: {d_validity_acc_avg * 100:.2f}%")
+                    self.logger.info(
+                        f"Avg Class Categorical Accuracy: {d_class_acc_avg * 100:.2f}%")
             # --------------------------
             # Train Generator (AC-GAN)
             # --------------------------

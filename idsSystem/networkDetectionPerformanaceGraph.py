@@ -95,18 +95,44 @@ def plot_attack_detection_performance(true_positives=14.86, true_negatives=16.61
     performance = [accuracy, precision, recall, f1_score]
     colors = ['#9b59b6', '#1abc9c', '#34495e', '#2980b9']
 
-    bars2 = ax2.bar(metrics, performance, color=colors, width=0.6)
+    # Check if all metrics are above 99%
+    all_high_performance = all(perf >= 99.0 for perf in performance)
 
-    # Add data labels
-    for bar in bars2:
-        height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width() / 2., height + 0.1,
-                 f'{height:.1f}%', ha='center', va='bottom', fontweight='bold')
+    # Create a new normalized performance array if all metrics are high
+    if all_high_performance:
+        # Save original values for labels
+        original_performance = performance.copy()
+
+        # Normalize values to 99-100% range for better visualization
+        normalized_performance = [99.0 + (perf - 99.0) * 10 for perf in performance]
+        bars2 = ax2.bar(metrics, normalized_performance, color=colors, width=0.6)
+
+        # Set y-axis to focus on 99-100% range
+        ax2.set_ylim(98.5, 100.5)
+
+        # Add a note about the normalized scale
+        ax2.text(0.5, 98.8, "Note: Y-axis normalized to 99-100% range",
+                 ha='center', fontsize=10, style='italic', color='gray')
+
+        # Add data labels showing original values
+        for bar, orig_height in zip(bars2, original_performance):
+            height = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width() / 2., height + 0.05,
+                     f'{orig_height:.2f}%', ha='center', va='bottom', fontweight='bold')
+    else:
+        # Use regular scaling if not all metrics are high
+        bars2 = ax2.bar(metrics, performance, color=colors, width=0.6)
+        ax2.set_ylim(0, 110)
+
+        # Add data labels
+        for bar in bars2:
+            height = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width() / 2., height + 0.1,
+                     f'{height:.1f}%', ha='center', va='bottom', fontweight='bold')
 
     # Set labels and title
     ax2.set_ylabel('Percentage (%)', fontsize=12)
     ax2.set_title('Performance Metrics', fontsize=14, pad=20)
-    ax2.set_ylim(0, 110)  # Set y-axis to go from 0 to 110 to make room for text
     ax2.grid(axis='y', linestyle='--', alpha=0.7)
 
     # Third subplot for attack type detection rates (if provided)
@@ -155,18 +181,21 @@ def plot_attack_detection_performance(true_positives=14.86, true_negatives=16.61
     print(f"Recall: {recall:.2f}%")
     print(f"F1 Score: {f1_score:.2f}%")
 
+    if all_high_performance:
+        print("\nNote: All performance metrics are above 99%. The chart has been normalized to show the 99-100% range.")
+
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
     return fig
 
 
-# Example using the exact log base 2 values:
+# Example using the exact log base 2 values with high performance metrics:
 fig = plot_attack_detection_performance(
-    true_positives=14.86,  # log₂(29700) ≈ 14.86
-    true_negatives=16.61,  # log₂(99796) ≈ 16.61
-    false_positives=8.24,  # log₂(303) ≈ 8.24
-    false_negatives=7.67,  # log₂(204) ≈ 7.67
+    true_positives=14.263,  # log₂(19662)
+    true_negatives=14.288,  # log₂(20000)
+    false_positives=0.0001,  # Almost 0
+    false_negatives=8.401,  # log₂(338)
     model_name="ACGAN Federated Model",
     dataset="CICIOT",
     use_log_scale=True  # Indicate that we're using log₂ values

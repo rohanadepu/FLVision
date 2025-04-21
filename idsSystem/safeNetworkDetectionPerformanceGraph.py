@@ -131,8 +131,8 @@ def plot_attack_detection_performance(true_negatives=16.61, false_positives=8.24
 
 # Example using the exact log base 2 values:
 fig = plot_attack_detection_performance(
-    true_negatives=9.474,  # log₂(99796) ≈ 16.61
-    false_positives=5.17,  # log₂(303) ≈ 8.24
+    true_negatives=9.342,  # log₂(99796) ≈ 16.61
+    false_positives=6.615,  # log₂(303) ≈ 8.24
     model_name="ACGAN Federated Model",
     dataset="CICIOT",
     use_log_scale=True  # Indicate that we're using log₂ values
