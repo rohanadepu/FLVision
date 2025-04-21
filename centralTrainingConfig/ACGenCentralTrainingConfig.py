@@ -124,8 +124,8 @@ class CentralACGenerator:
             loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
             optimizer=self.gen_optimizer,
             metrics={
-                'Discriminator': ['accuracy', 'binary_accuracy', 'AUC'],
-                'Discriminator_1': ['accuracy', 'categorical_accuracy']
+                'Discriminator': ['binary_accuracy'],
+                'Discriminator_1': ['categorical_accuracy']
             }
         )
 
