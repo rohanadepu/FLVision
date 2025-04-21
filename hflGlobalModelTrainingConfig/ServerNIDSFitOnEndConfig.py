@@ -147,41 +147,41 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
         fake_labels = np.random.randint(0, self.num_classes, num_samples)
         return self.ACgenerator.predict([noise, fake_labels]), fake_labels
 
-    def generate_balanced_synthetic_data(self, num_samples, target_classes=None):
+    def generate_balanced_synthetic_data(self, num_samples):
         """
-        Generates balanced synthetic data using the AC-GAN generator.
+        Generates balanced synthetic data using the AC-GAN generator with equal distribution
+        of classes 0 and 1.
 
         Parameters:
         - num_samples: Total number of samples to generate
-        - target_classes: List of specific class labels to generate (defaults to all classes)
 
         Returns:
         - X_synthetic: Generated synthetic data
         - y_synthetic: Corresponding class labels
         """
-        # If no specific classes requested, use all classes
-        if target_classes is None:
-            target_classes = list(range(self.num_classes))
+        # Calculate samples per class (ensure we get the same number for each class)
+        samples_per_class = num_samples // self.num_classes
 
-        num_target_classes = len(target_classes)
-
-        # Calculate samples per class (ensure divisibility)
-        samples_per_class = num_samples // num_target_classes
-
+        # Prepare containers for our data
         synthetic_data_list = []
         labels_list = []
 
-        # Generate equal samples for each requested class
-        for class_idx in target_classes:
+        # Generate equal samples for each class
+        for class_idx in range(self.num_classes):
+            # Generate noise
             noise = np.random.normal(0, 1, (samples_per_class, self.latent_dim))
+
+            # Create labels array for this class
             fake_labels = np.full(samples_per_class, class_idx)
 
+            # Generate data for this class
             class_data = self.ACgenerator.predict([noise, fake_labels])
 
+            # Store the generated data and labels
             synthetic_data_list.append(class_data)
             labels_list.append(fake_labels)
 
-        # Combine and shuffle
+        # Combine all the generated data
         X_synthetic = np.vstack(synthetic_data_list)
         y_synthetic = np.hstack(labels_list)
 
@@ -237,14 +237,26 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
             # rename file_name for saved model after adv training
             self.file_name = f"NIDS_ATSS_{self.save_name}.h5"
 
-            # gather the synthetic samples
-            print("\nGenerating Synthetic Data for Augmentation...\n")
+            # gather the synthetic samples with balanced classes
+            print("\nGenerating Balanced Synthetic Data for Augmentation...\n")
             num_synthetic_samples = int(self.synth_portion * len(self.X_train_data))
-            X_synthetic, y_synthetic = self.generate_synthetic_data(num_synthetic_samples)
+            X_synthetic, y_synthetic = self.generate_balanced_synthetic_data(num_synthetic_samples)
+
+            # Log the distribution of synthetic labels
+            unique_labels, counts = np.unique(y_synthetic, return_counts=True)
+            print(f"Synthetic data class distribution:")
+            for label, count in zip(unique_labels, counts):
+                print(f"  Class {label}: {count} samples ({count / len(y_synthetic) * 100:.1f}%)")
 
             # Concatenate with real training data
             self.X_train_data = np.vstack((self.X_train_data, X_synthetic))
             self.y_train_data = np.hstack((self.y_train_data, y_synthetic))
+
+            # Log the distribution of the combined dataset
+            unique_labels, counts = np.unique(self.y_train_data, return_counts=True)
+            print(f"Combined dataset class distribution:")
+            for label, count in zip(unique_labels, counts):
+                print(f"  Class {label}: {count} samples ({count / len(self.y_train_data) * 100:.1f}%)")
         # EoF Synthetic Augmentation
 
         #-- Train NIDS Model on (with or without Augmented) Dataset--#
