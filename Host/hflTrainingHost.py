@@ -80,8 +80,9 @@ def main():
                         choices=["NIDS", "NIDS-IOT-Binary", "NIDS-IOT-Multiclass", "NIDS-IOT-Multiclass-Dynamic", "GAN",
                                  "WGAN-GP", "AC-GAN"], help='Please select NIDS, NIDS-IOT-Binary, NIDS-IOT-Multiclass, NIDS-IOT-Multiclass-Dynamic, GAN, WGAN-GP, or AC-GAN as the model type to train')
 
-    parser.add_argument('--model_training', type=str, choices=["NIDS", "Discriminator", "GAN"],
-                        help='Please select NIDS, Discriminator, GAN as the model type to train')
+    parser.add_argument('--model_training', type=str, choices=["NIDS", "Discriminator", "Both"],
+                        default="Both",
+                        help='Please select NIDS, Generator, Discriminator, Both as the sub-model type to train')
 
     # Optional
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs to train the model")
