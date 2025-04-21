@@ -108,7 +108,7 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
         # saving
         self.save_name = save_name
         self.serverLoad = serverLoad
-        self.file_name = f"../pretrainedModels/NIDS_AT_{self.save_name}.h5"
+        self.file_name = f"../pretrainedModels/NIDS_AT_{self.save_name}"
 
         # counters
         self.roundCount = 0
@@ -235,7 +235,7 @@ class NIDSFitOnEndStrategy(fl.server.strategy.FedAvg):
         # If generator exists (optional), generate a selected portion of data to augment the training dataset
         if self.ACgenerator is not None:
             # rename file_name for saved model after adv training
-            self.file_name = f"NIDS_ATSS_{self.save_name}.h5"
+            self.file_name = f"NIDS_ATSS_{self.save_name}"
 
             # gather the synthetic samples with balanced classes
             print("\nGenerating Balanced Synthetic Data for Augmentation...\n")

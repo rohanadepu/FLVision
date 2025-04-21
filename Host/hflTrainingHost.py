@@ -165,7 +165,7 @@ def main():
     # Make Save name for model based on Arguments
     save_name = f""
     if fitOnEnd is True:
-        save_name = f"'fitOnEnd'_{dataset_used}_{dataset_processing}_{model_type}_{train_type}_{save_name_input}.h5"
+        save_name = f"fitOnEnd_{dataset_used}_{dataset_processing}_{model_type}_{train_type}_{save_name_input}.h5"
     # if base strategies
     else:
         save_name = f"{model_type}_{train_type}_{save_name_input}.h5"
@@ -306,9 +306,9 @@ def main():
                         l2lr_patience=l2lr_patience,  # Learning rate schedule patience
                         save_best_only=save_best_only,  # Save best model only
                         metric_to_monitor_mc=metric_to_monitor_mc,  # Model checkpoint monitor metric
-                        checkpoint_mode=checkpoint_mode, # Save best model based on max value of metric
-                        save_name = save_name,
-                        serverLoad = serverLoad,
+                        checkpoint_mode=checkpoint_mode,  # Save best model based on max value of metric
+                        save_name=save_name,
+                        serverLoad=serverLoad,
                     )
                 )
 
