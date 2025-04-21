@@ -64,7 +64,8 @@ def create_generator_optimized(input_dim, noise_dim):
 
     return generator
 
-def build_AC_generator(latent_dim, num_classes, input_dim):
+
+def build_AC_generator_ver_0(latent_dim, num_classes, input_dim):
     noise_input = Input(shape=(latent_dim,))
     label_input = Input(shape=(1,), dtype='int32')
 
@@ -87,6 +88,34 @@ def build_AC_generator(latent_dim, num_classes, input_dim):
     return Model([noise_input, label_input], output, name="ACGenerator")
 
 
+def build_improved_AC_generator(latent_dim, num_classes, input_dim):
+    noise_input = Input(shape=(latent_dim,))
+    label_input = Input(shape=(1,), dtype='int32')
+
+    # Using a larger embedding dimension for better class representation
+    label_embedding = Embedding(num_classes, 256)(label_input)
+    label_embedding = Flatten()(label_embedding)
+
+    # Concatenate noise and label embedding
+    merged_input = Concatenate()([noise_input, label_embedding])
+
+    # Progressive growth of feature maps with BatchNormalization
+    x = Dense(128)(merged_input)
+    x = BatchNormalization()(x)  # Add normalization
+    x = LeakyReLU(0.2)(x)
+
+    x = Dense(256)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(0.2)(x)
+
+    x = Dense(512)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(0.2)(x)
+
+    # Final output - keep tanh activation
+    output = Dense(input_dim, activation='tanh')(x)
+
+    return Model([noise_input, label_input], output, name="ACGenerator")
 
 # WGAN
 

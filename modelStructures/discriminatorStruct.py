@@ -157,7 +157,7 @@ def build_AC_discriminator_ver_2(input_dim, num_classes):
     return Model(data_input, [validity, label_output], name="Discriminator")
 
 
-def build_AC_discriminator(input_dim, num_classes):
+def build_AC_discriminator_ver_3a(input_dim, num_classes):
     data_input = Input(shape=(input_dim,))
 
     # Increase regularization and dropout in initial layers
@@ -372,6 +372,39 @@ def build_AC_discriminator_ver_4(input_dim, num_classes):
     # Softmax output for class prediction
     label_output = Dense(num_classes, activation='softmax', name="class",
                          kernel_regularizer=l2(0.001))(class_branch)
+
+    return Model(data_input, [validity, label_output], name="Discriminator")
+
+
+def build_improved_AC_discriminator(input_dim, num_classes):
+    data_input = Input(shape=(input_dim,))
+
+    # Simplify the backbone with fewer layers and less regularization
+    x = Dense(256, kernel_regularizer=l2(0.0005))(data_input)  # Reduced regularization
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.25)(x)  # Reduced dropout
+
+    x = Dense(128, kernel_regularizer=l2(0.0005))(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.25)(x)
+
+    # Shared feature extraction without batch normalization
+    shared = Dense(64)(x)
+    shared = LeakyReLU(0.2)(shared)
+
+    # Simplified validity branch - remove residual connections
+    validity_branch = Dense(32)(shared)
+    validity_branch = LeakyReLU(0.2)(validity_branch)
+
+    # Option 1: For better metrics tracking, use linear output with BCE from_logits=True
+    validity = Dense(1, name="validity")(validity_branch)
+    # Option 2: Or keep sigmoid if it works better in practice
+    # validity = Dense(1, activation='sigmoid', name="validity")(validity_branch)
+
+    # Simplified class branch - remove residual connections
+    class_branch = Dense(32)(shared)
+    class_branch = LeakyReLU(0.2)(class_branch)
+    label_output = Dense(num_classes, activation='softmax', name="class")(class_branch)
 
     return Model(data_input, [validity, label_output], name="Discriminator")
 
