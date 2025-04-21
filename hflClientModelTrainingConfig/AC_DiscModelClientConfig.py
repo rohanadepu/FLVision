@@ -75,6 +75,7 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         self.y_test = y_test
         self.y_val = y_val
 
+        print(log_file)
         # -- Setup Logging
         self.setup_logger(log_file)
 
