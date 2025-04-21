@@ -157,7 +157,7 @@ def build_AC_discriminator_ver_2(input_dim, num_classes):
     return Model(data_input, [validity, label_output], name="Discriminator")
 
 
-def build_AC_discriminator_ver_3a(input_dim, num_classes):
+def build_AC_discriminator(input_dim, num_classes):
     data_input = Input(shape=(input_dim,))
 
     # Increase regularization and dropout in initial layers
@@ -376,7 +376,7 @@ def build_AC_discriminator_ver_4(input_dim, num_classes):
     return Model(data_input, [validity, label_output], name="Discriminator")
 
 
-def build_AC_discriminator(input_dim, num_classes):
+def build_AC_discriminator_v5(input_dim, num_classes):
     data_input = Input(shape=(input_dim,))
 
     # Simplify the backbone with fewer layers and less regularization
