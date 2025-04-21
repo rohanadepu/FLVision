@@ -109,7 +109,9 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                               y_val_data, X_test_data, y_test_data, BATCH_SIZE,
                               noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate)
         elif train_type == "Generator":
-            client = CentralACGenerator()
+            client = CentralACGenerator(discriminator, generator, nids, X_train_data, X_val_data, y_train_data,
+                                        y_val_data, X_test_data, y_test_data, BATCH_SIZE, noise_dim, latent_dim,
+                                        num_classes, input_dim, epochs, steps_per_epoch)
         elif train_type == "Discriminator":
             client = CentralACDiscREAL()
             # optionally use discriminator that uses centralized training with fake data as well
