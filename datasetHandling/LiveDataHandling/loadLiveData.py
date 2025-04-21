@@ -109,6 +109,7 @@ def loadLiveCaptureData(verbose=True, sample_size=2, dataset_size=1000):
 
     # List and sorts the files in the dataset directory
     csv_filepaths = sorted([filename for filename in os.listdir(DATASET_DIRECTORY) if filename.endswith('.csv')])
+    print(csv_filepaths)
     liveData_files = random.sample(csv_filepaths, sample_size)
 
     if verbose:
