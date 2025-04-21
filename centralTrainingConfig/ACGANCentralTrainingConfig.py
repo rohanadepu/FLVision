@@ -70,7 +70,7 @@ class CentralACGan:
         self.max_epochs = epochs  # Store the maximum possible epochs
         self.epochs = min(25, epochs)  # Start with 25 epochs for progressive training
         self.steps_per_epoch = steps_per_epoch
-        self.disc_gen_ratio = 3
+        self.disc_gen_ratio = 1
 
         # -- Early stopping parameters
         self.early_stop_patience = 12  # Number of epochs to wait for improvement
