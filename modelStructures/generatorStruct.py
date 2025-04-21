@@ -93,7 +93,7 @@ def build_improved_AC_generator(latent_dim, num_classes, input_dim):
     label_input = Input(shape=(1,), dtype='int32')
 
     # Using a larger embedding dimension for better class representation
-    label_embedding = Embedding(num_classes, 256)(label_input)
+    label_embedding = Embedding(num_classes, latent_dim)(label_input)
     label_embedding = Flatten()(label_embedding)
 
     # Concatenate noise and label embedding
