@@ -1,0 +1,48 @@
+/**
+ * Import the 'Material Symbols Outlined' font for the folder icon for API (sub)modules.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
+
+/*ul.md-nav__list li.md-nav__item .md-nav__container a.md-nav__link span::before {*/
+li.md-nav__item--nested:not(.md-nav__item--section) .md-nav__container a.md-nav__link span.md-ellipsis::before {
+    /*font-family: "Material Design Icons";*/
+    /*content: "\e2c7";*/
+    font-family: 'Material Symbols Outlined';
+    content: "\e2c7";
+}
+
+/**
+ * Styling for code snippets.
+ */
+.md-typeset code,
+.md-typeset kbd,
+.md-typeset pre {
+    font-feature-settings: "kern", "liga";
+    font-variant-ligatures: normal;
+}
+
+
+/** This code adds the FLoX logo to the top of the left sidebar. */
+/*
+@media (prefers-color-scheme: light) {
+    .md-sidebar--primary::before {
+        content: "";
+        background: url("../assets/logos/light-logo.png");
+        background-size: contain;
+        width: 100%;
+        padding-top: 100%;
+        display: block;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .md-sidebar--primary::before {
+        content: "";
+        background: url("../assets/logos/dark-logo.png");
+        background-size: contain;
+        width: 100%;
+        padding-top: 100%;
+        display: block;
+    }
+}
+*/
