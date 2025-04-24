@@ -41,7 +41,7 @@
 
 * Download the Default Dataset CICIOT2023 from https://www.unb.ca/cic/datasets/iotdataset-2023.html
 
-* Upload the Compressed Dataset into $HOME/datasets/ and then unzip the files into $HOME/datasets/CICIOT2023
+* Upload the Compressed Dataset into $HOME/datasets/ (I would use filezilla) and then unzip the files into $HOME/datasets/CICIOT2023 with: unzip ./CICIoT2023.zip -d ./CICIOT2023
 
   -- Device Is Ready for Training --
 
