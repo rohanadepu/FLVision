@@ -29,6 +29,25 @@
 
 * **Jenaya Monroe (2024):** Drone Hardware Specialist, Test-Bed Manager
 
+## EZ PZ Quick Setup
+
+* Ensure that the environment is using Ubuntu 22 with CUDA (12) drivers supporting P-100
+
+* Git clone our repo with: git clone https://github.com/Keko787/HFL-DNN-GAN-IDS.git
+
+* Use this install cmd: sudo apt install python3-pip libcairo2-dev pkg-config python3-dev unzip
+
+* Then run python3 ./HFL-DNN-GAN-IDS/SetUp_Scripts/AERPAW_node_Setup.py
+
+* Download the Default Dataset CICIOT2023 from https://www.unb.ca/cic/datasets/iotdataset-2023.html
+
+* Upload the Compressed Dataset into $HOME/datasets/ and then unzip the files into $HOME/datasets/CICIOT2023
+
+  -- Device Is Ready for Training --
+
+  On the server, for federated training, use the _./HFL-DNN-GAN-IDS/Host/hflTrainingHost.py_ script (Please check the script argument usage to see the settings)
+
+  On the Client, for localized training or federated training, use the _./HFL-DNN-GAN-IDS/Client/TrainingClient.py_ script (Please check the script argument usage to see the settings, CICIOT2023 dataset is a default setting)
 
 ## Previous Works
 
