@@ -300,6 +300,10 @@ class CentralACGan:
                 benign_data = tf.gather(X_train, benign_idx)
                 benign_labels = tf.gather(y_train, benign_idx)
 
+                # Fix the shape issue - ensure benign_data is 2D
+                if len(benign_data.shape) > 2:
+                    benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
+
                 # Ensure one-hot encoding
                 if len(benign_labels.shape) == 1:
                     benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
@@ -314,6 +318,10 @@ class CentralACGan:
                 attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
                 attack_data = tf.gather(X_train, attack_idx)
                 attack_labels = tf.gather(y_train, attack_idx)
+
+                # Fix the shape issue - ensure attack_data is 2D
+                if len(attack_data.shape) > 2:
+                    attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
 
                 # Ensure one-hot encoding
                 if len(attack_labels.shape) == 1:
@@ -335,7 +343,6 @@ class CentralACGan:
             generated_data = self.generator.predict([noise, fake_labels])
 
             # -- Train discriminator on fake data -- #
-
             d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
 
             # Inside the fit method after training on benign, attack, and fake data
@@ -692,6 +699,12 @@ class CentralACGan:
         y_val_benign_onehot = tf.gather(y_val_onehot, benign_indices[:, 0])
         x_val_attack = tf.gather(self.x_val, attack_indices[:, 0])
         y_val_attack_onehot = tf.gather(y_val_onehot, attack_indices[:, 0])
+
+        # Fix shape issues
+        if len(x_val_benign.shape) > 2:
+            x_val_benign = tf.reshape(x_val_benign, (x_val_benign.shape[0], -1))
+        if len(x_val_attack.shape) > 2:
+            x_val_attack = tf.reshape(x_val_attack, (x_val_attack.shape[0], -1))
 
         # --- Generate fake data ---
         noise = tf.random.normal((len(self.x_val), self.latent_dim))
