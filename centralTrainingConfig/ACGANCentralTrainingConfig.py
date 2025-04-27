@@ -304,14 +304,23 @@ class CentralACGan:
                 if len(benign_data.shape) > 2:
                     benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
 
-                # Ensure one-hot encoding
+                # Ensure one-hot encoding with correct shape
                 if len(benign_labels.shape) == 1:
                     benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
                 else:
                     benign_labels_onehot = benign_labels
 
+                # Ensure benign_labels_onehot has shape (batch_size, num_classes)
+                if len(benign_labels_onehot.shape) > 2:
+                    benign_labels_onehot = tf.reshape(benign_labels_onehot,
+                                                      (benign_labels_onehot.shape[0], self.num_classes))
+
+                # Create valid labels with correct shape
+                valid_smooth_benign = tf.ones((benign_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+
                 # Train discriminator on real benign data
-                d_loss_benign = self.discriminator.train_on_batch(benign_data, [valid_smooth, benign_labels_onehot])
+                d_loss_benign = self.discriminator.train_on_batch(benign_data,
+                                                                  [valid_smooth_benign, benign_labels_onehot])
 
             # - Train on attack data - #
             if len(attack_indices) > self.batch_size:
@@ -323,14 +332,23 @@ class CentralACGan:
                 if len(attack_data.shape) > 2:
                     attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
 
-                # Ensure one-hot encoding
+                # Ensure one-hot encoding with correct shape
                 if len(attack_labels.shape) == 1:
                     attack_labels_onehot = tf.one_hot(tf.cast(attack_labels, tf.int32), depth=self.num_classes)
                 else:
                     attack_labels_onehot = attack_labels
 
+                # Ensure attack_labels_onehot has shape (batch_size, num_classes)
+                if len(attack_labels_onehot.shape) > 2:
+                    attack_labels_onehot = tf.reshape(attack_labels_onehot,
+                                                      (attack_labels_onehot.shape[0], self.num_classes))
+
+                # Create valid labels with correct shape
+                valid_smooth_attack = tf.ones((attack_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+
                 # Train discriminator on real attack data
-                d_loss_attack = self.discriminator.train_on_batch(attack_data, [valid_smooth, attack_labels_onehot])
+                d_loss_attack = self.discriminator.train_on_batch(attack_data,
+                                                                  [valid_smooth_attack, attack_labels_onehot])
 
             # -- Train on fake data -- #
             # -- Generate fake data -- #
