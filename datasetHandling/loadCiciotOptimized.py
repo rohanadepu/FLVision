@@ -255,7 +255,6 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
     # -- INIT Critical Variables -- #
     DATASET_DIRECTORY = f'/root/datasets/CICIOT2023_POISONED{poisonedDataType}' if poisonedDataType else '../../datasets/CICIOT2023'
 
-
     training_benign_size = training_dataset_size // 2
     testing_benign_size = testing_dataset_size // 2
 
@@ -275,8 +274,8 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
     if random_seed is not None:
         # Create a random state object from the seed
         random_state = random.Random(random_seed)
-        train_files = random.sample(csv_filepaths, train_sample_size)
-        test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
+        train_files = random_state.sample(csv_filepaths, train_sample_size)
+        test_files = random_state.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
     else:
         train_files = random.sample(csv_filepaths, train_sample_size)
         test_files = random.sample([f for f in csv_filepaths if f not in train_files], test_sample_size)
@@ -285,8 +284,7 @@ def loadCICIOT(poisonedDataType=None, verbose=True, train_sample_size=25, test_s
         print("\nTraining Sets:\n", train_files, "\n")
         print("\nTest Sets:\n", test_files, "\n")
 
-    #--- Load Train Data Samples from files ---#
-
+    # --- Load Train Data Samples from files --- #
     if verbose:
         print("\n-- Loading Training Data --\n")
 
