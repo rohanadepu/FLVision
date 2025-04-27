@@ -368,10 +368,10 @@ class CentralACGan:
                 d_loss_benign,
                 d_loss_attack,
                 d_loss_fake,
-                attack_weight=0.7,  # Adjust as needed
-                benign_weight=0.3,  # Adjust as needed
-                validity_weight=0.4,  # Adjust as needed
-                class_weight=0.6  # Adjust as needed
+                attack_weight=0.5,  # Adjust as needed
+                benign_weight=0.5,  # Adjust as needed
+                validity_weight=0.5,  # Adjust as needed
+                class_weight=0.5  # Adjust as needed
             )
 
             # Log the metrics
