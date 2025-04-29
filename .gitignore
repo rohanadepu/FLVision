@@ -1,0 +1,7 @@
+__pycache__/
+*.feather
+*.pt
+*.log
+*.zip
+tmp/
+datasets/

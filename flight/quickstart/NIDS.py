@@ -4,12 +4,11 @@ from flight.nn import FloxModule
 
 
 class NIDSModule(FloxModule):
-    def __init__(self, input_dim=28 * 28, hidden_dim=512, output_dim=10, lr: float = 0.01):
+    def __init__(self, input_dim=16, hidden_dim=64, output_dim=2, lr: float = 0.01):
         super().__init__()
         self.lr = lr
-        self.last_accuracy = torch.tensor(0.0)  # required by federated_fit
+        self.last_accuracy = torch.tensor(0.0)
 
-        self.flatten = torch.nn.Flatten()
         self.linear_stack = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
@@ -19,7 +18,6 @@ class NIDSModule(FloxModule):
         )
 
     def forward(self, x):
-        x = self.flatten(x)
         return self.linear_stack(x)
 
     def training_step(self, batch, batch_idx):
