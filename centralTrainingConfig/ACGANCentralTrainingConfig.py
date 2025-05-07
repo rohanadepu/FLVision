@@ -389,6 +389,9 @@ class CentralACGan:
             # --------------------------
             # Train Generator (AC-GAN)
             # --------------------------
+            # -- Freeze discriminator for generator training -- #
+            self.discriminator.trainable = False
+
             # -- Generate noise and label inputs for ACGAN -- #
             noise = tf.random.normal((self.batch_size, self.latent_dim))
             sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
@@ -397,6 +400,9 @@ class CentralACGan:
 
             # -- Train ACGAN with sampled noise data -- #
             g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
+
+            # -- Unfreeze discriminator for next steps -- #
+            self.discriminator.trainable = True
 
             # Collect generator metrics
             g_metrics = {
@@ -535,6 +541,39 @@ class CentralACGan:
         }
 
         return d_loss, d_metrics
+
+    def calculate_jsd_loss(self, real_outputs, fake_outputs):
+        """
+        Calculate Jensen-Shannon Divergence Loss between real and fake sample distributions.
+        This can be used as an alternative or supplement to binary cross entropy for
+        measuring discriminator performance.
+
+        Parameters:
+        -----------
+        real_outputs : tensor
+            Discriminator outputs for real samples
+        fake_outputs : tensor
+            Discriminator outputs for fake samples
+
+        Returns:
+        --------
+        float : JSD loss value
+        """
+        # Average probabilities
+        p_real = tf.reduce_mean(real_outputs, axis=0)
+        p_fake = tf.reduce_mean(fake_outputs, axis=0)
+
+        # Calculate mixtures
+        p_mixture = 0.5 * (p_real + p_fake)
+
+        # Calculate JS divergence
+        kl_real_mix = tf.reduce_sum(p_real * tf.math.log(p_real / p_mixture + 1e-10))
+        kl_fake_mix = tf.reduce_sum(p_fake * tf.math.log(p_fake / p_mixture + 1e-10))
+
+        # JS divergence
+        jsd = 0.5 * (kl_real_mix + kl_fake_mix)
+
+        return jsd
 
     def nids_loss(self, real_output, fake_output):
         """
