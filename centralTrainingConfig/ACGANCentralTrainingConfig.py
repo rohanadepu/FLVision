@@ -136,8 +136,6 @@ class CentralACGan:
         return self.ACGAN
 
     # -- logging Functions -- #
-
-
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
         self.logger = logging.getLogger("CentralACGan")
@@ -235,12 +233,25 @@ class CentralACGan:
         self.logger.info("=" * 50)
 
     # -- Train -- #
-    def fit(self, X_train=None, y_train=None):
+    def fit(self, X_train=None, y_train=None, d_to_g_ratio=3):
+        """
+        Train the AC-GAN with a configurable ratio between discriminator and generator training steps.
+
+        Parameters:
+        -----------
+        X_train : array-like, optional
+            Training features. If None, uses self.x_train.
+        y_train : array-like, optional
+            Training labels. If None, uses self.y_train.
+        d_to_g_ratio : int, optional
+            Ratio of discriminator training steps to generator training steps.
+            Default is 3 (train discriminator 3 times for each generator training step).
+        """
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
 
-        # -- make sure discriminator is trainable for individual training -- #
+        # -- Make sure discriminator is trainable for individual training -- #
         self.discriminator.trainable = True
         # Ensure all layers within discriminator are trainable
         for layer in self.discriminator.layers:
@@ -258,6 +269,7 @@ class CentralACGan:
 
         # Log model settings at the start
         self.log_model_settings()
+        self.logger.info(f"Training with discriminator-to-generator ratio: {d_to_g_ratio}:1")
 
         # -- Apply Class split for Class Specific Training
         # Separate data by class
@@ -265,7 +277,6 @@ class CentralACGan:
         attack_indices = tf.where(tf.equal(tf.argmax(y_train, axis=1) if y_train.ndim > 1 else y_train, 1))
 
         # -- Apply label smoothing -- #
-
         # Create smoothed labels for discriminator training
         valid_smoothing_factor = 0.08
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
@@ -282,129 +293,144 @@ class CentralACGan:
         self.logger.info(f"Using fake label smoothing with factor: {fake_smoothing_factor}")
         self.logger.info(f"Using gen label smoothing with factor: {gen_smoothing_factor}")
 
+        # -- Initialize metrics tracking -- #
+        d_metrics_history = []
+        g_metrics_history = []
+
         # -- Training Loop -- #
         for epoch in range(self.epochs):
-            print("Discriminator Metrics:",self.discriminator.metrics_names)
-            print("ACGAN Metrics:", self.ACGAN.metrics_names)
-
             print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
 
-            # --------------------------
-            # Train Discriminator
-            # --------------------------
-            # -- Train on real data -- #
-            # - Train on benign data - #
-            if len(benign_indices) > self.batch_size:
-                benign_idx = tf.random.shuffle(benign_indices)[:self.batch_size]
-                benign_data = tf.gather(X_train, benign_idx)
-                benign_labels = tf.gather(y_train, benign_idx)
+            epoch_d_losses = []
+            epoch_g_losses = []
 
-                # Fix the shape issue - ensure benign_data is 2D
-                if len(benign_data.shape) > 2:
-                    benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
+            # Determine how many steps per epoch based on batch size
+            actual_steps = min(self.steps_per_epoch, len(X_train) // self.batch_size)
 
-                # Ensure one-hot encoding with correct shape
-                if len(benign_labels.shape) == 1:
-                    benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
-                else:
-                    benign_labels_onehot = benign_labels
+            for step in range(actual_steps):
+                # --------------------------
+                # Train Discriminator (multiple times per generator step)
+                # --------------------------
+                d_step_losses = []
 
-                # Ensure benign_labels_onehot has shape (batch_size, num_classes)
-                if len(benign_labels_onehot.shape) > 2:
-                    benign_labels_onehot = tf.reshape(benign_labels_onehot,
-                                                      (benign_labels_onehot.shape[0], self.num_classes))
+                for d_step in range(d_to_g_ratio):
+                    # -- Train on real data -- #
+                    # - Train on benign data - #
+                    if len(benign_indices) > self.batch_size:
+                        benign_idx = tf.random.shuffle(benign_indices)[:self.batch_size]
+                        benign_data = tf.gather(X_train, benign_idx)
+                        benign_labels = tf.gather(y_train, benign_idx)
 
-                # Create valid labels with correct shape
-                valid_smooth_benign = tf.ones((benign_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+                        # Fix the shape issue - ensure benign_data is 2D
+                        if len(benign_data.shape) > 2:
+                            benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
 
-                # Train discriminator on real benign data
-                d_loss_benign = self.discriminator.train_on_batch(benign_data,
-                                                                  [valid_smooth_benign, benign_labels_onehot])
+                        # Ensure one-hot encoding with correct shape
+                        if len(benign_labels.shape) == 1:
+                            benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
+                        else:
+                            benign_labels_onehot = benign_labels
 
-            # - Train on attack data - #
-            if len(attack_indices) > self.batch_size:
-                attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
-                attack_data = tf.gather(X_train, attack_idx)
-                attack_labels = tf.gather(y_train, attack_idx)
+                        # Ensure benign_labels_onehot has shape (batch_size, num_classes)
+                        if len(benign_labels_onehot.shape) > 2:
+                            benign_labels_onehot = tf.reshape(benign_labels_onehot,
+                                                              (benign_labels_onehot.shape[0], self.num_classes))
 
-                # Fix the shape issue - ensure attack_data is 2D
-                if len(attack_data.shape) > 2:
-                    attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
+                        # Create valid labels with correct shape
+                        valid_smooth_benign = tf.ones((benign_data.shape[0], 1)) * (1 - valid_smoothing_factor)
 
-                # Ensure one-hot encoding with correct shape
-                if len(attack_labels.shape) == 1:
-                    attack_labels_onehot = tf.one_hot(tf.cast(attack_labels, tf.int32), depth=self.num_classes)
-                else:
-                    attack_labels_onehot = attack_labels
+                        # Train discriminator on real benign data
+                        d_loss_benign = self.discriminator.train_on_batch(benign_data,
+                                                                          [valid_smooth_benign, benign_labels_onehot])
 
-                # Ensure attack_labels_onehot has shape (batch_size, num_classes)
-                if len(attack_labels_onehot.shape) > 2:
-                    attack_labels_onehot = tf.reshape(attack_labels_onehot,
-                                                      (attack_labels_onehot.shape[0], self.num_classes))
+                    # - Train on attack data - #
+                    if len(attack_indices) > self.batch_size:
+                        attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
+                        attack_data = tf.gather(X_train, attack_idx)
+                        attack_labels = tf.gather(y_train, attack_idx)
 
-                # Create valid labels with correct shape
-                valid_smooth_attack = tf.ones((attack_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+                        # Fix the shape issue - ensure attack_data is 2D
+                        if len(attack_data.shape) > 2:
+                            attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
 
-                # Train discriminator on real attack data
-                d_loss_attack = self.discriminator.train_on_batch(attack_data,
-                                                                  [valid_smooth_attack, attack_labels_onehot])
+                        # Ensure one-hot encoding with correct shape
+                        if len(attack_labels.shape) == 1:
+                            attack_labels_onehot = tf.one_hot(tf.cast(attack_labels, tf.int32), depth=self.num_classes)
+                        else:
+                            attack_labels_onehot = attack_labels
 
-            # -- Train on fake data -- #
-            # -- Generate fake data -- #
-            # Sample the noise data
-            noise = tf.random.normal((self.batch_size, self.latent_dim))
-            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
-            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+                        # Ensure attack_labels_onehot has shape (batch_size, num_classes)
+                        if len(attack_labels_onehot.shape) > 2:
+                            attack_labels_onehot = tf.reshape(attack_labels_onehot,
+                                                              (attack_labels_onehot.shape[0], self.num_classes))
 
-            # generate data from noise and desired labels
-            generated_data = self.generator.predict([noise, fake_labels])
+                        # Create valid labels with correct shape
+                        valid_smooth_attack = tf.ones((attack_data.shape[0], 1)) * (1 - valid_smoothing_factor)
 
-            # -- Train discriminator on fake data -- #
-            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
+                        # Train discriminator on real attack data
+                        d_loss_attack = self.discriminator.train_on_batch(attack_data,
+                                                                          [valid_smooth_attack, attack_labels_onehot])
 
-            # Inside the fit method after training on benign, attack, and fake data
-            d_loss, d_metrics = self.calculate_weighted_loss(
-                d_loss_benign,
-                d_loss_attack,
-                d_loss_fake,
-                attack_weight=0.5,  # Adjust as needed
-                benign_weight=0.5,  # Adjust as needed
-                validity_weight=0.5,  # Adjust as needed
-                class_weight=0.5  # Adjust as needed
-            )
+                    # -- Train on fake data -- #
+                    # -- Generate fake data -- #
+                    # Sample the noise data
+                    noise = tf.random.normal((self.batch_size, self.latent_dim))
+                    fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
+                                                    dtype=tf.int32)
+                    fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-            # Log the metrics
-            self.logger.info("Training Discriminator")
-            self.logger.info(f"Discriminator Total Loss: {d_metrics['Total Loss']} | "
-                             f"Validity Loss: {d_metrics['Validity Loss']} | "
-                             f"Class Loss: {d_metrics['Class Loss']}")
-            self.logger.info(f"Benign Validity Acc: {d_metrics['Benign Validity Acc']} | "
-                             f"Attack Validity Acc: {d_metrics['Attack Validity Acc']} | "
-                             f"Fake Validity Acc: {d_metrics['Fake Validity Acc']}")
-            self.logger.info(f"Benign Class Acc: {d_metrics['Benign Class Acc']} | "
-                             f"Attack Class Acc: {d_metrics['Attack Class Acc']} | "
-                             f"Fake Class Acc: {d_metrics['Fake Class Acc']}")
+                    # generate data from noise and desired labels
+                    generated_data = self.generator.predict([noise, fake_labels], verbose=0)
 
-            # --------------------------
-            # Train Generator (AC-GAN)
-            # --------------------------
-            # -- Freeze discriminator for generator training -- #
-            self.discriminator.trainable = False
+                    # -- Train discriminator on fake data -- #
+                    d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
 
-            # -- Generate noise and label inputs for ACGAN -- #
-            noise = tf.random.normal((self.batch_size, self.latent_dim))
-            sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
-                                               dtype=tf.int32)
-            sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
+                    # Inside the fit method after training on benign, attack, and fake data
+                    d_loss, d_metrics = self.calculate_weighted_loss(
+                        d_loss_benign,
+                        d_loss_attack,
+                        d_loss_fake,
+                        attack_weight=0.5,  # Adjust as needed
+                        benign_weight=0.5,  # Adjust as needed
+                        validity_weight=0.5,  # Adjust as needed
+                        class_weight=0.5  # Adjust as needed
+                    )
 
-            # -- Train ACGAN with sampled noise data -- #
-            g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
+                    d_step_losses.append(float(d_metrics['Total Loss']))
 
-            # -- Unfreeze discriminator for next steps -- #
-            self.discriminator.trainable = True
+                # Store average discriminator loss for this step
+                avg_d_loss = sum(d_step_losses) / len(d_step_losses)
+                epoch_d_losses.append(avg_d_loss)
 
-            # Collect generator metrics
+                # --------------------------
+                # Train Generator (AC-GAN) - only once per multiple discriminator steps
+                # --------------------------
+                # -- Freeze discriminator for generator training -- #
+                self.discriminator.trainable = False
+
+                # -- Generate noise and label inputs for ACGAN -- #
+                noise = tf.random.normal((self.batch_size, self.latent_dim))
+                sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
+                                                   dtype=tf.int32)
+                sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
+
+                # -- Train ACGAN with sampled noise data -- #
+                g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
+                epoch_g_losses.append(g_loss[0])
+
+                # -- Unfreeze discriminator for next steps -- #
+                self.discriminator.trainable = True
+
+                # Print progress every few steps
+                if step % max(1, actual_steps // 10) == 0:
+                    print(f"Step {step}/{actual_steps} - D loss: {avg_d_loss:.4f}, G loss: {g_loss[0]:.4f}")
+
+            # Collect metrics for this epoch
+            avg_epoch_d_loss = sum(epoch_d_losses) / len(epoch_d_losses)
+            avg_epoch_g_loss = sum(epoch_g_losses) / len(epoch_g_losses)
+
+            # Collect generator metrics from the last step
             g_metrics = {
                 "Total Loss": f"{g_loss[0]:.4f}",
                 "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
@@ -412,46 +438,60 @@ class CentralACGan:
                 "Validity Binary Accuracy": f"{g_loss[3] * 100:.2f}%",  # Discriminator_binary_accuracy
                 "Class Categorical Accuracy": f"{g_loss[4] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
             }
-            self.logger.info("Training Generator with ACGAN FLOW")
-            self.logger.info(
-                f"AC-GAN Generator Total Loss: {g_loss[0]:.4f} | Validity Loss: {g_loss[1]:.4f} | Class Loss: {g_loss[2]:.4f}")
-            self.logger.info(
-                f"Validity Binary Accuracy: {g_loss[3] * 100:.2f}%")
-            self.logger.info(
-                f"Class Categorical Accuracy: {g_loss[4] * 100:.2f}%")
+
+            # Log metrics
+            self.logger.info(f"Epoch {epoch + 1} Summary:")
+            self.logger.info(f"Discriminator Average Loss: {avg_epoch_d_loss:.4f}")
+            self.logger.info(f"Generator Loss: {avg_epoch_g_loss:.4f}")
+            self.logger.info(f"Generator Validity Accuracy: {g_loss[3] * 100:.2f}%")
+            self.logger.info(f"Generator Class Accuracy: {g_loss[4] * 100:.2f}%")
+
+            # Store metrics history
+            d_metrics_history.append(avg_epoch_d_loss)
+            g_metrics_history.append(avg_epoch_g_loss)
+
+            # Calculate current d_g_ratio based on performance
+            # If discriminator loss is much lower than generator loss, consider reducing d_to_g_ratio
+            # If discriminator loss is much higher, consider increasing it
+            d_g_loss_ratio = avg_epoch_d_loss / avg_epoch_g_loss
+
+            # Adaptive ratio adjustment (optional)
+            if epoch > 0 and epoch % 5 == 0:  # Adjust every 5 epochs
+                if d_g_loss_ratio < 0.5:  # Discriminator getting too good
+                    d_to_g_ratio = max(1, d_to_g_ratio - 1)
+                    self.logger.info(f"Adjusting d_to_g_ratio down to {d_to_g_ratio}:1")
+                elif d_g_loss_ratio > 2.0:  # Discriminator struggling
+                    d_to_g_ratio += 1
+                    self.logger.info(f"Adjusting d_to_g_ratio up to {d_to_g_ratio}:1")
 
             # --------------------------
-            # Validation every 1 epochs
+            # Validation every epoch
             # --------------------------
-            if epoch % 1 == 0:
-                self.logger.info(f"=== Epoch {epoch} Validation ===")
-                # -- GAN Validation --#
-                d_val_loss, d_val_metrics = self.validation_disc()
-                g_val_loss, g_val_metrics = self.validation_gen()
+            self.logger.info(f"=== Epoch {epoch} Validation ===")
+            # -- GAN Validation --#
+            d_val_loss, d_val_metrics = self.validation_disc()
+            g_val_loss, g_val_metrics = self.validation_gen()
 
-                # -- Probabilistic Fusion Validation -- #
-                self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
-                fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
-                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+            # -- Probabilistic Fusion Validation -- #
+            self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
+            fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
+            self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+            self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-                # Log distribution of classifications
-                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
-                self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
-                self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
+            # -- NIDS Validation -- #
+            nids_val_metrics = None
+            if self.nids is not None:
+                nids_custom_loss, nids_val_metrics = self.validation_NIDS()
+                self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
-                # Analyze Fusion Results
-                # self.analyze_fusion_results(fusion_results)
+            # -- Log the metrics for epoch -- #
+            self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
 
-                # -- NIDS Validation -- #
-                nids_val_metrics = None
-                if self.nids is not None:
-                    nids_custom_loss, nids_val_metrics = self.validation_NIDS()
-                    self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
-
-                # -- Log the metrics for epoch -- #
-                self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
-                self.logger.info(
-                    f"Epoch {epoch}: D Loss: {d_metrics['Total Loss']}, G Loss: {g_loss[0]:.4f}")
+        # Return the training history for analysis
+        return {
+            "discriminator_loss": d_metrics_history,
+            "generator_loss": g_metrics_history
+        }
 
         # -- Loss Calculation -- #
 
