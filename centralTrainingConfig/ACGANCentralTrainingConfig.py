@@ -316,8 +316,9 @@ class CentralACGan:
 
                 for d_step in range(d_to_g_ratio):
                     # -- Train on real data -- #
-                    # - Train on benign data - #
+                    # - BATCH 1: Train on benign data - #
                     if len(benign_indices) > self.batch_size:
+                        # Select a new batch of benign samples
                         benign_idx = tf.random.shuffle(benign_indices)[:self.batch_size]
                         benign_data = tf.gather(X_train, benign_idx)
                         benign_labels = tf.gather(y_train, benign_idx)
@@ -344,8 +345,9 @@ class CentralACGan:
                         d_loss_benign = self.discriminator.train_on_batch(benign_data,
                                                                           [valid_smooth_benign, benign_labels_onehot])
 
-                    # - Train on attack data - #
+                    # - BATCH 2: Train on attack data - #
                     if len(attack_indices) > self.batch_size:
+                        # Select a new batch of attack samples
                         attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
                         attack_data = tf.gather(X_train, attack_idx)
                         attack_labels = tf.gather(y_train, attack_idx)
@@ -373,7 +375,8 @@ class CentralACGan:
                                                                           [valid_smooth_attack, attack_labels_onehot])
 
                     # -- Train on fake data -- #
-                    # -- Generate fake data -- #
+                    # -- BATCH 3: Generate fake data -- #
+                    # Generate a new batch of fake data
                     # Sample the noise data
                     noise = tf.random.normal((self.batch_size, self.latent_dim))
                     fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
@@ -409,7 +412,8 @@ class CentralACGan:
                 # -- Freeze discriminator for generator training -- #
                 self.discriminator.trainable = False
 
-                # -- Generate noise and label inputs for ACGAN -- #
+                # -- BATCH 4: NEW GENERATOR INPUT -- #
+                # -- Generate new noise and label inputs for ACGAN (generator) training -- #
                 noise = tf.random.normal((self.batch_size, self.latent_dim))
                 sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
                                                    dtype=tf.int32)
