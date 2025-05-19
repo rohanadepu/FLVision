@@ -233,7 +233,7 @@ class CentralACGan:
         self.logger.info("=" * 50)
 
     # -- Train -- #
-    def fit(self, X_train=None, y_train=None, d_to_g_ratio=1):
+    def fit(self, X_train=None, y_train=None, d_to_g_ratio=3):
         """
         Train the AC-GAN with a configurable ratio between discriminator and generator training steps.
 
