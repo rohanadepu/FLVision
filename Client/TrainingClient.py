@@ -62,7 +62,7 @@ def main():
     # -- Training / Model Parameters -- #
     parser.add_argument('--trainingArea', type=str, choices=["Central", "Federated"], default="Central",
                         help='Please select Central, Federated as the place to train the model')
-    parser.add_argument("--host", type=int, choices=[1, 2, 3, 4], default=1, help="Fixed Server node number 1-4")
+    parser.add_argument("--host", type=str, default="1", help="Fixed Server node number 1-4, or type a custom ip address")
     parser.add_argument('--serverBased', action='store_true',
                         help='Only load the model structure and get the weights from the server')
 
@@ -192,14 +192,16 @@ def main():
                                                       metric_to_monitor_mc, checkpoint_mode, evaluationLog, trainingLog)
 
         # -- Federated TRAINING -- #
-        if host == 4:
+        if host == "4":
             server_address = "192.168.129.8:8080"
-        elif host == 2:
-            server_address = "192.168.129.6:8080"
-        elif host == 3:
+        elif host == "3":
             server_address = "192.168.129.7:8080"
-        else:
+        elif host == "2":
+            server_address = "192.168.129.6:8080"
+        elif host == "1":
             server_address = "192.168.129.3:8080"
+        else:  # custom address
+            server_address = f"{host}:8080"
 
         # --- 6/7A Train & Evaluate Model ---#
         fl.client.start_client(server_address=server_address, client=client.to_client())
