@@ -52,12 +52,10 @@ def predict_and_act(model, X_test, y_test=None, threshold=0.5):
     if y_test is not None:
         # Test the model
         loss, accuracy, precision, recall, auc, logcosh = model.evaluate(X_test, y_test)
-        # precision = precision_score(y_test, y_pred, zero_division=1)
-        # recall = recall_score(y_test, y_pred, zero_division=1)
         f1 = f1_score(y_test, y_pred, zero_division=1)
 
         # Compute class-wise precision & recall
-        class_report = classification_report(y_test, y_pred, target_names=["Attack", "Benign"])
+        class_report = classification_report(y_test, y_pred, target_names=["Benign", "Attack"])
 
         print(f"\n📊 Model Performance:")
         print(f"🔹 Precision: {precision:.4f} | Recall: {recall:.4f} | F1-Score: {f1:.4f}")
@@ -68,9 +66,15 @@ def predict_and_act(model, X_test, y_test=None, threshold=0.5):
     if len(intrusion_indices) > 0:
         print(f"🚨 {len(intrusion_indices)} Intrusions Detected!")
         logging.warning(f"🚨 {len(intrusion_indices)} Intrusions Detected!")
-        take_action(intrusion_indices, y_test)
+        # Pass y_pred to take_action for True Negative calculation
+        metrics = take_action(intrusion_indices, y_test, y_pred)
+        return metrics
     else:
         print("✅ No intrusions detected.")
+        # Still calculate metrics even when no intrusions detected
+        if y_test is not None:
+            metrics = take_action(intrusion_indices, y_test, y_pred)
+            return metrics
 
 # Take action on detected intrusions
 # def take_action(intrusion_indices, y_test):
@@ -85,23 +89,28 @@ def predict_and_act(model, X_test, y_test=None, threshold=0.5):
 #     logging.info(f"⚠️ Secured the system from {len(intrusion_indices)} intrusions.")
 
 
-def take_action(intrusion_indices, y_test):
+def take_action(intrusion_indices, y_test, y_pred):
     """
     Executes system response when intrusions are detected and compares predictions to actual labels.
+    Now includes True Negatives calculation.
 
     Args:
         intrusion_indices: List of positional indices where the model predicted an intrusion.
-        y_test: Actual labels from the test dataset.
+        y_test: Actual labels from the test dataset (0=Attack, 1=Benign).
+        y_pred: Model predictions (0=Benign, 1=Attack/Intrusion).
 
     Returns:
         None
     """
     y_test = np.array(y_test)  # Ensure indexing works correctly
+    y_pred = np.array(y_pred)  # Ensure indexing works correctly
 
     true_positives = 0
     false_positives = 0
     false_negatives = 0
+    true_negatives = 0
 
+    # Check predicted intrusions
     for idx in intrusion_indices:
         if idx >= len(y_test):  # Prevent out-of-bounds errors
             print(f"⚠️ Skipping invalid index {idx} (out of range)")
@@ -109,35 +118,63 @@ def take_action(intrusion_indices, y_test):
 
         actual_label = y_test[idx]  # Get actual label from NumPy array
 
-        if actual_label == 1:  # False Positive (Benign flagged as attack)
-            print(f"⚠️ False Positive: Non-intrusion traffic at index {idx} was incorrectly flagged!")
-            false_positives += 1
-        else:  # True Positive (Correct detection of attack)
-            print(f"✅ Correct Detection: Attack traffic at index {idx} was correctly flagged!")
+        if actual_label == 0:  # True Positive (Attack correctly flagged as attack)
+            print(f"✅ True Positive: Attack traffic at index {idx} was correctly flagged!")
             true_positives += 1
+        else:  # False Positive (Benign incorrectly flagged as attack)
+            print(f"⚠️ False Positive: Benign traffic at index {idx} was incorrectly flagged!")
+            false_positives += 1
 
     # Calculate False Negatives (missed attacks)
     all_attack_indices = np.where(y_test == 0)[0]  # Find actual attack positions
     missed_attacks = set(all_attack_indices) - set(intrusion_indices)
     false_negatives = len(missed_attacks)
 
+    # Calculate True Negatives (benign correctly identified as benign)
+    all_benign_indices = np.where(y_test == 1)[0]  # Find actual benign positions
+    correctly_identified_benign = set(all_benign_indices) - set(intrusion_indices)
+    true_negatives = len(correctly_identified_benign)
+
+    # Alternative calculation using predictions array:
+    # true_negatives = np.sum((y_pred == 0) & (y_test == 1))
+
     # Log results
     logging.info(f"🚨 Intrusion Detection Report 🚨")
     logging.info(f"✔️ True Positives: {true_positives}")
+    logging.info(f"✔️ True Negatives: {true_negatives}")
     logging.info(f"⚠️ False Positives: {false_positives}")
     logging.info(f"❌ False Negatives (Missed Attacks): {false_negatives}")
     logging.info(f"Total Intrusions Detected: {len(intrusion_indices)}")
 
     # Print Summary
     print("\n📊 Intrusion Detection Summary:")
-    print(f"✔️ True Positives (Correct Detections): {true_positives}")
-    print(f"⚠️ False Positives (Wrongly Flagged Benign): {false_positives}")
-    print(f"❌ False Negatives (Missed Attacks): {false_negatives}")
+    print(f"✔️ True Positives (Attacks Correctly Detected): {true_positives}")
+    print(f"✔️ True Negatives (Benign Correctly Identified): {true_negatives}")
+    print(f"⚠️ False Positives (Benign Wrongly Flagged): {false_positives}")
+    print(f"❌ False Negatives (Attacks Missed): {false_negatives}")
+
+    # Calculate additional metrics
+    total_samples = len(y_test)
+    accuracy = (true_positives + true_negatives) / total_samples
+    specificity = true_negatives / (true_negatives + false_positives) if (true_negatives + false_positives) > 0 else 0
+
+    print(f"\n📈 Additional Metrics:")
+    print(f"🎯 Accuracy: {accuracy:.4f}")
+    print(f"🔍 Specificity (True Negative Rate): {specificity:.4f}")
 
     if false_negatives > 0:
-        print(f"❌ WARNING: {false_negatives} attacks were NOT detected!")
+        print(f"\n❌ WARNING: {false_negatives} attacks were NOT detected!")
 
     print("🛑 System response executed for detected intrusions.\n")
+
+    return {
+        'true_positives': true_positives,
+        'true_negatives': true_negatives,
+        'false_positives': false_positives,
+        'false_negatives': false_negatives,
+        'accuracy': accuracy,
+        'specificity': specificity
+    }
 
 
 # Main script execution
