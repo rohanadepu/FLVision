@@ -203,6 +203,8 @@ def main():
         else:  # custom address
             server_address = f"{host}:8080"
 
+        print("Server Address: ", server_address)
+
         # --- 6/7A Train & Evaluate Model ---#
         fl.client.start_client(server_address=server_address, client=client.to_client())
 
