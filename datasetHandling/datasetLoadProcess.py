@@ -38,7 +38,8 @@ def datasetLoadProcess(dataset_used, dataset_preprocessing):
                                                                                      test_sample_size=15,
                                                                                      training_dataset_size=400000,
                                                                                      testing_dataset_size=80000,
-                                                                                     attack_eval_samples_ratio=1.0)
+                                                                                     attack_eval_samples_ratio=1.0,
+                                                                                     random_seed=110)
         # ciciot_train_data, ciciot_test_data, irrelevant_features_ciciot = loadCICIOT(train_sample_size=25,
         #                                                                              test_sample_size=10,
         #                                                                              training_dataset_size=100000,
