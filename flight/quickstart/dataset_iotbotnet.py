@@ -109,7 +109,7 @@ def loadIOTBOTNET(poisonedDataType=None):
     categories = {
         'ddos': ['ddos_udp', 'ddos_tcp', 'ddos_http', 'os', 'service'],
         'dos': ['dos_udp', 'dos_tcp', 'dos_http'],
-        'scan': ['os', 'service'],
+        'scan': ['OS', 'Service'],
         'theft': ['data_exfiltration', 'keylogging']
     }
 
