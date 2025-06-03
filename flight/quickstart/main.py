@@ -37,6 +37,7 @@ def main():
     # Build topology
     topo = Topology()
     leader = topo.add_node(kind="leader")
+    print(f"Leader added: idx={leader.idx}, kind={leader.kind}")
     topo.leader = leader
 
     for i in range(1):
