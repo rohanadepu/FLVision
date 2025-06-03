@@ -402,7 +402,7 @@ def main():
             topo,
             NIDSModule(),
             unified_dataset,  # Single unified dataset
-            5,
+            1,
             strategy=FedAvg()
         )
 
@@ -419,10 +419,10 @@ def main():
         # Create a dummy dataframe if needed
         import pandas as pd
         df = pd.DataFrame({
-            'round': [1, 2, 3, 4, 5],
-            'strategy': ['fed-avg'] * 5,
-            'accuracy': [0.5] * 5,
-            'loss': [1.0] * 5
+            'round': [1],  # ← Changed from [1, 2, 3, 4, 5] to [1]
+            'strategy': ['fed-avg'],  # ← Changed from ['fed-avg'] * 5 to ['fed-avg']
+            'accuracy': [0.5],  # ← Changed from [0.5] * 5 to [0.5]
+            'loss': [1.0]  # ← Changed from [1.0] * 5 to [1.0]
         })
         print(f"[INFO] Created dummy results dataframe for timing purposes")
 
