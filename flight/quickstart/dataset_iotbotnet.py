@@ -82,9 +82,71 @@ def clean_and_preprocess_dataframe(df, relevant_features):
     return df
 
 
-def loadIOTBOTNET(poisonedDataType=None):
+def load_files_from_directory(directory, file_extension=".csv", sample_size=None):
+    """
+    Load files from a directory and return list of dataframes.
+
+    Args:
+        directory (str): Path to the directory to search
+        file_extension (str): File extension to look for (default: ".csv")
+        sample_size (int): Maximum number of files to load (default: None for all files)
+
+    Returns:
+        list: List of pandas DataFrames
+    """
+    # Check if the directory exists
+    if not os.path.exists(directory):
+        print(f"Directory '{directory}' does not exist.")
+        return []
+
+    dataframes = []
+    all_files = []
+
+    # Recursively find all files with the specified extension
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(file_extension):
+                file_path = os.path.join(root, file)
+                all_files.append(file_path)
+
+    if not all_files:
+        print(f"No files with extension '{file_extension}' found in directory '{directory}'")
+        return []
+
+    print(f"Found {len(all_files)} files with extension '{file_extension}'")
+
+    # Shuffle and sample files if sample_size is specified
+    if sample_size is not None:
+        random.shuffle(all_files)
+        all_files = all_files[:sample_size]
+        print(f"Sampling {len(all_files)} files from total available")
+
+    # Load each file into a dataframe
+    for file_path in all_files:
+        try:
+            df = pd.read_csv(file_path)
+            dataframes.append((df, file_path))  # Include file path for tracking
+            print(f"Loaded: {file_path} ({len(df)} rows, {len(df.columns)} columns)")
+        except Exception as e:
+            print(f"[ERROR] Failed to load {file_path}: {e}")
+            continue
+
+    print(f"Successfully loaded {len(dataframes)} dataframes")
+    return dataframes
+
+
+def loadIOTBOTNET(poisonedDataType=None, file_sample_size=None):
+    """
+    Load IOTBOTNET dataset using the new file loading method.
+
+    Args:
+        poisonedDataType (str): Type of poisoned data ("LF33", "LF66", "FN33", "FN66", or None)
+        file_sample_size (int): Number of files to sample from the dataset (default: None for all files)
+
+    Returns:
+        tuple: (train_paths, test_paths, relevant_features)
+    """
     print("Starting loadIOTBOTNET()...")
-    sample_size = 1
 
     dataset_paths = {
         "LF33": "./datasets/IOTBOTNET2020_POISONEDLF33",
@@ -106,108 +168,110 @@ def loadIOTBOTNET(poisonedDataType=None):
         'Fwd_Pkts/s', 'Bwd_IAT_Tot', 'Bwd_Header_Len', 'Bwd_IAT_Mean', 'Bwd_Seg_Size_Avg'
     ]
 
-    categories = {
-        'ddos': ['ddos_udp', 'ddos_tcp', 'ddos_http', 'os', 'service'],
-        'dos': ['dos_udp', 'dos_tcp', 'dos_http'],
-        'scan': ['OS', 'Service'],
-        'theft': ['data_exfiltration', 'keylogging']
-    }
-
-    def flexible_find(folder, target_subfolder):
-        folder = folder.lower()
-        target_subfolder = target_subfolder.lower()
-
-        for root, dirs, files in os.walk(DATASET_DIRECTORY):
-            for d in dirs:
-                if folder in d.lower() and target_subfolder in d.lower():
-                    return os.path.join(root, d)
-        return None
-
+    # Create temp directory for storing processed chunks
     Path("./tmp").mkdir(exist_ok=True)
 
     train_paths = []
     test_paths = []
     chunk_id = 0
 
-    print("Searching and processing attack datasets...")
-    for category, subcategories in categories.items():
-        for sub in subcategories:
-            dir_path = flexible_find(category, sub)
-            if dir_path and os.path.exists(dir_path):
-                csv_files = [f for f in os.listdir(dir_path) if f.endswith('.csv')]
-                for file in csv_files:
-                    file_path = os.path.join(dir_path, file)
-                    print("File found:", file_path)
+    print(f"Loading files from dataset directory: {DATASET_DIRECTORY}")
 
-                    try:
-                        df = pd.read_csv(file_path)
-                        original_len = len(df)
-                        print(f"[INFO] Loaded CSV with {original_len} rows and {len(df.columns)} columns")
+    # Use the new loading function to get all CSV files from the directory
+    dataframes_with_paths = load_files_from_directory(
+        directory=DATASET_DIRECTORY,
+        file_extension=".csv",
+        sample_size=file_sample_size
+    )
 
-                        if original_len > 10000:
-                            df = df.sample(frac=0.01, random_state=47)
-                            print(f"[INFO] Sampled down to {len(df)} rows")
+    if not dataframes_with_paths:
+        raise ValueError(f"No CSV files found in directory: {DATASET_DIRECTORY}")
 
-                        # Clean and preprocess the dataframe
-                        df = clean_and_preprocess_dataframe(df, relevant_features)
+    print(f"Processing {len(dataframes_with_paths)} CSV files...")
 
-                        if len(df) == 0:
-                            print(f"[WARNING] No valid data remaining after preprocessing {file_path}")
-                            continue
+    # Process each loaded dataframe
+    for df, file_path in dataframes_with_paths:
+        print(f"\nProcessing file: {file_path}")
 
-                        train_split, test_split = train_test_split(df, test_size=0.2, random_state=47)
+        try:
+            original_len = len(df)
+            print(f"[INFO] Processing CSV with {original_len} rows and {len(df.columns)} columns")
 
-                        def save_chunks(split_df, kind):
-                            chunks = np.array_split(split_df, 4)
-                            for i, chunk in enumerate(chunks):
-                                # Reset index and ensure proper data types before saving
-                                chunk = chunk.reset_index(drop=True)
+            # Sample data if it's too large
+            if original_len > 10000:
+                df = df.sample(frac=0.01, random_state=47)
+                print(f"[INFO] Sampled down to {len(df)} rows")
 
-                                # Final comprehensive check on feature columns before saving
-                                for col in relevant_features:
-                                    if col in chunk.columns:
-                                        # Ensure float32 and handle any remaining issues
-                                        chunk[col] = pd.to_numeric(chunk[col], errors='coerce')
-                                        chunk[col] = chunk[col].fillna(0.0)  # Fill any remaining NaN
-                                        chunk[col] = chunk[col].astype(np.float32)
+            # Clean and preprocess the dataframe
+            df = clean_and_preprocess_dataframe(df, relevant_features)
 
-                                # Also ensure label is clean
-                                if 'Label' in chunk.columns:
-                                    chunk['Label'] = chunk['Label'].astype(str)  # Ensure string type
+            if len(df) == 0:
+                print(f"[WARNING] No valid data remaining after preprocessing {file_path}")
+                continue
 
-                                path = f"./tmp/{kind}_chunk_{chunk_id}_{i}.feather"
-                                chunk.to_feather(path)
+            # Split into train and test
+            train_split, test_split = train_test_split(df, test_size=0.2, random_state=47)
 
-                                if kind == 'train':
-                                    train_paths.append(path)
-                                else:
-                                    test_paths.append(path)
-                                print(f"Saved {len(chunk)} {kind} samples -> {path}")
+            def save_chunks(split_df, kind):
+                chunks = np.array_split(split_df, 4)
+                for i, chunk in enumerate(chunks):
+                    # Reset index and ensure proper data types before saving
+                    chunk = chunk.reset_index(drop=True)
 
-                                # Verify the saved file has correct dtypes
-                                if i == 0:  # Check first chunk of each split
-                                    verification_df = pd.read_feather(path)
-                                    for col in relevant_features:
-                                        if col in verification_df.columns:
-                                            actual_dtype = verification_df[col].dtype
-                                            if actual_dtype != np.float32:
-                                                print(f"[WARNING] Saved file has wrong dtype for {col}: {actual_dtype}")
-                                    print(f"[INFO] Verified saved chunk has correct dtypes")
+                    # Final comprehensive check on feature columns before saving
+                    for col in relevant_features:
+                        if col in chunk.columns:
+                            # Ensure float32 and handle any remaining issues
+                            chunk[col] = pd.to_numeric(chunk[col], errors='coerce')
+                            chunk[col] = chunk[col].fillna(0.0)  # Fill any remaining NaN
+                            chunk[col] = chunk[col].astype(np.float32)
 
-                        save_chunks(train_split, "train")
-                        save_chunks(test_split, "test")
+                    # Also ensure label is clean
+                    if 'Label' in chunk.columns:
+                        chunk['Label'] = chunk['Label'].astype(str)  # Ensure string type
 
-                        chunk_id += 1
-                        del df, train_split, test_split
+                    path = f"./tmp/{kind}_chunk_{chunk_id}_{i}.feather"
+                    chunk.to_feather(path)
 
-                    except Exception as e:
-                        print(f"[ERROR] Failed to process file {file_path}: {e}")
-                        continue
+                    if kind == 'train':
+                        train_paths.append(path)
+                    else:
+                        test_paths.append(path)
+                    print(f"Saved {len(chunk)} {kind} samples -> {path}")
 
-    print(f"Saved {len(train_paths)} train chunks and {len(test_paths)} test chunks.")
+                    # Verify the saved file has correct dtypes
+                    if i == 0:  # Check first chunk of each split
+                        verification_df = pd.read_feather(path)
+                        for col in relevant_features:
+                            if col in verification_df.columns:
+                                actual_dtype = verification_df[col].dtype
+                                if actual_dtype != np.float32:
+                                    print(f"[WARNING] Saved file has wrong dtype for {col}: {actual_dtype}")
+                        print(f"[INFO] Verified saved chunk has correct dtypes")
+
+            save_chunks(train_split, "train")
+            save_chunks(test_split, "test")
+
+            chunk_id += 1
+            del df, train_split, test_split
+
+        except Exception as e:
+            print(f"[ERROR] Failed to process file {file_path}: {e}")
+            continue
+
+    print(f"\nCompleted processing. Saved {len(train_paths)} train chunks and {len(test_paths)} test chunks.")
 
     # Verify that we have some data
     if len(train_paths) == 0:
         raise ValueError("No training data was successfully processed!")
 
     return train_paths, test_paths, relevant_features
+
+
+# Example usage:
+if __name__ == "__main__":
+    # Load all files from the dataset
+    train_paths, test_paths, features = loadIOTBOTNET()
+
+    # Or load with a specific poisoned data type and file sample limit
+    # train_paths, test_paths, features = loadIOTBOTNET(poisonedDataType="LF33", file_sample_size=10)
