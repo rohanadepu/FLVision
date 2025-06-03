@@ -55,8 +55,8 @@ def main():
     # Manual federated split using file paths
     random.shuffle(train_paths)
     node_datasets = []
-    # worker_nodes = [node for node in topo.nodes if node.kind == 'worker']
-    worker_nodes = [1]
+    all_nodes = topo.nodes()
+    worker_nodes = [n for n in all_nodes if n.kind == 'worker']
     files_per_worker = len(train_paths) // len(worker_nodes)
 
     for idx, worker in enumerate(worker_nodes):
