@@ -8,6 +8,7 @@ import psutil
 import pandas as pd
 import torch
 import random
+import numpy as np
 
 try:
     sys.path.append("..")
@@ -24,8 +25,34 @@ def print_memory_usage(stage):
     process = psutil.Process(os.getpid())
     mem_info = process.memory_info()
     virtual_mem = psutil.virtual_memory()
-    print(f"[Memory Check - {stage}] RSS: {mem_info.rss / (1024 * 1024):.2f} MB, VMS: {mem_info.vms / (1024 * 1024):.2f} MB, Shared: {mem_info.shared / (1024 * 1024):.2f} MB")
-    print(f"[System Memory] Total: {virtual_mem.total / (1024 * 1024):.2f} MB, Available: {virtual_mem.available / (1024 * 1024):.2f} MB, Used: {virtual_mem.used / (1024 * 1024):.2f} MB, Percent: {virtual_mem.percent}%")
+    print(
+        f"[Memory Check - {stage}] RSS: {mem_info.rss / (1024 * 1024):.2f} MB, VMS: {mem_info.vms / (1024 * 1024):.2f} MB, Shared: {mem_info.shared / (1024 * 1024):.2f} MB")
+    print(
+        f"[System Memory] Total: {virtual_mem.total / (1024 * 1024):.2f} MB, Available: {virtual_mem.available / (1024 * 1024):.2f} MB, Used: {virtual_mem.used / (1024 * 1024):.2f} MB, Percent: {virtual_mem.percent}%")
+
+
+def ensure_numeric_features(df, feature_cols):
+    """Ensure all feature columns are numeric and handle any conversion issues."""
+    print(f"[DEBUG] Checking data types for feature columns...")
+
+    for col in feature_cols:
+        if col in df.columns:
+            # Check current data type
+            print(f"[DEBUG] Column '{col}' dtype: {df[col].dtype}")
+
+            # Convert to numeric, forcing errors to NaN
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Check for any NaN values after conversion
+            nan_count = df[col].isna().sum()
+            if nan_count > 0:
+                print(f"[WARNING] Column '{col}' has {nan_count} NaN values after numeric conversion")
+                # Fill NaN with median for that column
+                df[col].fillna(df[col].median(), inplace=True)
+        else:
+            print(f"[WARNING] Feature column '{col}' not found in DataFrame")
+
+    return df
 
 
 def main():
@@ -57,7 +84,6 @@ def main():
     random.shuffle(train_paths)
     node_datasets = []
     print("ALL NODES:", topo.nodes())
-    # worker_nodes = [n for n in topo.nodes() if n.kind == 'worker']
     worker_nodes = list(topo.workers)
     print("ALL WORKER NODES:", worker_nodes)
     files_per_worker = len(train_paths) // len(worker_nodes)
@@ -81,6 +107,12 @@ def main():
             self.feature_cols = feature_cols
             self.label_col = 'Label'
             self.lengths = []
+
+            # Pre-validate the first file to catch data type issues early
+            print(f"[DEBUG] Pre-validating data types in first file...")
+            first_df = pd.read_feather(self.file_paths[0])
+            first_df = ensure_numeric_features(first_df, self.feature_cols)
+            print(f"[DEBUG] Data validation completed for first file")
 
             for path in self.file_paths:
                 df = pd.read_feather(path, columns=[self.label_col])
@@ -109,7 +141,23 @@ def main():
                 local_idx = idx
 
             df = pd.read_feather(self.file_paths[dataset_idx])
-            features = torch.tensor(df.iloc[local_idx][self.feature_cols].values, dtype=torch.float32)
+
+            # Ensure numeric conversion for features
+            df = ensure_numeric_features(df, self.feature_cols)
+
+            # Extract features and ensure they're all numeric
+            feature_values = df.iloc[local_idx][self.feature_cols].values
+
+            # Double-check for any remaining non-numeric values
+            if not np.issubdtype(feature_values.dtype, np.number):
+                print(f"[ERROR] Non-numeric data detected in features at idx {idx}")
+                print(f"[DEBUG] Feature values: {feature_values}")
+                print(f"[DEBUG] Feature dtypes: {[type(x) for x in feature_values]}")
+                # Force conversion to float, replacing any problematic values with 0
+                feature_values = pd.to_numeric(feature_values, errors='coerce').fillna(0).astype(np.float32)
+
+            features = torch.tensor(feature_values, dtype=torch.float32)
+
             label_value = df.iloc[local_idx][self.label_col]
 
             if label_value not in ['Normal', 'Anomaly']:
@@ -131,8 +179,20 @@ def main():
     # Preflight feature and label check
     print("\n[Preflight Data Check]")
     for node_id, dataset in final_node_datasets:
-        x, y = dataset[0]
-        print(f"Node {node_id}: Feature Shape = {x.shape}, Label = {y.item()}")
+        try:
+            x, y = dataset[0]
+            print(f"Node {node_id}: Feature Shape = {x.shape}, Label = {y.item()}")
+            print(f"Node {node_id}: Feature dtype = {x.dtype}, Label dtype = {y.dtype}")
+
+            # Check for any NaN or infinite values
+            if torch.isnan(x).any():
+                print(f"[WARNING] Node {node_id}: Features contain NaN values")
+            if torch.isinf(x).any():
+                print(f"[WARNING] Node {node_id}: Features contain infinite values")
+
+        except Exception as e:
+            print(f"[ERROR] Failed to load sample from Node {node_id}: {e}")
+            raise
 
     # Federated fit
     print("\n>>> Starting federated_fit with multiprocessing...")
@@ -165,4 +225,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
