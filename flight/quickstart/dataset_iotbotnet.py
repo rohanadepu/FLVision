@@ -47,8 +47,8 @@ def loadIOTBOTNET(poisonedDataType=None):
 
     DATASET_URL = 'https://drive.google.com/uc?id=1Lz9KcI4ZZP9Svn7huV90MQUMZNLn96gX&export=download'
 
-    ensure_dataset_downloaded(DATASET_DIRECTORY, DATASET_URL)
-    memory_status("After ensure_dataset_downloaded")
+    # ensure_dataset_downloaded(DATASET_DIRECTORY, DATASET_URL)
+    # memory_status("After ensure_dataset_downloaded")
 
     relevant_features = [
         'Src_Port', 'Pkt_Size_Avg', 'Bwd_Pkts/s', 'Pkt_Len_Mean', 'Dst_Port', 'Bwd_IAT_Max',
