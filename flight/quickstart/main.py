@@ -18,8 +18,10 @@ try:
     from torchvision.datasets import FashionMNIST
 
     TORCHVISION_AVAILABLE = True
+    print("[INFO] torchvision available for FashionMNIST dataset")
 except ImportError:
-    print("[WARNING] torchvision not available - FashionMNIST download will be skipped")
+    print("[ERROR] torchvision not available - required for Flight framework")
+    print("[SOLUTION] Install with: pip install torchvision")
 
 try:
     sys.path.append("..")
@@ -203,20 +205,16 @@ def main():
         os.environ["TORCH_DATASETS"] = datasets_dir
         print(f"[INFO] Set TORCH_DATASETS environment variable to: {os.environ['TORCH_DATASETS']}")
 
-    # Also set other common PyTorch environment variables that might be needed
-    if "PYTORCH_DATASETS" not in os.environ:
-        os.environ["PYTORCH_DATASETS"] = os.environ["TORCH_DATASETS"]
-
-    # Ensure the datasets directory exists and has some basic structure
+    # Ensure the datasets directory exists
     datasets_dir = os.environ["TORCH_DATASETS"]
     os.makedirs(datasets_dir, exist_ok=True)
 
-    # Download FashionMNIST dataset that Flight framework expects for testing
+    # Download FashionMNIST dataset that Flight framework requires for testing
     if TORCHVISION_AVAILABLE:
         try:
-            print(f"[INFO] Downloading FashionMNIST dataset for Flight framework testing...")
+            print(f"[INFO] Downloading FashionMNIST dataset for Flight framework evaluation...")
 
-            # Download both train and test sets
+            # Download both train and test sets with download=True
             train_dataset = FashionMNIST(
                 root=datasets_dir,
                 train=True,
@@ -235,17 +233,15 @@ def main():
             print(f"[INFO] Train samples: {len(train_dataset)}, Test samples: {len(test_dataset)}")
 
         except Exception as e:
-            print(f"[WARNING] Failed to download FashionMNIST: {e}")
-            print(f"[INFO] Will try to proceed - framework may handle download automatically")
+            print(f"[ERROR] Failed to download FashionMNIST: {e}")
+            print(f"[SOLUTION] Try running: pip install torchvision")
+            raise
     else:
-        print(f"[WARNING] torchvision not available - cannot download FashionMNIST")
-        print(f"[INFO] You may need to: pip install torchvision")
+        print(f"[ERROR] torchvision not available - cannot download FashionMNIST")
+        print(f"[SOLUTION] Install torchvision: pip install torchvision")
+        raise ImportError("torchvision required for FashionMNIST dataset")
 
-    # Create empty subdirectories that testing frameworks sometimes expect
-    for subdir in ["test", "val", "validation", "cifar10", "mnist"]:
-        os.makedirs(os.path.join(datasets_dir, subdir), exist_ok=True)
-
-    print(f"[DEBUG] Created datasets directory structure at: {datasets_dir}")
+    print(f"[INFO] FashionMNIST ready for Flight framework evaluation (separate from your IOT training)")
 
     multiprocessing.set_start_method("spawn", force=True)
     print("Multiprocessing start method:", multiprocessing.get_start_method())
@@ -331,66 +327,35 @@ def main():
     print("\n>>> Starting federated_fit with multiprocessing...")
     start_time = time.time()
 
+    # Federated fit
+    print("\n>>> Starting federated_fit with multiprocessing...")
+    start_time = time.time()
+
     try:
         print(f"[DEBUG] Calling federated_fit with unified dataset...")
         print(f"[DEBUG] Dataset type: {type(unified_dataset)}")
         print(f"[DEBUG] Dataset has load method: {hasattr(unified_dataset, 'load')}")
         print(f"[DEBUG] TORCH_DATASETS env var: {os.environ.get('TORCH_DATASETS', 'NOT SET')}")
+        print(f"[INFO] Note: Framework will evaluate on FashionMNIST (standard benchmark)")
+        print(f"[INFO] Your IOT dataset training is separate and will proceed normally")
 
-        # Try to call federated_fit with different parameters to potentially disable testing
-        try:
-            # First attempt - standard call
-            _, df = federated_fit(
-                topo,
-                NIDSModule(),
-                unified_dataset,  # Single unified dataset
-                5,
-                strategy=FedAvg()
-            )
-        except Exception as test_error:
-            if "FashionMNIST" in str(test_error) or "Dataset not found" in str(test_error):
-                print(f"[INFO] Testing phase failed due to missing FashionMNIST dataset")
-                print(f"[INFO] This is expected - the Flight framework uses FashionMNIST for evaluation")
-                print(f"[INFO] Your federated training completed successfully on your IOT dataset")
-                print(f"[INFO] The error is only in the post-training evaluation phase")
-
-                # Try to find debug_mode parameter to disable testing
-                try:
-                    print(f"[INFO] Attempting to run without testing phase...")
-                    _, df = federated_fit(
-                        topo,
-                        NIDSModule(),
-                        unified_dataset,
-                        5,
-                        strategy=FedAvg(),
-                        debug_mode=True  # Try with debug mode
-                    )
-                except TypeError:
-                    # If debug_mode parameter doesn't exist, try other approaches
-                    print(f"[WARNING] Cannot disable testing phase automatically")
-                    print(f"[SOLUTION] The FashionMNIST dataset will be downloaded for framework evaluation")
-                    raise test_error
-            else:
-                raise test_error
+        _, df = federated_fit(
+            topo,
+            NIDSModule(),
+            unified_dataset,  # Single unified dataset
+            5,
+            strategy=FedAvg()
+        )
 
         df["strategy"] = "fed-avg"
         print(">>> federated_fit completed successfully.")
 
-    except KeyError as e:
-        if 'TORCH_DATASETS' in str(e):
-            print(f">>> ERROR: TORCH_DATASETS environment variable issue: {e}")
-            print(f"[SOLUTION] Try setting the environment variable manually:")
-            print(f"export TORCH_DATASETS=/path/to/your/datasets")
-            print(f"[DEBUG] Current working directory: {os.getcwd()}")
-            print(f"[DEBUG] Available directories: {[d for d in os.listdir('.') if os.path.isdir(d)]}")
-        else:
-            print(f">>> ERROR: KeyError during federated_fit(): {e}")
-        raise
     except RuntimeError as e:
-        if "Dataset not found" in str(e) and "FashionMNIST" in str(e):
-            print(f">>> INFO: Flight framework requires FashionMNIST for testing phase")
-            print(f">>> This is separate from your IOT dataset training")
-            print(f">>> The framework has downloaded FashionMNIST and will retry...")
+        if "Dataset not found" in str(e):
+            print(f">>> ERROR: FashionMNIST dataset still not found: {e}")
+            print(f"[DEBUG] TORCH_DATASETS path: {os.environ.get('TORCH_DATASETS')}")
+            print(f"[DEBUG] Directory contents: {os.listdir(os.environ.get('TORCH_DATASETS', '.'))}")
+            print(f"[SOLUTION] Try manually installing: pip install torchvision")
             raise
         else:
             print(f">>> ERROR: RuntimeError during federated_fit(): {e}")
