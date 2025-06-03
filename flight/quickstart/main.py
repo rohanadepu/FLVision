@@ -148,13 +148,14 @@ def main():
             # Extract features and ensure they're all numeric
             feature_values = df.iloc[local_idx][self.feature_cols].values
 
-            # Double-check for any remaining non-numeric values
-            if not np.issubdtype(feature_values.dtype, np.number):
-                print(f"[ERROR] Non-numeric data detected in features at idx {idx}")
-                print(f"[DEBUG] Feature values: {feature_values}")
-                print(f"[DEBUG] Feature dtypes: {[type(x) for x in feature_values]}")
-                # Force conversion to float, replacing any problematic values with 0
-                feature_values = pd.to_numeric(feature_values, errors='coerce').fillna(0).astype(np.float32)
+            # Handle any NaN or infinite values
+            if np.isnan(feature_values).any() or np.isinf(feature_values).any():
+                if idx % 1000 == 0:  # Only log occasionally to avoid spam
+                    print(f"[WARNING] Found NaN/Inf values in features at idx {idx}, replacing with 0")
+                feature_values = np.nan_to_num(feature_values, nan=0.0, posinf=0.0, neginf=0.0)
+
+            # Ensure float32 type
+            feature_values = feature_values.astype(np.float32)
 
             features = torch.tensor(feature_values, dtype=torch.float32)
 
