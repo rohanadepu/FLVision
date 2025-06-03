@@ -87,6 +87,7 @@ def loadIOTBOTNET(poisonedDataType=None):
                 csv_files = [f for f in os.listdir(dir_path) if f.endswith('.csv')]
                 for file in csv_files:
                     file_path = os.path.join(dir_path, file)
+                    print("File found:", file_path)
                     df = pd.read_csv(file_path)
                     original_len = len(df)
 
