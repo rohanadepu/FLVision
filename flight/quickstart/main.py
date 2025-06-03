@@ -244,51 +244,122 @@ def main():
     print_memory_usage("After GC")
 
     # Wrap node datasets using the module-level WorkerLazyDataset class
-    final_node_datasets = []
+    # Try different dataset formats to match Flight framework expectations
+
+    # Option 1: Dictionary mapping node_id to dataset
+    final_node_datasets_dict = {}
+    final_node_datasets_list = []
+
     for node_id, paths in node_datasets:
         pytorch_dataset = WorkerLazyDataset(paths, feature_names)
         # Wrap in Flight framework's expected interface
         flight_dataset = FlightDatasetWrapper(pytorch_dataset, node_id)
-        final_node_datasets.append((node_id, flight_dataset))
+
+        # Store in dictionary format
+        final_node_datasets_dict[node_id] = flight_dataset
+        # Also store in list format (just the dataset, not the tuple)
+        final_node_datasets_list.append(flight_dataset)
+
+    # Try the dictionary format first
+    final_node_datasets = final_node_datasets_dict
+
+    print(f"[DEBUG] Final dataset structure type: {type(final_node_datasets)}")
+    print(
+        f"[DEBUG] Final dataset keys: {list(final_node_datasets.keys()) if isinstance(final_node_datasets, dict) else 'N/A'}")
+    print(
+        f"[DEBUG] Sample dataset type: {type(list(final_node_datasets.values())[0]) if isinstance(final_node_datasets, dict) else type(final_node_datasets[0])}")
 
     # Preflight feature and label check
     print("\n[Preflight Data Check]")
-    for node_id, dataset_wrapper in final_node_datasets:
-        try:
-            # Get the actual PyTorch dataset from the wrapper
-            pytorch_dataset = dataset_wrapper.load(None)  # The node parameter might not be used
-            x, y = pytorch_dataset[0]
-            print(f"Node {node_id}: Feature Shape = {x.shape}, Label = {y.item()}")
-            print(f"Node {node_id}: Feature dtype = {x.dtype}, Label dtype = {y.dtype}")
+    if isinstance(final_node_datasets, dict):
+        for node_id, dataset_wrapper in final_node_datasets.items():
+            try:
+                # Get the actual PyTorch dataset from the wrapper
+                pytorch_dataset = dataset_wrapper.load(None)  # The node parameter might not be used
+                x, y = pytorch_dataset[0]
+                print(f"Node {node_id}: Feature Shape = {x.shape}, Label = {y.item()}")
+                print(f"Node {node_id}: Feature dtype = {x.dtype}, Label dtype = {y.dtype}")
 
-            # Check for any NaN or infinite values
-            if torch.isnan(x).any():
-                print(f"[WARNING] Node {node_id}: Features contain NaN values")
-            if torch.isinf(x).any():
-                print(f"[WARNING] Node {node_id}: Features contain infinite values")
+                # Check for any NaN or infinite values
+                if torch.isnan(x).any():
+                    print(f"[WARNING] Node {node_id}: Features contain NaN values")
+                if torch.isinf(x).any():
+                    print(f"[WARNING] Node {node_id}: Features contain infinite values")
 
-        except Exception as e:
-            print(f"[ERROR] Failed to load sample from Node {node_id}: {e}")
-            raise
+            except Exception as e:
+                print(f"[ERROR] Failed to load sample from Node {node_id}: {e}")
+                raise
+    else:
+        # Handle list format
+        for i, dataset_wrapper in enumerate(final_node_datasets):
+            try:
+                pytorch_dataset = dataset_wrapper.load(None)
+                x, y = pytorch_dataset[0]
+                print(f"Dataset {i}: Feature Shape = {x.shape}, Label = {y.item()}")
+                print(f"Dataset {i}: Feature dtype = {x.dtype}, Label dtype = {y.dtype}")
+
+                if torch.isnan(x).any():
+                    print(f"[WARNING] Dataset {i}: Features contain NaN values")
+                if torch.isinf(x).any():
+                    print(f"[WARNING] Dataset {i}: Features contain infinite values")
+
+            except Exception as e:
+                print(f"[ERROR] Failed to load sample from Dataset {i}: {e}")
+                raise
 
     # Federated fit
     print("\n>>> Starting federated_fit with multiprocessing...")
     start_time = time.time()
 
     try:
+        print(f"[DEBUG] Trying federated_fit with dictionary format...")
         _, df = federated_fit(
             topo,
             NIDSModule(),
-            final_node_datasets,
+            final_node_datasets,  # Dictionary format
             5,
             strategy=FedAvg()
         )
         df["strategy"] = "fed-avg"
-        print(">>> federated_fit completed successfully.")
+        print(">>> federated_fit completed successfully with dictionary format.")
 
     except Exception as e:
-        print(">>> ERROR during federated_fit():", e)
-        raise
+        print(f">>> ERROR during federated_fit() with dictionary format: {e}")
+        print(f"[DEBUG] Trying fallback with list format...")
+
+        try:
+            # Try with list format as fallback
+            _, df = federated_fit(
+                topo,
+                NIDSModule(),
+                final_node_datasets_list,  # List format
+                5,
+                strategy=FedAvg()
+            )
+            df["strategy"] = "fed-avg"
+            print(">>> federated_fit completed successfully with list format.")
+
+        except Exception as e2:
+            print(f">>> ERROR during federated_fit() with list format: {e2}")
+            print(f"[DEBUG] Trying with original tuple list format...")
+
+            try:
+                # Try with original tuple format as last resort
+                tuple_datasets = [(node_id, dataset) for node_id, dataset in final_node_datasets_dict.items()]
+                _, df = federated_fit(
+                    topo,
+                    NIDSModule(),
+                    tuple_datasets,
+                    5,
+                    strategy=FedAvg()
+                )
+                df["strategy"] = "fed-avg"
+                print(">>> federated_fit completed successfully with tuple format.")
+
+            except Exception as e3:
+                print(f">>> ERROR during federated_fit() with tuple format: {e3}")
+                print(">>> All dataset formats failed. Here's the final error:")
+                raise e3
 
     duration = time.time() - start_time
     print(f"\n>>> federated_fit took {duration:.2f} seconds")
