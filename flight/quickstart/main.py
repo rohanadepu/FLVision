@@ -56,7 +56,7 @@ def main():
     random.shuffle(train_paths)
     node_datasets = []
     # worker_nodes = [node for node in topo.nodes if node.kind == 'worker']
-    worker_nodes = 1
+    worker_nodes = [1]
     files_per_worker = len(train_paths) // len(worker_nodes)
 
     for idx, worker in enumerate(worker_nodes):
