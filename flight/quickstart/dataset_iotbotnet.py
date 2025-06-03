@@ -163,10 +163,17 @@ def loadIOTBOTNET(poisonedDataType=None):
                                 # Reset index and ensure proper data types before saving
                                 chunk = chunk.reset_index(drop=True)
 
-                                # Final check on feature columns before saving
+                                # Final comprehensive check on feature columns before saving
                                 for col in relevant_features:
                                     if col in chunk.columns:
+                                        # Ensure float32 and handle any remaining issues
+                                        chunk[col] = pd.to_numeric(chunk[col], errors='coerce')
+                                        chunk[col] = chunk[col].fillna(0.0)  # Fill any remaining NaN
                                         chunk[col] = chunk[col].astype(np.float32)
+
+                                # Also ensure label is clean
+                                if 'Label' in chunk.columns:
+                                    chunk['Label'] = chunk['Label'].astype(str)  # Ensure string type
 
                                 path = f"./tmp/{kind}_chunk_{chunk_id}_{i}.feather"
                                 chunk.to_feather(path)
@@ -176,6 +183,16 @@ def loadIOTBOTNET(poisonedDataType=None):
                                 else:
                                     test_paths.append(path)
                                 print(f"Saved {len(chunk)} {kind} samples -> {path}")
+
+                                # Verify the saved file has correct dtypes
+                                if i == 0:  # Check first chunk of each split
+                                    verification_df = pd.read_feather(path)
+                                    for col in relevant_features:
+                                        if col in verification_df.columns:
+                                            actual_dtype = verification_df[col].dtype
+                                            if actual_dtype != np.float32:
+                                                print(f"[WARNING] Saved file has wrong dtype for {col}: {actual_dtype}")
+                                    print(f"[INFO] Verified saved chunk has correct dtypes")
 
                         save_chunks(train_split, "train")
                         save_chunks(test_split, "test")
