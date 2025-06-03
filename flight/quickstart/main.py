@@ -58,6 +58,7 @@ def main():
     print("ALL NODES:", topo.nodes())
     all_nodes = topo.nodes()
     worker_nodes = [n for n in all_nodes if n.kind == 'worker']
+    print("ALL WORKER NODES:", worker_nodes)
     files_per_worker = len(train_paths) // len(worker_nodes)
 
     for idx, worker in enumerate(worker_nodes):
