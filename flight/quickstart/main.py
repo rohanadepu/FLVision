@@ -55,6 +55,20 @@ def ensure_numeric_features(df, feature_cols):
     return df
 
 
+# Dataset wrapper that implements the Flight framework's expected interface
+class FlightDatasetWrapper:
+    def __init__(self, pytorch_dataset, node_id):
+        self.pytorch_dataset = pytorch_dataset
+        self.node_id = node_id
+
+    def load(self, node):
+        """Load method expected by the Flight framework"""
+        return self.pytorch_dataset
+
+    def __len__(self):
+        return len(self.pytorch_dataset)
+
+
 # Lazy-loading WorkerLazyDataset - moved outside main() to make it picklable
 class WorkerLazyDataset(torch.utils.data.Dataset):
     def __init__(self, file_paths, feature_cols):
@@ -232,14 +246,18 @@ def main():
     # Wrap node datasets using the module-level WorkerLazyDataset class
     final_node_datasets = []
     for node_id, paths in node_datasets:
-        wrapped_dataset = WorkerLazyDataset(paths, feature_names)
-        final_node_datasets.append((node_id, wrapped_dataset))
+        pytorch_dataset = WorkerLazyDataset(paths, feature_names)
+        # Wrap in Flight framework's expected interface
+        flight_dataset = FlightDatasetWrapper(pytorch_dataset, node_id)
+        final_node_datasets.append((node_id, flight_dataset))
 
     # Preflight feature and label check
     print("\n[Preflight Data Check]")
-    for node_id, dataset in final_node_datasets:
+    for node_id, dataset_wrapper in final_node_datasets:
         try:
-            x, y = dataset[0]
+            # Get the actual PyTorch dataset from the wrapper
+            pytorch_dataset = dataset_wrapper.load(None)  # The node parameter might not be used
+            x, y = pytorch_dataset[0]
             print(f"Node {node_id}: Feature Shape = {x.shape}, Label = {y.item()}")
             print(f"Node {node_id}: Feature dtype = {x.dtype}, Label dtype = {y.dtype}")
 
