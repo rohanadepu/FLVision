@@ -184,6 +184,28 @@ def ensure_numeric_features(df, feature_cols):
 
 
 def main():
+    # Set required environment variables for Flight framework testing
+    if "TORCH_DATASETS" not in os.environ:
+        # Create the datasets directory if it doesn't exist
+        datasets_dir = os.path.abspath("./datasets")
+        os.makedirs(datasets_dir, exist_ok=True)
+        os.environ["TORCH_DATASETS"] = datasets_dir
+        print(f"[INFO] Set TORCH_DATASETS environment variable to: {os.environ['TORCH_DATASETS']}")
+
+    # Also set other common PyTorch environment variables that might be needed
+    if "PYTORCH_DATASETS" not in os.environ:
+        os.environ["PYTORCH_DATASETS"] = os.environ["TORCH_DATASETS"]
+
+    # Ensure the datasets directory exists and has some basic structure
+    datasets_dir = os.environ["TORCH_DATASETS"]
+    os.makedirs(datasets_dir, exist_ok=True)
+
+    # Create empty subdirectories that testing frameworks sometimes expect
+    for subdir in ["test", "val", "validation", "cifar10", "mnist"]:
+        os.makedirs(os.path.join(datasets_dir, subdir), exist_ok=True)
+
+    print(f"[DEBUG] Created datasets directory structure at: {datasets_dir}")
+
     multiprocessing.set_start_method("spawn", force=True)
     print("Multiprocessing start method:", multiprocessing.get_start_method())
 
@@ -272,6 +294,7 @@ def main():
         print(f"[DEBUG] Calling federated_fit with unified dataset...")
         print(f"[DEBUG] Dataset type: {type(unified_dataset)}")
         print(f"[DEBUG] Dataset has load method: {hasattr(unified_dataset, 'load')}")
+        print(f"[DEBUG] TORCH_DATASETS env var: {os.environ.get('TORCH_DATASETS', 'NOT SET')}")
 
         _, df = federated_fit(
             topo,
@@ -283,6 +306,16 @@ def main():
         df["strategy"] = "fed-avg"
         print(">>> federated_fit completed successfully.")
 
+    except KeyError as e:
+        if 'TORCH_DATASETS' in str(e):
+            print(f">>> ERROR: TORCH_DATASETS environment variable issue: {e}")
+            print(f"[SOLUTION] Try setting the environment variable manually:")
+            print(f"export TORCH_DATASETS=/path/to/your/datasets")
+            print(f"[DEBUG] Current working directory: {os.getcwd()}")
+            print(f"[DEBUG] Available directories: {[d for d in os.listdir('.') if os.path.isdir(d)]}")
+        else:
+            print(f">>> ERROR: KeyError during federated_fit(): {e}")
+        raise
     except Exception as e:
         print(f">>> ERROR during federated_fit(): {e}")
         print(f"[DEBUG] Error type: {type(e)}")
