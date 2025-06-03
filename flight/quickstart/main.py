@@ -148,14 +148,47 @@ def main():
             # Extract features and ensure they're all numeric
             feature_values = df.iloc[local_idx][self.feature_cols].values
 
-            # Handle any NaN or infinite values
-            if np.isnan(feature_values).any() or np.isinf(feature_values).any():
-                if idx % 1000 == 0:  # Only log occasionally to avoid spam
-                    print(f"[WARNING] Found NaN/Inf values in features at idx {idx}, replacing with 0")
-                feature_values = np.nan_to_num(feature_values, nan=0.0, posinf=0.0, neginf=0.0)
+            # Debug: Check what we actually got
+            if idx % 1000 == 0:  # Only log occasionally
+                print(f"[DEBUG] Raw feature_values dtype: {feature_values.dtype}")
+                print(f"[DEBUG] Raw feature_values shape: {feature_values.shape}")
+                print(f"[DEBUG] First few values: {feature_values[:3] if len(feature_values) > 0 else 'empty'}")
 
-            # Ensure float32 type
-            feature_values = feature_values.astype(np.float32)
+            # Handle different data types safely
+            try:
+                # If it's already numeric, check for NaN/Inf
+                if np.issubdtype(feature_values.dtype, np.number):
+                    if np.isnan(feature_values).any() or np.isinf(feature_values).any():
+                        if idx % 1000 == 0:
+                            print(f"[WARNING] Found NaN/Inf values at idx {idx}, replacing with 0")
+                        feature_values = np.nan_to_num(feature_values, nan=0.0, posinf=0.0, neginf=0.0)
+                    feature_values = feature_values.astype(np.float32)
+                else:
+                    # If it's not numeric, force conversion
+                    print(f"[WARNING] Non-numeric data at idx {idx}, dtype: {feature_values.dtype}")
+                    print(f"[DEBUG] Sample values: {feature_values[:5]}")
+
+                    # Convert each element individually to handle mixed types
+                    converted_values = []
+                    for i, val in enumerate(feature_values):
+                        try:
+                            # Try to convert to float
+                            if pd.isna(val) or val == '' or val == 'nan':
+                                converted_values.append(0.0)
+                            else:
+                                converted_values.append(float(val))
+                        except (ValueError, TypeError):
+                            print(f"[WARNING] Could not convert value '{val}' at feature index {i}, using 0.0")
+                            converted_values.append(0.0)
+
+                    feature_values = np.array(converted_values, dtype=np.float32)
+
+            except Exception as e:
+                print(f"[ERROR] Failed to process features at idx {idx}: {e}")
+                print(f"[DEBUG] feature_values: {feature_values}")
+                print(f"[DEBUG] feature_values.dtype: {feature_values.dtype}")
+                # Fallback: create zeros array
+                feature_values = np.zeros(len(self.feature_cols), dtype=np.float32)
 
             features = torch.tensor(feature_values, dtype=torch.float32)
 
