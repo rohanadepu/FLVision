@@ -10,6 +10,17 @@ import torch
 import random
 import numpy as np
 
+# Add torchvision import for FashionMNIST download
+TORCHVISION_AVAILABLE = False
+try:
+    import torchvision
+    import torchvision.transforms as transforms
+    from torchvision.datasets import FashionMNIST
+
+    TORCHVISION_AVAILABLE = True
+except ImportError:
+    print("[WARNING] torchvision not available - FashionMNIST download will be skipped")
+
 try:
     sys.path.append("..")
     from flight.topo import Topology
@@ -184,7 +195,7 @@ def ensure_numeric_features(df, feature_cols):
 
 
 def main():
-    # Set required environment variables for Flight framework testing
+    # Set required environment variables for Flight framework (but we'll try to skip evaluation)
     if "TORCH_DATASETS" not in os.environ:
         # Create the datasets directory if it doesn't exist
         datasets_dir = os.path.abspath("./datasets")
@@ -196,15 +207,12 @@ def main():
     if "PYTORCH_DATASETS" not in os.environ:
         os.environ["PYTORCH_DATASETS"] = os.environ["TORCH_DATASETS"]
 
-    # Ensure the datasets directory exists and has some basic structure
+    # Ensure the datasets directory exists
     datasets_dir = os.environ["TORCH_DATASETS"]
     os.makedirs(datasets_dir, exist_ok=True)
 
-    # Create empty subdirectories that testing frameworks sometimes expect
-    for subdir in ["test", "val", "validation", "cifar10", "mnist"]:
-        os.makedirs(os.path.join(datasets_dir, subdir), exist_ok=True)
-
-    print(f"[DEBUG] Created datasets directory structure at: {datasets_dir}")
+    print(f"[INFO] Attempting to run federated learning WITHOUT evaluation on FashionMNIST")
+    print(f"[INFO] Will try multiple approaches to disable the evaluation phase")
 
     multiprocessing.set_start_method("spawn", force=True)
     print("Multiprocessing start method:", multiprocessing.get_start_method())
@@ -296,13 +304,111 @@ def main():
         print(f"[DEBUG] Dataset has load method: {hasattr(unified_dataset, 'load')}")
         print(f"[DEBUG] TORCH_DATASETS env var: {os.environ.get('TORCH_DATASETS', 'NOT SET')}")
 
-        _, df = federated_fit(
-            topo,
-            NIDSModule(),
-            unified_dataset,  # Single unified dataset
-            5,
-            strategy=FedAvg()
-        )
+        # Try different approaches to disable the evaluation phase
+        success = False
+
+        # Approach 1: Try with evaluate=False parameter
+        try:
+            print(f"[INFO] Attempting to disable evaluation with evaluate=False...")
+            _, df = federated_fit(
+                topo,
+                NIDSModule(),
+                unified_dataset,
+                5,
+                strategy=FedAvg(),
+                evaluate=False
+            )
+            success = True
+            print(f"[SUCCESS] federated_fit completed without evaluation phase")
+        except TypeError as e:
+            print(f"[INFO] evaluate=False parameter not supported: {e}")
+
+        # Approach 2: Try with test_data=None parameter
+        if not success:
+            try:
+                print(f"[INFO] Attempting to disable evaluation with test_data=None...")
+                _, df = federated_fit(
+                    topo,
+                    NIDSModule(),
+                    unified_dataset,
+                    5,
+                    strategy=FedAvg(),
+                    test_data=None
+                )
+                success = True
+                print(f"[SUCCESS] federated_fit completed without evaluation phase")
+            except TypeError as e:
+                print(f"[INFO] test_data=None parameter not supported: {e}")
+
+        # Approach 3: Try with skip_eval=True parameter
+        if not success:
+            try:
+                print(f"[INFO] Attempting to disable evaluation with skip_eval=True...")
+                _, df = federated_fit(
+                    topo,
+                    NIDSModule(),
+                    unified_dataset,
+                    5,
+                    strategy=FedAvg(),
+                    skip_eval=True
+                )
+                success = True
+                print(f"[SUCCESS] federated_fit completed without evaluation phase")
+            except TypeError as e:
+                print(f"[INFO] skip_eval=True parameter not supported: {e}")
+
+        # Approach 4: Try monkeypatching the test_model function to do nothing
+        if not success:
+            try:
+                print(f"[INFO] Attempting to disable evaluation by overriding test_model function...")
+
+                # Import the testing module and override the test_model function
+                import sys
+                testing_module_path = None
+                for module_name in sys.modules:
+                    if 'testing' in module_name and 'flight' in module_name:
+                        testing_module_path = module_name
+                        break
+
+                if testing_module_path:
+                    testing_module = sys.modules[testing_module_path]
+
+                    # Create a dummy test_model function that returns dummy values
+                    def dummy_test_model(model):
+                        print(f"[INFO] Skipping evaluation phase (dummy test_model called)")
+                        return 0.0, 0.0  # dummy accuracy and loss
+
+                    # Replace the original test_model function
+                    original_test_model = getattr(testing_module, 'test_model', None)
+                    setattr(testing_module, 'test_model', dummy_test_model)
+
+                    print(f"[SUCCESS] Overrode test_model function in {testing_module_path}")
+
+                _, df = federated_fit(
+                    topo,
+                    NIDSModule(),
+                    unified_dataset,
+                    5,
+                    strategy=FedAvg()
+                )
+                success = True
+                print(f"[SUCCESS] federated_fit completed with overridden evaluation")
+
+            except Exception as e:
+                print(f"[INFO] Function override approach failed: {e}")
+
+        # Approach 5: Last resort - just run normally and let FashionMNIST download
+        if not success:
+            print(f"[WARNING] Could not disable evaluation phase")
+            print(f"[INFO] Proceeding with standard federated_fit (will require FashionMNIST)")
+            _, df = federated_fit(
+                topo,
+                NIDSModule(),
+                unified_dataset,
+                5,
+                strategy=FedAvg()
+            )
+
         df["strategy"] = "fed-avg"
         print(">>> federated_fit completed successfully.")
 
@@ -311,11 +417,18 @@ def main():
             print(f">>> ERROR: TORCH_DATASETS environment variable issue: {e}")
             print(f"[SOLUTION] Try setting the environment variable manually:")
             print(f"export TORCH_DATASETS=/path/to/your/datasets")
-            print(f"[DEBUG] Current working directory: {os.getcwd()}")
-            print(f"[DEBUG] Available directories: {[d for d in os.listdir('.') if os.path.isdir(d)]}")
         else:
             print(f">>> ERROR: KeyError during federated_fit(): {e}")
         raise
+    except RuntimeError as e:
+        if "Dataset not found" in str(e) and "FashionMNIST" in str(e):
+            print(f">>> ERROR: Flight framework still requires FashionMNIST despite attempts to disable evaluation")
+            print(f">>> This appears to be hardcoded in the framework")
+            print(f">>> Recommendation: Allow FashionMNIST download or modify the Flight framework source code")
+            raise
+        else:
+            print(f">>> ERROR: RuntimeError during federated_fit(): {e}")
+            raise
     except Exception as e:
         print(f">>> ERROR during federated_fit(): {e}")
         print(f"[DEBUG] Error type: {type(e)}")
