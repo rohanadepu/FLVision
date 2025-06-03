@@ -41,7 +41,7 @@ def loadIOTBOTNET(poisonedDataType=None):
         "LF66": "./datasets/IOTBOTNET2020_POISONEDLF66",
         "FN33": "./datasets/IOTBOTNET2020_POISONEDFN33",
         "FN66": "./datasets/IOTBOTNET2020_POISONEDFN66",
-        None: "./datasets"
+        None: "./datasets/IOTBOTNET2020"
     }
     DATASET_DIRECTORY = dataset_paths.get(poisonedDataType, dataset_paths[None])
 
