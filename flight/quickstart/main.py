@@ -55,6 +55,135 @@ def ensure_numeric_features(df, feature_cols):
     return df
 
 
+# Lazy-loading WorkerLazyDataset - moved outside main() to make it picklable
+class WorkerLazyDataset(torch.utils.data.Dataset):
+    def __init__(self, file_paths, feature_cols):
+        self.file_paths = file_paths
+        self.feature_cols = feature_cols
+        self.label_col = 'Label'
+        self.lengths = []
+
+        # Pre-validate the first file to catch data type issues early
+        print(f"[DEBUG] Pre-validating data types in first file...")
+        first_df = pd.read_feather(self.file_paths[0])
+        first_df = ensure_numeric_features(first_df, self.feature_cols)
+        print(f"[DEBUG] Data validation completed for first file")
+
+        for path in self.file_paths:
+            df = pd.read_feather(path, columns=[self.label_col])
+            self.lengths.append(len(df))
+
+        self.total_len = sum(self.lengths)
+        print(f"[DEBUG] Total samples across files: {self.total_len}")
+
+        self.cumulative_lengths = []
+        running_total = 0
+        for length in self.lengths:
+            running_total += length
+            self.cumulative_lengths.append(running_total)
+
+    def __len__(self):
+        return self.total_len
+
+    def __getitem__(self, idx):
+        dataset_idx = 0
+        while idx >= self.cumulative_lengths[dataset_idx]:
+            dataset_idx += 1
+
+        if dataset_idx > 0:
+            local_idx = idx - self.cumulative_lengths[dataset_idx - 1]
+        else:
+            local_idx = idx
+
+        df = pd.read_feather(self.file_paths[dataset_idx])
+
+        # Ensure numeric conversion for features
+        df = ensure_numeric_features(df, self.feature_cols)
+
+        # Extract features and ensure they're all numeric
+        feature_values = df.iloc[local_idx][self.feature_cols].values
+
+        # Debug: Check what we actually got
+        if idx % 1000 == 0:  # Only log occasionally
+            print(f"[DEBUG] Raw feature_values dtype: {feature_values.dtype}")
+            print(f"[DEBUG] Raw feature_values shape: {feature_values.shape}")
+            print(f"[DEBUG] First few values: {feature_values[:3] if len(feature_values) > 0 else 'empty'}")
+
+        # Handle different data types safely
+        try:
+            # If it's already numeric, check for NaN/Inf
+            if np.issubdtype(feature_values.dtype, np.number):
+                if np.isnan(feature_values).any() or np.isinf(feature_values).any():
+                    if idx % 1000 == 0:
+                        print(f"[WARNING] Found NaN/Inf values at idx {idx}, replacing with 0")
+                    feature_values = np.nan_to_num(feature_values, nan=0.0, posinf=0.0, neginf=0.0)
+                feature_values = feature_values.astype(np.float32)
+            else:
+                # If it's not numeric, force conversion
+                print(f"[WARNING] Non-numeric data at idx {idx}, dtype: {feature_values.dtype}")
+                print(f"[DEBUG] Sample values: {feature_values[:5]}")
+
+                # Convert each element individually to handle mixed types
+                converted_values = []
+                for i, val in enumerate(feature_values):
+                    try:
+                        # Try to convert to float
+                        if pd.isna(val) or val == '' or val == 'nan':
+                            converted_values.append(0.0)
+                        else:
+                            converted_values.append(float(val))
+                    except (ValueError, TypeError):
+                        print(f"[WARNING] Could not convert value '{val}' at feature index {i}, using 0.0")
+                        converted_values.append(0.0)
+
+                feature_values = np.array(converted_values, dtype=np.float32)
+
+        except Exception as e:
+            print(f"[ERROR] Failed to process features at idx {idx}: {e}")
+            print(f"[DEBUG] feature_values: {feature_values}")
+            print(f"[DEBUG] feature_values.dtype: {feature_values.dtype}")
+            # Fallback: create zeros array
+            feature_values = np.zeros(len(self.feature_cols), dtype=np.float32)
+
+        features = torch.tensor(feature_values, dtype=torch.float32)
+
+        label_value = df.iloc[local_idx][self.label_col]
+
+        if label_value not in ['Normal', 'Anomaly']:
+            print(f"[DEBUG] Unexpected label value: {label_value}")
+
+        label = torch.tensor(0 if label_value == 'Normal' else 1, dtype=torch.long)
+
+        if idx % 1000 == 0:
+            print(f"[DEBUG] Sample idx={idx}, features shape={features.shape}, label={label.item()}")
+
+        return features, label
+
+
+def ensure_numeric_features(df, feature_cols):
+    """Ensure all feature columns are numeric and handle any conversion issues."""
+    print(f"[DEBUG] Checking data types for feature columns...")
+
+    for col in feature_cols:
+        if col in df.columns:
+            # Check current data type
+            print(f"[DEBUG] Column '{col}' dtype: {df[col].dtype}")
+
+            # Convert to numeric, forcing errors to NaN
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Check for any NaN values after conversion
+            nan_count = df[col].isna().sum()
+            if nan_count > 0:
+                print(f"[WARNING] Column '{col}' has {nan_count} NaN values after numeric conversion")
+                # Fill NaN with median for that column
+                df[col].fillna(df[col].median(), inplace=True)
+        else:
+            print(f"[WARNING] Feature column '{col}' not found in DataFrame")
+
+    return df
+
+
 def main():
     multiprocessing.set_start_method("spawn", force=True)
     print("Multiprocessing start method:", multiprocessing.get_start_method())
@@ -100,111 +229,7 @@ def main():
 
     print_memory_usage("After GC")
 
-    # Lazy-loading WorkerLazyDataset
-    class WorkerLazyDataset(torch.utils.data.Dataset):
-        def __init__(self, file_paths, feature_cols):
-            self.file_paths = file_paths
-            self.feature_cols = feature_cols
-            self.label_col = 'Label'
-            self.lengths = []
-
-            # Pre-validate the first file to catch data type issues early
-            print(f"[DEBUG] Pre-validating data types in first file...")
-            first_df = pd.read_feather(self.file_paths[0])
-            first_df = ensure_numeric_features(first_df, self.feature_cols)
-            print(f"[DEBUG] Data validation completed for first file")
-
-            for path in self.file_paths:
-                df = pd.read_feather(path, columns=[self.label_col])
-                self.lengths.append(len(df))
-
-            self.total_len = sum(self.lengths)
-            print(f"[DEBUG] Total samples across files: {self.total_len}")
-
-            self.cumulative_lengths = []
-            running_total = 0
-            for length in self.lengths:
-                running_total += length
-                self.cumulative_lengths.append(running_total)
-
-        def __len__(self):
-            return self.total_len
-
-        def __getitem__(self, idx):
-            dataset_idx = 0
-            while idx >= self.cumulative_lengths[dataset_idx]:
-                dataset_idx += 1
-
-            if dataset_idx > 0:
-                local_idx = idx - self.cumulative_lengths[dataset_idx - 1]
-            else:
-                local_idx = idx
-
-            df = pd.read_feather(self.file_paths[dataset_idx])
-
-            # Ensure numeric conversion for features
-            df = ensure_numeric_features(df, self.feature_cols)
-
-            # Extract features and ensure they're all numeric
-            feature_values = df.iloc[local_idx][self.feature_cols].values
-
-            # Debug: Check what we actually got
-            if idx % 1000 == 0:  # Only log occasionally
-                print(f"[DEBUG] Raw feature_values dtype: {feature_values.dtype}")
-                print(f"[DEBUG] Raw feature_values shape: {feature_values.shape}")
-                print(f"[DEBUG] First few values: {feature_values[:3] if len(feature_values) > 0 else 'empty'}")
-
-            # Handle different data types safely
-            try:
-                # If it's already numeric, check for NaN/Inf
-                if np.issubdtype(feature_values.dtype, np.number):
-                    if np.isnan(feature_values).any() or np.isinf(feature_values).any():
-                        if idx % 1000 == 0:
-                            print(f"[WARNING] Found NaN/Inf values at idx {idx}, replacing with 0")
-                        feature_values = np.nan_to_num(feature_values, nan=0.0, posinf=0.0, neginf=0.0)
-                    feature_values = feature_values.astype(np.float32)
-                else:
-                    # If it's not numeric, force conversion
-                    print(f"[WARNING] Non-numeric data at idx {idx}, dtype: {feature_values.dtype}")
-                    print(f"[DEBUG] Sample values: {feature_values[:5]}")
-
-                    # Convert each element individually to handle mixed types
-                    converted_values = []
-                    for i, val in enumerate(feature_values):
-                        try:
-                            # Try to convert to float
-                            if pd.isna(val) or val == '' or val == 'nan':
-                                converted_values.append(0.0)
-                            else:
-                                converted_values.append(float(val))
-                        except (ValueError, TypeError):
-                            print(f"[WARNING] Could not convert value '{val}' at feature index {i}, using 0.0")
-                            converted_values.append(0.0)
-
-                    feature_values = np.array(converted_values, dtype=np.float32)
-
-            except Exception as e:
-                print(f"[ERROR] Failed to process features at idx {idx}: {e}")
-                print(f"[DEBUG] feature_values: {feature_values}")
-                print(f"[DEBUG] feature_values.dtype: {feature_values.dtype}")
-                # Fallback: create zeros array
-                feature_values = np.zeros(len(self.feature_cols), dtype=np.float32)
-
-            features = torch.tensor(feature_values, dtype=torch.float32)
-
-            label_value = df.iloc[local_idx][self.label_col]
-
-            if label_value not in ['Normal', 'Anomaly']:
-                print(f"[DEBUG] Unexpected label value: {label_value}")
-
-            label = torch.tensor(0 if label_value == 'Normal' else 1, dtype=torch.long)
-
-            if idx % 1000 == 0:
-                print(f"[DEBUG] Sample idx={idx}, features shape={features.shape}, label={label.item()}")
-
-            return features, label
-
-    # Wrap node datasets
+    # Wrap node datasets using the module-level WorkerLazyDataset class
     final_node_datasets = []
     for node_id, paths in node_datasets:
         wrapped_dataset = WorkerLazyDataset(paths, feature_names)
