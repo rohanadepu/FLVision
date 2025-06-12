@@ -276,6 +276,36 @@ class CentralACGan:
         self.logger.info("=" * 50)
 
 #########################################################################
+# Helper method for TRAINING PROCESS to balanced fake label generation  #
+#########################################################################
+    def generate_balanced_fake_labels(self, total_samples):
+        """
+        Generate balanced fake labels ensuring equal distribution of classes.
+
+        Parameters:
+        -----------
+        total_samples : int
+            Total number of fake labels to generate
+
+        Returns:
+        --------
+        tf.Tensor
+            Balanced and shuffled fake labels
+        """
+        half_samples = total_samples // 2
+        remaining_samples = total_samples - half_samples
+
+        # Create balanced labels
+        fake_labels_0 = tf.zeros(half_samples, dtype=tf.int32)  # Benign class
+        fake_labels_1 = tf.ones(remaining_samples, dtype=tf.int32)  # Attack class
+
+        # Concatenate and shuffle
+        fake_labels = tf.concat([fake_labels_0, fake_labels_1], axis=0)
+        fake_labels = tf.random.shuffle(fake_labels)
+
+        return fake_labels
+
+#########################################################################
 #                            TRAINING PROCESS                          #
 #########################################################################
     def fit(self, X_train=None, y_train=None, d_to_g_ratio=3):
@@ -449,8 +479,7 @@ class CentralACGan:
                     # ▼ BATCH 3: Generate and Train on Fake Data ▼
                     # • Sample noise data
                     noise = tf.random.normal((self.batch_size, self.latent_dim))
-                    fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
-                                                    dtype=tf.int32)
+                    fake_labels = self.generate_balanced_fake_labels(self.batch_size)
                     fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
                     # • Generate data from noise and labels
@@ -490,8 +519,7 @@ class CentralACGan:
                 # ▼ BATCH 4: New Generator Input ▼
                 # • Generate new noise and label inputs for AC-GAN training
                 noise = tf.random.normal((self.batch_size, self.latent_dim))
-                sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
-                                                   dtype=tf.int32)
+                sampled_labels = self.generate_balanced_fake_labels(self.batch_size)
                 sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
 
                 # • Train AC-GAN with sampled noise data
@@ -632,9 +660,7 @@ class CentralACGan:
         # GENERATE FAKE VALIDATION DATA
         # ═══════════════════════════════════════════════════════════════════════
         noise = tf.random.normal((len(self.x_val), self.latent_dim))
-        fake_labels = tf.random.uniform(
-            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
-        )
+        fake_labels = self.generate_balanced_fake_labels(len(self.x_val))
         fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
         fake_valid_labels = np.zeros((len(self.x_val), 1))
         generated_data = self.generator.predict([noise, fake_labels])
@@ -687,23 +713,26 @@ class CentralACGan:
     def validation_gen(self):
         """
         Evaluate the generator (via the AC-GAN) using a validation batch.
-        The generator is evaluated by its ability to “fool” the discriminator.
-        Prints and returns the total generator loss along with key metrics.
+        The generator is evaluated by its ability to "fool" the discriminator.
         """
+        # ═══════════════════════════════════════════════════════════════════════
+        # GENERATOR VALIDATION DATA PREPARATION
+        # ═══════════════════════════════════════════════════════════════════════
         noise = tf.random.normal((len(self.x_val), self.latent_dim))
-        sampled_labels = tf.random.uniform(
-            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
-        )
+        sampled_labels = self.generate_balanced_fake_labels(len(self.x_val))
         sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
         valid_labels = np.ones((len(self.x_val), 1))
 
+        # ═══════════════════════════════════════════════════════════════════════
+        # GENERATOR EVALUATION
+        # ═══════════════════════════════════════════════════════════════════════
         g_loss = self.ACGAN.evaluate(
             [noise, sampled_labels],
             [valid_labels, sampled_labels_onehot],
             verbose=0
         )
 
-        # Log detailed metrics
+        # ─── Log Detailed Metrics ───
         self.logger.info("Validation Generator (AC-GAN) Evaluation:")
         self.logger.info(
             f"Total Loss: {g_loss[0]:.4f}, Validity Loss: {g_loss[1]:.4f}, Class Loss: {g_loss[2]:.4f}")
@@ -712,7 +741,7 @@ class CentralACGan:
         self.logger.info(
             f"Class Categorical Accuracy: {g_loss[4] * 100:.2f}%")
 
-        # Create a metrics dictionary with the full set of metrics
+        # ─── Create Metrics Dictionary ───
         g_metrics = {
             "Total Loss": f"{g_loss[0]:.4f}",
             "Validity Loss": f"{g_loss[1]:.4f}",
@@ -733,31 +762,38 @@ class CentralACGan:
             print("NIDS model is not defined.")
             return None
 
-        # --- Prepare Real Data ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # PREPARE REAL AND FAKE VALIDATION DATA
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Real Data Preparation ───
         X_real = self.x_val
         y_real = np.ones((len(self.x_val),), dtype="int32")  # Real samples labeled 1
 
-        # --- Generate Fake Data ---
+        # ─── Fake Data Generation ───
         noise = tf.random.normal((len(self.x_val), self.latent_dim))
-        fake_labels = tf.random.uniform(
-            (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
-        )
+        fake_labels = self.generate_balanced_fake_labels(len(self.x_val))
         generated_samples = self.generator.predict([noise, fake_labels])
         X_fake = generated_samples
         y_fake = np.zeros((len(self.x_val),), dtype="int32")  # Fake samples labeled 0
 
-        # --- Compute custom NIDS loss ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # COMPUTE CUSTOM NIDS LOSS
+        # ═══════════════════════════════════════════════════════════════════════
         real_output = self.nids.predict(X_real)
         fake_output = self.nids.predict(X_fake)
         custom_nids_loss = self.nids_loss(real_output, fake_output)
 
-        # --- Evaluate on the Combined Dataset ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # EVALUATE ON COMBINED DATASET
+        # ═══════════════════════════════════════════════════════════════════════
         X_combined = np.vstack([X_real, X_fake])
         y_combined = np.hstack([y_real, y_fake])
         nids_eval = self.nids.evaluate(X_combined, y_combined, verbose=0)
         # Expected order: [loss, accuracy, precision, recall, auc, logcosh]
 
-        # --- Compute Additional Metrics ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # COMPUTE ADDITIONAL METRICS
+        # ═══════════════════════════════════════════════════════════════════════
         y_pred_probs = self.nids.predict(X_combined)
         y_pred = (y_pred_probs > 0.5).astype("int32")
         f1 = f1_score(y_combined, y_pred)
@@ -765,6 +801,7 @@ class CentralACGan:
             y_combined, y_pred, target_names=["Attack (Fake)", "Benign (Real)"]
         )
 
+        # ─── Log NIDS Validation Results ───
         self.logger.info("Validation NIDS Evaluation with Augmented Data:")
         self.logger.info(f"Custom NIDS Loss (Real vs Fake): {custom_nids_loss:.4f}")
         self.logger.info(f"Overall NIDS Loss: {nids_eval[0]:.4f}, Accuracy: {nids_eval[1]:.4f}, "
@@ -774,6 +811,7 @@ class CentralACGan:
         self.logger.info(class_report)
         self.logger.info(f"F1 Score: {f1:.4f}")
 
+        # ─── Create Metrics Dictionary ───
         metrics = {
             "Custom NIDS Loss": f"{custom_nids_loss:.4f}",
             "Loss": f"{nids_eval[0]:.4f}",
@@ -794,12 +832,12 @@ class CentralACGan:
             X_test = self.x_test
             y_test = self.y_test
 
-        # --------------------------
-        # Test Discriminator with Class Separation
-        # --------------------------
+        # ═══════════════════════════════════════════════════════════════════════
+        # DISCRIMINATOR EVALUATION WITH CLASS SEPARATION
+        # ═══════════════════════════════════════════════════════════════════════
         self.logger.info("-- Evaluating Discriminator --")
 
-        # Separate benign and attack test samples
+        # ─── Separate Test Samples by Class ───
         if y_test.ndim > 1:
             test_labels_idx = tf.argmax(y_test, axis=1)
         else:
@@ -808,7 +846,7 @@ class CentralACGan:
         benign_indices = tf.where(tf.equal(test_labels_idx, 0))
         attack_indices = tf.where(tf.equal(test_labels_idx, 1))
 
-        # Create benign and attack test sets
+        # ─── Create Class-Specific Test Sets ───
         x_test_benign = tf.gather(X_test, benign_indices[:, 0]) if len(benign_indices) > 0 else tf.zeros(
             (0, X_test.shape[1]))
         y_test_benign = tf.gather(y_test, benign_indices[:, 0]) if len(benign_indices) > 0 else tf.zeros(
@@ -818,7 +856,7 @@ class CentralACGan:
         y_test_attack = tf.gather(y_test, attack_indices[:, 0]) if len(attack_indices) > 0 else tf.zeros(
             (0, y_test.shape[1] if y_test.ndim > 1 else 0))
 
-        # Ensure correct one-hot encoding
+        # ─── Ensure One-Hot Encoding ───
         if y_test.ndim == 1 or y_test.shape[1] != self.num_classes:
             if len(benign_indices) > 0:
                 y_test_benign_onehot = tf.one_hot(tf.cast(y_test_benign, tf.int32), depth=self.num_classes)
@@ -833,7 +871,7 @@ class CentralACGan:
             y_test_benign_onehot = y_test_benign
             y_test_attack_onehot = y_test_attack
 
-        # Log distribution of test data
+        # ─── Log Test Data Distribution ───
         benign_count = len(x_test_benign)
         attack_count = len(x_test_attack)
         total_count = benign_count + attack_count
@@ -843,11 +881,11 @@ class CentralACGan:
         self.logger.info(f"Test Data Distribution: {benign_count} Benign ({benign_ratio:.2f}), "
                          f"{attack_count} Attack ({attack_ratio:.2f})")
 
-        # Generate fake test data for evaluation
+        # ─── Generate Fake Test Data ───
         fake_count = min(benign_count, attack_count) * 2  # Generate a balanced number of fake samples
         if fake_count > 0:
             noise = tf.random.normal((fake_count, self.latent_dim))
-            fake_labels = tf.random.uniform((fake_count,), minval=0, maxval=self.num_classes, dtype=tf.int32)
+            fake_labels = self.generate_balanced_fake_labels(fake_count)
             fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
             fake_valid_labels = np.zeros((fake_count, 1))
             generated_data = self.generator.predict([noise, fake_labels])
@@ -857,11 +895,14 @@ class CentralACGan:
             fake_labels_onehot = tf.zeros((0, self.num_classes))
             fake_valid_labels = np.zeros((0, 1))
 
-        # Evaluate on each data type separately
+        # ═══════════════════════════════════════════════════════════════════════
+        # EVALUATE DISCRIMINATOR ON EACH DATA TYPE
+        # ═══════════════════════════════════════════════════════════════════════
         d_loss_benign = None
         d_loss_attack = None
         d_loss_fake = None
 
+        # ▼ Benign Data Evaluation ▼
         if benign_count > 0:
             benign_valid_labels = np.ones((benign_count, 1))
             d_loss_benign = self.discriminator.evaluate(
@@ -875,6 +916,7 @@ class CentralACGan:
                 f"Class Accuracy: {d_loss_benign[4] * 100:.2f}%"
             )
 
+        # ▼ Attack Data Evaluation ▼
         if attack_count > 0:
             attack_valid_labels = np.ones((attack_count, 1))
             d_loss_attack = self.discriminator.evaluate(
@@ -888,6 +930,7 @@ class CentralACGan:
                 f"Class Accuracy: {d_loss_attack[4] * 100:.2f}%"
             )
 
+        # ▼ Fake Data Evaluation ▼
         if fake_count > 0:
             d_loss_fake = self.discriminator.evaluate(
                 generated_data, [fake_valid_labels, fake_labels_onehot], verbose=0
@@ -900,7 +943,7 @@ class CentralACGan:
                 f"Class Accuracy: {d_loss_fake[4] * 100:.2f}%"
             )
 
-        # Apply weighted loss calculation if all data types are available
+        # ─── Apply Weighted Loss Calculation ───
         if d_loss_benign is not None and d_loss_attack is not None and d_loss_fake is not None:
             weighted_loss, d_eval_metrics = self.calculate_weighted_loss(
                 d_loss_benign,
@@ -913,7 +956,7 @@ class CentralACGan:
             )
             self.logger.info(f"Weighted Total Discriminator Loss: {weighted_loss:.4f}")
         else:
-            # Fall back to simple average if not all data types are available
+            # ─── Fallback to Simple Average ───
             available_losses = []
             if d_loss_benign is not None:
                 available_losses.append(d_loss_benign[0])
@@ -929,11 +972,12 @@ class CentralACGan:
                 self.logger.warning("No loss data available for discriminator")
                 avg_loss = 0.0
 
-            # Create basic metrics dictionary
+            # ─── Create Basic Metrics Dictionary ───
             d_eval_metrics = {
                 "Loss": f"{avg_loss:.4f}",
                 "Note": "Limited metrics available due to insufficient test data",
             }
+            # Add available metrics
             if d_loss_benign is not None:
                 d_eval_metrics.update({
                     "Benign Total Loss": f"{d_loss_benign[0]:.4f}",
@@ -953,28 +997,29 @@ class CentralACGan:
                     "Fake Class Acc": f"{d_loss_fake[4] * 100:.2f}%"
                 })
 
-        # --------------------------
-        # Test Generator (ACGAN)
-        # --------------------------
+        # ═══════════════════════════════════════════════════════════════════════
+        # GENERATOR (AC-GAN) EVALUATION
+        # ═══════════════════════════════════════════════════════════════════════
         self.logger.info("-- Evaluating Generator --")
 
-        # get the noise samples
+        # ─── Prepare Generator Test Data ───
         noise = tf.random.normal((len(y_test), self.latent_dim))
-        sampled_labels = tf.random.uniform((len(y_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
+        sampled_labels = self.generate_balanced_fake_labels(len(y_test))
 
-        # run the model
+        # ─── Run Generator Evaluation ───
         g_loss = self.ACGAN.evaluate([noise, sampled_labels],
                                      [tf.ones((len(y_test), 1)),
                                       tf.one_hot(sampled_labels, depth=self.num_classes)],
                                      verbose=0)
 
-        # Using the updated ordering for ACGAN:
+        # ─── Extract Generator Metrics ───
         g_loss_total = g_loss[0]
         g_loss_validity = g_loss[1]
         g_loss_class = g_loss[2]
         g_validity_bin_acc = g_loss[3]
         g_class_cat_acc = g_loss[4]
 
+        # ─── Create Generator Metrics Dictionary ───
         g_eval_metrics = {
             "Loss": f"{g_loss_total:.4f}",
             "Validity Loss": f"{g_loss_validity:.4f}",
@@ -982,6 +1027,8 @@ class CentralACGan:
             "Validity Binary Accuracy": f"{g_validity_bin_acc * 100:.2f}%",
             "Class Categorical Accuracy": f"{g_class_cat_acc * 100:.2f}%"
         }
+
+        # ─── Log Generator Results ───
         self.logger.info(
             f"Generator Total Loss: {g_loss_total:.4f} | Validity Loss: {g_loss_validity:.4f} | Class Loss: {g_loss_class:.4f}"
         )
@@ -992,35 +1039,36 @@ class CentralACGan:
             f"Class Categorical Accuracy: {g_class_cat_acc * 100:.2f}%"
         )
 
-        # --------------------------
-        # Test NIDS
-        # --------------------------
+        # ═══════════════════════════════════════════════════════════════════════
+        # NIDS EVALUATION
+        # ═══════════════════════════════════════════════════════════════════════
         nids_eval_metrics = None
         if self.nids is not None:
             self.logger.info("-- Evaluating NIDS --")
-            # Prepare real test data (labeled as benign, 1)
+
+            # ─── Prepare NIDS Test Data ───
             X_real = X_test
             y_real = np.ones((len(X_test),), dtype="int32")
 
-            # Generate fake test data (labeled as attack, 0)
+            # ─── Generate Fake Test Data for NIDS ───
             noise = tf.random.normal((len(X_test), self.latent_dim))
-            fake_labels = tf.random.uniform((len(X_test),), minval=0, maxval=self.num_classes, dtype=tf.int32)
+            fake_labels = self.generate_balanced_fake_labels(len(X_test))
             generated_samples = self.generator.predict([noise, fake_labels])
             X_fake = generated_samples
             y_fake = np.zeros((len(X_test),), dtype="int32")
 
-            # Compute custom NIDS loss on real and fake outputs
+            # ─── Compute Custom NIDS Loss ───
             real_output = self.nids.predict(X_real)
             fake_output = self.nids.predict(X_fake)
             custom_nids_loss = self.nids_loss(real_output, fake_output)
 
-            # Combine real and fake data for evaluation
+            # ─── Combine Data and Evaluate ───
             X_combined = np.vstack([X_real, X_fake])
             y_combined = np.hstack([y_real, y_fake])
             nids_eval_results = self.nids.evaluate(X_combined, y_combined, verbose=0)
             # Expected order: [loss, accuracy, precision, recall, auc, logcosh]
 
-            # Compute additional metrics
+            # ─── Compute Additional NIDS Metrics ───
             y_pred_probs = self.nids.predict(X_combined)
             y_pred = (y_pred_probs > 0.5).astype("int32")
             f1 = f1_score(y_combined, y_pred)
@@ -1028,6 +1076,7 @@ class CentralACGan:
                 y_combined, y_pred, target_names=["Attack (Fake)", "Benign (Real)"]
             )
 
+            # ─── Create NIDS Metrics Dictionary ───
             nids_eval_metrics = {
                 "Custom NIDS Loss": f"{custom_nids_loss:.4f}",
                 "Loss": f"{nids_eval_results[0]:.4f}",
@@ -1038,6 +1087,8 @@ class CentralACGan:
                 "LogCosh": f"{nids_eval_results[5]:.4f}",
                 "F1 Score": f"{f1:.4f}"
             }
+
+            # ─── Log NIDS Results ───
             self.logger.info(f"NIDS Custom Loss: {custom_nids_loss:.4f}")
             self.logger.info(
                 f"NIDS Evaluation -> Loss: {nids_eval_results[0]:.4f}, Accuracy: {nids_eval_results[1]:.4f}, "
@@ -1046,15 +1097,17 @@ class CentralACGan:
             self.logger.info("NIDS Classification Report:")
             self.logger.info(class_report)
 
-        # --------------------------
-        # Probabilistic Fusion Evaluation
-        # --------------------------
+        # ═══════════════════════════════════════════════════════════════════════
+        # PROBABILISTIC FUSION EVALUATION
+        # ═══════════════════════════════════════════════════════════════════════
         self.logger.info("-- Evaluating Probabilistic Fusion --")
         fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(X_test, y_test)
         self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
         self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-        # Log the overall evaluation metrics using our logging function
+        # ═══════════════════════════════════════════════════════════════════════
+        # LOG OVERALL EVALUATION METRICS
+        # ═══════════════════════════════════════════════════════════════════════
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics, fusion_metrics)
 
 #########################################################################
