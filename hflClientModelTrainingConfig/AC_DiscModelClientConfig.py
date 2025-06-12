@@ -9,7 +9,6 @@ import logging
 from datetime import datetime
 import argparse
 
-
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
 
@@ -25,6 +24,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import f1_score, classification_report
 from collections import Counter
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -45,6 +45,7 @@ from numpy import expand_dims
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
+
 
 ################################################################################################################
 #                                               FEDERATED DISCRIMINATOR CLIENT                              #
@@ -145,22 +146,31 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         self.logger.info(f"Epochs: {self.epochs}")
         self.logger.info(f"Steps per Epoch: {self.steps_per_epoch}")
         self.logger.info(f"Learning Rate (Discriminator): {self.disc_optimizer.learning_rate}")
+        self.logger.info(f"Using Class Labels: {self.use_class_labels}")
         self.logger.info("=" * 50)
 
-    def log_epoch_metrics(self, epoch, d_metrics):
+    def log_epoch_metrics(self, epoch, d_metrics, fusion_metrics=None):
         """Logs a formatted summary of the metrics for the current epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
         self.logger.info("Discriminator Metrics:")
         for key, value in d_metrics.items():
             self.logger.info(f"  {key}: {value}")
+        if fusion_metrics is not None:
+            self.logger.info("Probabilistic Fusion Metrics:")
+            for key, value in fusion_metrics.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval):
+    def log_evaluation_metrics(self, d_eval, fusion_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
+        if fusion_eval is not None:
+            self.logger.info("Probabilistic Fusion Evaluation:")
+            for key, value in fusion_eval.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
     # -- Train -- #
@@ -173,15 +183,22 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         for layer in self.discriminator.layers:
             layer.trainable = True
 
-        # -- Re-compile discriminator with trainable weights -- #
-        self.discriminator.compile(
-            loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
-            optimizer=self.disc_optimizer,
-            metrics={
-                'validity': [ 'binary_accuracy'],
-                'class': ['categorical_accuracy']
-            }
-        )
+        # -- Re-compile discriminator with trainable weights based on class labels -- #
+        if self.use_class_labels:
+            self.discriminator.compile(
+                loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
+                optimizer=self.disc_optimizer,
+                metrics={
+                    'validity': ['binary_accuracy'],
+                    'class': ['categorical_accuracy']
+                }
+            )
+        else:
+            self.discriminator.compile(
+                loss={'validity': 'binary_crossentropy'},
+                optimizer=self.disc_optimizer,
+                metrics={'validity': ['binary_accuracy']}
+            )
 
         # load data as a new variable
         X_train = self.x_train
@@ -196,26 +213,33 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
 
         self.logger.info(f"Using valid label smoothing with factor: {valid_smoothing_factor}")
+        self.logger.info("Training discriminator using REAL DATA ONLY (Federated)")
 
+        # -- Initialize metrics tracking -- #
+        d_metrics_history = []
+
+        # -- Training Loop -- #
         for epoch in range(self.epochs):
-            print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
-            self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
+            print("Discriminator Metrics:", self.discriminator.metrics_names)
+
+            print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
+            self.logger.info(f'=== Epoch {epoch + 1}/{self.epochs} ===')
 
             # --------------------------
             # Train Discriminator (REAL DATA ONLY)
             # --------------------------
 
-            # Calculate number of batches per epoch
-            total_batches = min(self.steps_per_epoch, len(X_train) // self.batch_size)
+            # Determine how many steps per epoch based on batch size
+            actual_steps = min(self.steps_per_epoch, len(X_train) // self.batch_size)
 
-            # Track metrics across all batches
+            # Track metrics across all steps
             epoch_loss = 0
             epoch_validity_loss = 0
             epoch_class_loss = 0
             epoch_validity_acc = 0
             epoch_class_acc = 0
 
-            for batch in range(total_batches):
+            for step in range(actual_steps):
                 # Sample a batch of real data
                 idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
                 real_data = tf.gather(X_train, idx)
@@ -249,18 +273,22 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
                     epoch_validity_loss += d_loss_real[0]  # Total loss is validity loss
                     epoch_validity_acc += d_loss_real[1]  # Index 1 for binary accuracy
 
+                # Print progress every few steps
+                if step % max(1, actual_steps // 10) == 0:
+                    print(f"Step {step}/{actual_steps} - D loss: {d_loss_real[0]:.4f}")
+
             # Calculate average metrics for the epoch
-            batch_count = total_batches
-            avg_loss = epoch_loss / batch_count
-            avg_validity_loss = epoch_validity_loss / batch_count
-            avg_validity_acc = epoch_validity_acc / batch_count
+            step_count = actual_steps
+            avg_loss = epoch_loss / step_count
+            avg_validity_loss = epoch_validity_loss / step_count
+            avg_validity_acc = epoch_validity_acc / step_count
 
             # Log training metrics
             self.logger.info("Training Discriminator (REAL DATA ONLY)")
 
             if self.use_class_labels:
-                avg_class_loss = epoch_class_loss / batch_count
-                avg_class_acc = epoch_class_acc / batch_count
+                avg_class_loss = epoch_class_loss / step_count
+                avg_class_acc = epoch_class_acc / step_count
 
                 self.logger.info(
                     f"Discriminator Loss: {avg_loss:.4f} | Validity Loss: {avg_validity_loss:.4f} | Class Loss: {avg_class_loss:.4f}")
@@ -278,15 +306,7 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
                     "Class Categorical Accuracy": f"{avg_class_acc * 100:.2f}%"
                 }
 
-                # Store last epoch metrics to return to server
-                if epoch == self.epochs - 1:
-                    epoch_metrics = {
-                        "loss": float(avg_loss),
-                        "validity_loss": float(avg_validity_loss),
-                        "class_loss": float(avg_class_loss),
-                        "validity_accuracy": float(avg_validity_acc),
-                        "class_accuracy": float(avg_class_acc)
-                    }
+
             else:
                 self.logger.info(
                     f"Discriminator Loss: {avg_loss:.4f} (Validity Loss)")
@@ -300,35 +320,28 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
                     "Validity Binary Accuracy": f"{avg_validity_acc * 100:.2f}%"
                 }
 
-                # Store last epoch metrics to return to server
-                if epoch == self.epochs - 1:
-                    epoch_metrics = {
-                        "loss": float(avg_loss),
-                        "validity_accuracy": float(avg_validity_acc)
-                    }
+            # Store metrics history
+            d_metrics_history.append(avg_loss)
 
             # --------------------------
-            # Validation every 1 epochs
+            # Validation every epoch
             # --------------------------
-            if epoch % 1 == 0:
-                self.logger.info(f"=== Epoch {epoch} Validation ===")
+            self.logger.info(f"=== Epoch {epoch + 1} Validation ===")
 
-                d_val_loss, d_val_metrics = self.validation_disc()
+            d_val_loss, d_val_metrics = self.validation_disc()
 
-                # -- Probabilistic Fusion Validation -- #
-                self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
-                fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
-                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+            # -- Probabilistic Fusion Validation -- #
+            self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
+            fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
+            self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 
-                # Log distribution of classifications
-                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
-                self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
-                self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
+            # Log distribution of classifications
+            self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-                # Log the metrics for this epoch
-                self.log_epoch_metrics(epoch, d_val_metrics)
-                self.logger.info(
-                    f"Epoch {epoch}: D Loss: {avg_loss:.4f}, D Validity Acc: {avg_validity_acc * 100:.2f}%")
+            # Log the metrics for this epoch
+            self.log_epoch_metrics(epoch, d_val_metrics, fusion_metrics)
+            self.logger.info(
+                f"Epoch {epoch + 1}: D Loss: {avg_loss:.4f}, D Validity Acc: {avg_validity_acc * 100:.2f}%")
 
         return self.discriminator.get_weights(), len(self.x_train), {}
 
@@ -339,7 +352,14 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
         Returns combined probabilities for all four possible outcomes.
         """
         # Get discriminator predictions
-        validity_scores, class_predictions = self.discriminator.predict(input_data)
+        if self.use_class_labels:
+            validity_scores, class_predictions = self.discriminator.predict(input_data)
+        else:
+            validity_scores = self.discriminator.predict(input_data)
+            # If no class labels, create dummy class predictions (all benign)
+            class_predictions = np.ones((len(input_data), 2))
+            class_predictions[:, 0] = 1.0  # All benign
+            class_predictions[:, 1] = 0.0  # No attack
 
         total_samples = len(input_data)
         results = []
@@ -466,7 +486,8 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
     # -- Validate -- #
     def validation_disc(self):
         """
-        Evaluate the discriminator on the validation set using real data and generated fake data.
+        Evaluate the discriminator on the validation set using real data.
+        For federated learning, we focus on real data validation.
         Returns the average total loss and a metrics dictionary.
         """
         # --- Evaluate on real validation data ---
@@ -489,64 +510,112 @@ class ACDiscriminatorClient(fl.client.NumPyClient):
                 self.x_val, val_valid_labels, verbose=0
             )
 
-        # Evaluate on generated (fake) data
-        # For federated learning with only real data, we don't generate fake samples.
-        # But if desired, you could simulate fake data here.
-        # For now, we'll only evaluate on real data.
+        # For federated learning with real data only, we focus on real data evaluation
         avg_total_loss = d_loss_real[0]
 
         self.logger.info("Validation Discriminator Evaluation (Real Data Only):")
-        self.logger.info(
-            f"Real Data -> Total Loss: {d_loss_real[0]:.4f}, Validity Loss: {d_loss_real[1]:.4f}, "
-            f"Class Loss: {d_loss_real[2]:.4f}, Validity Accuracy: {d_loss_real[3] * 100:.2f}%, "
-            f"Class Accuracy: {d_loss_real[4] * 100:.2f}%"
-        )
 
-        metrics = {
-            "Real Total Loss": f"{d_loss_real[0]:.4f}",
-            "Real Validity Loss": f"{d_loss_real[1]:.4f}",
-            "Real Class Loss": f"{d_loss_real[2]:.4f}",
-            "Real Validity Accuracy": f"{d_loss_real[3] * 100:.2f}%",
-            "Real Class Accuracy": f"{d_loss_real[4] * 100:.2f}%"
-        }
+        # Log metrics based on whether we use class labels
+        if self.use_class_labels:
+            self.logger.info(
+                f"Real Data -> Total Loss: {d_loss_real[0]:.4f}, "
+                f"Validity Loss: {d_loss_real[1]:.4f}, "
+                f"Class Loss: {d_loss_real[2]:.4f}, "
+                f"Validity Binary Accuracy: {d_loss_real[3] * 100:.2f}%, "
+                f"Class Categorical Accuracy: {d_loss_real[4] * 100:.2f}%"
+            )
+
+            metrics = {
+                "Real Total Loss": f"{d_loss_real[0]:.4f}",
+                "Real Validity Loss": f"{d_loss_real[1]:.4f}",
+                "Real Class Loss": f"{d_loss_real[2]:.4f}",
+                "Real Validity Binary Accuracy": f"{d_loss_real[3] * 100:.2f}%",
+                "Real Class Categorical Accuracy": f"{d_loss_real[4] * 100:.2f}%"
+            }
+        else:
+            self.logger.info(
+                f"Real Data -> Loss: {d_loss_real[0]:.4f}, "
+                f"Binary Accuracy: {d_loss_real[1] * 100:.2f}%"
+            )
+
+            metrics = {
+                "Real Loss": f"{d_loss_real[0]:.4f}",
+                "Real Binary Accuracy": f"{d_loss_real[1] * 100:.2f}%"
+            }
+
         return avg_total_loss, metrics
 
     # -- Evaluate -- #
-    def evaluate(self, X_test=None, y_test=None):
-        if X_test is None or y_test is None:
-            X_test = self.x_test
-            y_test = self.y_test
+    def evaluate(self, parameters, config):
+        self.discriminator.set_weights(parameters)
+
+        X_test = self.x_test
+        y_test = self.y_test
 
         self.logger.info("-- Evaluating Discriminator --")
-        results = self.discriminator.evaluate(X_test, [tf.ones((len(y_test), 1)), y_test], verbose=0)
 
-        d_loss_total = results[0]
-        d_loss_validity = results[1]
-        d_loss_class = results[2]
-        d_validity_bin_acc = results[3]
-        d_class_cat_acc = results[4]
+        # Evaluate based on whether we use class labels
+        if self.use_class_labels:
+            # Convert y_test to one-hot if needed
+            if y_test.ndim == 1 or y_test.shape[1] != self.num_classes:
+                y_test_onehot = tf.one_hot(y_test, depth=self.num_classes)
+            else:
+                y_test_onehot = y_test
 
-        d_eval_metrics = {
-            "Loss": f"{d_loss_total:.4f}",
-            "Validity Loss": f"{d_loss_validity:.4f}",
-            "Class Loss": f"{d_loss_class:.4f}",
-            "Validity Binary Accuracy": f"{d_validity_bin_acc * 100:.2f}%",
-            "Class Categorical Accuracy": f"{d_class_cat_acc * 100:.2f}%"
-        }
-        self.logger.info(
-            f"Discriminator Total Loss: {d_loss_total:.4f} | Validity Loss: {d_loss_validity:.4f} | Class Loss: {d_loss_class:.4f}"
-        )
-        self.logger.info(
-            f"Validity Binary Accuracy: {d_validity_bin_acc * 100:.2f}%"
-        )
-        self.logger.info(
-            f"Class Categorical Accuracy: {d_class_cat_acc * 100:.2f}%"
-        )
+            results = self.discriminator.evaluate(X_test, [tf.ones((len(y_test), 1)), y_test_onehot], verbose=0)
+
+            d_loss_total = results[0]
+            d_loss_validity = results[1]
+            d_loss_class = results[2]
+            d_validity_bin_acc = results[3]
+            d_class_cat_acc = results[4]
+
+            d_eval_metrics = {
+                "Loss": f"{d_loss_total:.4f}",
+                "Validity Loss": f"{d_loss_validity:.4f}",
+                "Class Loss": f"{d_loss_class:.4f}",
+                "Validity Binary Accuracy": f"{d_validity_bin_acc * 100:.2f}%",
+                "Class Categorical Accuracy": f"{d_class_cat_acc * 100:.2f}%"
+            }
+
+            self.logger.info(
+                f"Discriminator Total Loss: {d_loss_total:.4f} | Validity Loss: {d_loss_validity:.4f} | Class Loss: {d_loss_class:.4f}"
+            )
+            self.logger.info(
+                f"Validity Binary Accuracy: {d_validity_bin_acc * 100:.2f}%"
+            )
+            self.logger.info(
+                f"Class Categorical Accuracy: {d_class_cat_acc * 100:.2f}%"
+            )
+        else:
+            results = self.discriminator.evaluate(X_test, tf.ones((len(y_test), 1)), verbose=0)
+
+            d_loss_total = results[0]
+            d_validity_bin_acc = results[1]
+
+            d_eval_metrics = {
+                "Loss": f"{d_loss_total:.4f}",
+                "Validity Binary Accuracy": f"{d_validity_bin_acc * 100:.2f}%"
+            }
+
+            self.logger.info(
+                f"Discriminator Loss: {d_loss_total:.4f}"
+            )
+            self.logger.info(
+                f"Validity Binary Accuracy: {d_validity_bin_acc * 100:.2f}%"
+            )
+
+        # -- Probabilistic Fusion Evaluation -- #
+        self.logger.info("-- Evaluating Probabilistic Fusion --")
+        fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(X_test, y_test)
+        self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+        self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
         # Log overall evaluation metrics
-        self.log_evaluation_metrics(d_eval_metrics)  # Only discriminator metrics for federated config
+        self.log_evaluation_metrics(d_eval_metrics, fusion_metrics)
 
-        return float(results.numpy()), len(self.x_test), {}
+        return float(d_loss_total), len(self.x_test), {
+            "accuracy": float(d_validity_bin_acc) if not self.use_class_labels else float(d_class_cat_acc)}
 
     def save(self, save_name):
         # Save each submodel separately

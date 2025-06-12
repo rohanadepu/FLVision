@@ -9,7 +9,6 @@ import logging
 from datetime import datetime
 import argparse
 
-
 if 'TF_USE_LEGACY_KERAS' in os.environ:
     del os.environ['TF_USE_LEGACY_KERAS']
 
@@ -25,6 +24,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import f1_score, classification_report
 from collections import Counter
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -46,6 +46,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer, LabelEncoder, MinMaxScaler
 from sklearn.utils import shuffle
 
+
 ################################################################################################################
 #                                               FL-GAN TRAINING Setup                                         #
 ################################################################################################################
@@ -54,23 +55,23 @@ class CentralACDisc:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
                  log_file="training.log"):
-        #-- models
+        # -- models
         self.generator = generator
         self.discriminator = discriminator
         self.nids = nids
 
-        #-- I/O Specs for models
+        # -- I/O Specs for models
         self.batch_size = BATCH_SIZE
         self.noise_dim = noise_dim
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.input_dim = input_dim
 
-        #-- training duration
+        # -- training duration
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
 
-        #-- Data
+        # -- Data
         # Features
         self.x_train = x_train
         self.x_test = x_test
@@ -83,11 +84,8 @@ class CentralACDisc:
         # -- Setup Logging
         self.setup_logger(log_file)
 
-        #-- Optimizers
+        # -- Optimizers
         # LR decay
-        lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.98, staircase=True)
-
         lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0001, decay_steps=10000, decay_rate=0.98, staircase=True)
 
@@ -96,7 +94,7 @@ class CentralACDisc:
 
         print("Discriminator Output:", self.discriminator.output_names)
 
-        #-- Model Compilations
+        # -- Model Compilations
         self.discriminator.compile(
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
             optimizer=self.disc_optimizer,
@@ -109,7 +107,7 @@ class CentralACDisc:
     # -- logging Functions -- #
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
-        self.logger = logging.getLogger("CentralACGan")
+        self.logger = logging.getLogger("CentralACDisc")
         self.logger.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -161,44 +159,53 @@ class CentralACDisc:
         self.logger.info(f"Input Dimension: {self.input_dim}")
         self.logger.info(f"Epochs: {self.epochs}")
         self.logger.info(f"Steps per Epoch: {self.steps_per_epoch}")
-        self.logger.info(f"Learning Rate (Generator): {self.gen_optimizer.learning_rate}")
         self.logger.info(f"Learning Rate (Discriminator): {self.disc_optimizer.learning_rate}")
         self.logger.info("=" * 50)
 
-    def log_epoch_metrics(self, epoch, d_metrics, g_metrics=None, nids_metrics=None):
+    def log_epoch_metrics(self, epoch, d_metrics, nids_metrics=None, fusion_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
         self.logger.info("Discriminator Metrics:")
         for key, value in d_metrics.items():
             self.logger.info(f"  {key}: {value}")
-        if g_metrics is not None:
-            self.logger.info("Generator Metrics:")
-            for key, value in g_metrics.items():
-                self.logger.info(f"  {key}: {value}")
         if nids_metrics is not None:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
                 self.logger.info(f"  {key}: {value}")
+        if fusion_metrics is not None:
+            self.logger.info("Probabilistic Fusion Metrics:")
+            for key, value in fusion_metrics.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval, g_eval=None, nids_eval=None):
+    def log_evaluation_metrics(self, d_eval, nids_eval=None, fusion_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
-        if g_eval is not None:
-            self.logger.info("Generator Evaluation:")
-            for key, value in g_eval.items():
-                self.logger.info(f"  {key}: {value}")
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
+                self.logger.info(f"  {key}: {value}")
+        if fusion_eval is not None:
+            self.logger.info("Probabilistic Fusion Evaluation:")
+            for key, value in fusion_eval.items():
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
     # -- Train -- #
     def fit(self, X_train=None, y_train=None):
+        """
+        Train the discriminator with class-specific training and weighted loss calculation.
+
+        Parameters:
+        -----------
+        X_train : array-like, optional
+            Training features. If None, uses self.x_train.
+        y_train : array-like, optional
+            Training labels. If None, uses self.y_train.
+        """
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
@@ -206,95 +213,272 @@ class CentralACDisc:
         # Log model settings at the start
         self.log_model_settings()
 
-        # -- Apply label smoothing -- #
+        # -- Apply Class split for Class Specific Training
+        # Separate data by class
+        benign_indices = tf.where(tf.equal(tf.argmax(y_train, axis=1) if y_train.ndim > 1 else y_train, 0))
+        attack_indices = tf.where(tf.equal(tf.argmax(y_train, axis=1) if y_train.ndim > 1 else y_train, 1))
 
+        self.logger.info(
+            f"Training data split: Benign samples: {len(benign_indices)}, Attack samples: {len(attack_indices)}")
+
+        # -- Apply label smoothing -- #
         # Create smoothed labels for discriminator training
         valid_smoothing_factor = 0.15
-        valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
-
         fake_smoothing_factor = 0.1
-        fake_smooth = tf.zeros((self.batch_size, 1)) + fake_smoothing_factor
 
         self.logger.info(f"Using valid label smoothing with factor: {valid_smoothing_factor}")
         self.logger.info(f"Using fake label smoothing with factor: {fake_smoothing_factor}")
 
+        # -- Initialize metrics tracking -- #
+        d_metrics_history = []
+
+        # -- Training Loop -- #
         for epoch in range(self.epochs):
-            print("Discriminator Metrics:",self.discriminator.metrics_names)
+            print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
+            self.logger.info(f'=== Epoch {epoch + 1}/{self.epochs} ===')
 
-            print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
-            self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
+            epoch_d_losses = []
+
+            # Determine how many steps per epoch based on batch size
+            actual_steps = min(self.steps_per_epoch, len(X_train) // self.batch_size)
+
+            for step in range(actual_steps):
+                # --------------------------
+                # Train Discriminator on different data types
+                # --------------------------
+
+                # -- Train on real benign data -- #
+                d_loss_benign = None
+                if len(benign_indices) > self.batch_size:
+                    # Select a new batch of benign samples
+                    benign_idx = tf.random.shuffle(benign_indices)[:self.batch_size]
+                    benign_data = tf.gather(X_train, benign_idx)
+                    benign_labels = tf.gather(y_train, benign_idx)
+
+                    # Fix the shape issue - ensure benign_data is 2D
+                    if len(benign_data.shape) > 2:
+                        benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
+
+                    # Ensure one-hot encoding with correct shape
+                    if len(benign_labels.shape) == 1:
+                        benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
+                    else:
+                        benign_labels_onehot = benign_labels
+
+                    # Ensure benign_labels_onehot has shape (batch_size, num_classes)
+                    if len(benign_labels_onehot.shape) > 2:
+                        benign_labels_onehot = tf.reshape(benign_labels_onehot,
+                                                          (benign_labels_onehot.shape[0], self.num_classes))
+
+                    # Create valid labels with correct shape
+                    valid_smooth_benign = tf.ones((benign_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+
+                    # Train discriminator on real benign data
+                    d_loss_benign = self.discriminator.train_on_batch(benign_data,
+                                                                      [valid_smooth_benign, benign_labels_onehot])
+
+                # -- Train on real attack data -- #
+                d_loss_attack = None
+                if len(attack_indices) > self.batch_size:
+                    # Select a new batch of attack samples
+                    attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
+                    attack_data = tf.gather(X_train, attack_idx)
+                    attack_labels = tf.gather(y_train, attack_idx)
+
+                    # Fix the shape issue - ensure attack_data is 2D
+                    if len(attack_data.shape) > 2:
+                        attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
+
+                    # Ensure one-hot encoding with correct shape
+                    if len(attack_labels.shape) == 1:
+                        attack_labels_onehot = tf.one_hot(tf.cast(attack_labels, tf.int32), depth=self.num_classes)
+                    else:
+                        attack_labels_onehot = attack_labels
+
+                    # Ensure attack_labels_onehot has shape (batch_size, num_classes)
+                    if len(attack_labels_onehot.shape) > 2:
+                        attack_labels_onehot = tf.reshape(attack_labels_onehot,
+                                                          (attack_labels_onehot.shape[0], self.num_classes))
+
+                    # Create valid labels with correct shape
+                    valid_smooth_attack = tf.ones((attack_data.shape[0], 1)) * (1 - valid_smoothing_factor)
+
+                    # Train discriminator on real attack data
+                    d_loss_attack = self.discriminator.train_on_batch(attack_data,
+                                                                      [valid_smooth_attack, attack_labels_onehot])
+
+                # -- Train on fake data -- #
+                # Generate a new batch of fake data
+                noise = tf.random.normal((self.batch_size, self.latent_dim))
+                fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
+                                                dtype=tf.int32)
+                fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+
+                # Generate data from noise and desired labels
+                generated_data = self.generator.predict([noise, fake_labels], verbose=0)
+
+                # Create fake labels with smoothing
+                fake_smooth = tf.zeros((self.batch_size, 1)) + fake_smoothing_factor
+
+                # Train discriminator on fake data
+                d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
+
+                # Calculate weighted loss if we have all components
+                if d_loss_benign is not None and d_loss_attack is not None:
+                    d_loss, d_metrics = self.calculate_weighted_loss(
+                        d_loss_benign,
+                        d_loss_attack,
+                        d_loss_fake,
+                        attack_weight=0.5,  # Adjust as needed
+                        benign_weight=0.5,  # Adjust as needed
+                        validity_weight=0.5,  # Adjust as needed
+                        class_weight=0.5  # Adjust as needed
+                    )
+                    epoch_d_losses.append(float(d_metrics['Total Loss']))
+                else:
+                    # Fallback if we don't have sufficient data for both classes
+                    if d_loss_benign is not None:
+                        total_loss = 0.5 * (d_loss_benign[0] + d_loss_fake[0])
+                    elif d_loss_attack is not None:
+                        total_loss = 0.5 * (d_loss_attack[0] + d_loss_fake[0])
+                    else:
+                        total_loss = d_loss_fake[0]
+                    epoch_d_losses.append(float(total_loss))
+
+                # Print progress every few steps
+                if step % max(1, actual_steps // 10) == 0:
+                    if d_loss_benign is not None and d_loss_attack is not None:
+                        print(f"Step {step}/{actual_steps} - Weighted D loss: {float(d_metrics['Total Loss']):.4f}")
+                    else:
+                        print(f"Step {step}/{actual_steps} - D loss: {epoch_d_losses[-1]:.4f}")
+
+            # Collect metrics for this epoch
+            avg_epoch_d_loss = sum(epoch_d_losses) / len(epoch_d_losses)
+
+            # Log metrics
+            self.logger.info(f"Epoch {epoch + 1} Summary:")
+            self.logger.info(f"Discriminator Average Loss: {avg_epoch_d_loss:.4f}")
+
+            # Store metrics history
+            d_metrics_history.append(avg_epoch_d_loss)
+
             # --------------------------
-            # Train Discriminator
+            # Validation every epoch
             # --------------------------
-            # -- Source the real data -- #
-            # Sample a batch of real data
-            idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
-            real_data = tf.gather(X_train, idx)
-            real_labels = tf.gather(y_train, idx)
+            self.logger.info(f"=== Epoch {epoch + 1} Validation ===")
 
-            # Ensure labels are one-hot encoded
-            if len(real_labels.shape) == 1:
-                real_labels_onehot = tf.one_hot(tf.cast(real_labels, tf.int32), depth=self.num_classes)
-            else:
-                real_labels_onehot = real_labels
+            # -- Discriminator Validation --#
+            d_val_loss, d_val_metrics = self.validation_disc()
 
-            # -- Generate fake data -- #
-            # Sample the noise data
-            noise = tf.random.normal((self.batch_size, self.latent_dim))
-            fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes, dtype=tf.int32)
-            fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
+            # -- Probabilistic Fusion Validation -- #
+            self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
+            fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
+            self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 
-            # Generate fake data
-            generated_data = self.generator.predict([noise, fake_labels])
+            # Log distribution of classifications
+            self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-            # Train discriminator on real and fake data
-            d_loss_real = self.discriminator.train_on_batch(real_data, [valid_smooth, real_labels_onehot])
-            d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
-            d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
+            # -- NIDS Validation -- #
+            nids_val_metrics = None
+            if self.nids is not None:
+                nids_custom_loss, nids_val_metrics = self.validation_NIDS()
+                self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
-            # Collect discriminator metrics
-            d_metrics = {
-                "Total Loss": f"{d_loss[0]:.4f}",
-                "Validity Loss": f"{d_loss[1]:.4f}",
-                "Class Loss": f"{d_loss[2]:.4f}",
-                "Validity Binary Accuracy": f"{d_loss[3] * 100:.2f}%",
-                "Class Categorical Accuracy": f"{d_loss[4] * 100:.2f}%"
-            }
-            self.logger.info("Training Discriminator")
-            self.logger.info(
-                f"Discriminator Total Loss: {d_loss[0]:.4f} | Validity Loss: {d_loss[1]:.4f} | Class Loss: {d_loss[2]:.4f}")
-            self.logger.info(
-                f"Validity Binary Accuracy: {d_loss[3] * 100:.2f}%")
-            self.logger.info(
-                f"Class Categorical Accuracy: {d_loss[4] * 100:.2f}%")
-            # --------------------------
-            # Validation every 1 epochs
-            # --------------------------
-            if epoch % 1 == 0:
-                self.logger.info(f"=== Epoch {epoch} Validation ===")
-                d_val_loss, d_val_metrics = self.validation_disc()
-                # -- Probabilistic Fusion Validation -- #
-                self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
-                fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
-                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+            # Log the metrics for this epoch using our logging method
+            self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics, fusion_metrics)
 
-                # Log distribution of classifications
-                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
-                self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
-                self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
+        # Return the training history for analysis
+        return {
+            "discriminator_loss": d_metrics_history
+        }
 
-                # -- NIDS Validation -- #
-                nids_val_metrics = None
-                if self.nids is not None:
-                    nids_custom_loss, nids_val_metrics = self.validation_NIDS()
-                    self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
+    # -- Loss Calculation -- #
+    def calculate_weighted_loss(self, d_loss_benign, d_loss_attack, d_loss_fake,
+                                attack_weight=0.7, benign_weight=0.3,
+                                validity_weight=0.4, class_weight=0.6):
+        """
+        Calculate weighted discriminator loss combining benign, attack, and fake samples.
 
-                # Log the metrics for this epoch using our new logging method
-                self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics)
-                self.logger.info(
-                    f"Epoch {epoch}: D Loss: {d_loss[0]:.4f}, D Acc: {d_loss[3] * 100:.2f}%")
+        Parameters:
+        -----------
+        d_loss_benign : list
+            Loss components for benign samples [total, validity, class, validity_acc, class_acc]
+        d_loss_attack : list
+            Loss components for attack samples [total, validity, class, validity_acc, class_acc]
+        d_loss_fake : list
+            Loss components for fake samples [total, validity, class, validity_acc, class_acc]
+        attack_weight : float, optional
+            Weight to apply to attack samples, default 0.7
+        benign_weight : float, optional
+            Weight to apply to benign samples, default 0.3
+        validity_weight : float, optional
+            Weight to apply to validity task, default 0.4
+        class_weight : float, optional
+            Weight to apply to classification task, default 0.6
 
-        # -- Loss Calculation -- #
+        Returns:
+        --------
+        tuple
+            (d_loss, d_metrics) where d_loss is the final weighted loss and
+            d_metrics is a dictionary of loss components for logging
+        """
+        # Unpack loss components
+        # Benign samples
+        d_loss_benign_validity = d_loss_benign[1]  # Validity loss for benign samples
+        d_loss_benign_class = d_loss_benign[2]  # Class loss for benign samples
+        d_benign_valid_acc = d_loss_benign[3]  # Validity accuracy for benign
+        d_benign_class_acc = d_loss_benign[4]  # Class accuracy for benign
+
+        # Attack samples
+        d_loss_attack_validity = d_loss_attack[1]  # Validity loss for attack samples
+        d_loss_attack_class = d_loss_attack[2]  # Class loss for attack samples
+        d_attack_valid_acc = d_loss_attack[3]  # Validity accuracy for attack
+        d_attack_class_acc = d_loss_attack[4]  # Class accuracy for attack
+
+        # Fake samples
+        d_loss_fake_validity = d_loss_fake[1]  # Validity loss for fake samples
+        d_loss_fake_class = d_loss_fake[2]  # Class loss for fake samples
+        d_fake_valid_acc = d_loss_fake[3]  # Validity accuracy for fake
+        d_fake_class_acc = d_loss_fake[4]  # Class accuracy for fake
+
+        # Calculate weighted validity loss
+        d_loss_validity_real = (benign_weight * d_loss_benign_validity) + (attack_weight * d_loss_attack_validity)
+        d_loss_validity = 0.5 * (d_loss_validity_real + d_loss_fake_validity)
+
+        # Calculate weighted class loss
+        d_loss_class_real = (benign_weight * d_loss_benign_class) + (attack_weight * d_loss_attack_class)
+        d_loss_class = 0.5 * (d_loss_class_real + d_loss_fake_class)
+
+        # Calculate combined loss with task weights
+        d_loss = (validity_weight * d_loss_validity) + (class_weight * d_loss_class)
+
+        # For logging/display, calculate total losses for each sample type
+        d_loss_benign_total = benign_weight * (d_loss_benign[0])
+        d_loss_attack_total = attack_weight * (d_loss_attack[0])
+        d_loss_fake_total = 0.5 * (d_loss_fake[0])
+        d_loss_total = d_loss_benign_total + d_loss_attack_total + d_loss_fake_total
+
+        # Calculate weighted accuracies
+        d_valid_acc_real = (benign_weight * d_benign_valid_acc + attack_weight * d_attack_valid_acc)
+        d_class_acc_real = (benign_weight * d_benign_class_acc + attack_weight * d_attack_class_acc)
+
+        # Create metrics dictionary for logging
+        d_metrics = {
+            "Total Loss": f"{d_loss_total:.4f}",
+            "Benign Loss": f"{d_loss_benign[0]:.4f}",
+            "Attack Loss": f"{d_loss_attack[0]:.4f}",
+            "Fake Loss": f"{d_loss_fake[0]:.4f}",
+            "Validity Loss": f"{d_loss_validity:.4f}",
+            "Class Loss": f"{d_loss_class:.4f}",
+            "Benign Validity Acc": f"{d_benign_valid_acc * 100:.2f}%",
+            "Attack Validity Acc": f"{d_attack_valid_acc * 100:.2f}%",
+            "Fake Validity Acc": f"{d_fake_valid_acc * 100:.2f}%",
+            "Benign Class Acc": f"{d_benign_class_acc * 100:.2f}%",
+            "Attack Class Acc": f"{d_attack_class_acc * 100:.2f}%",
+            "Fake Class Acc": f"{d_fake_class_acc * 100:.2f}%"
+        }
+
+        return d_loss, d_metrics
 
     def nids_loss(self, real_output, fake_output):
         """
@@ -515,8 +699,6 @@ class CentralACDisc:
             "Average Total Loss": f"{avg_total_loss:.4f}"
         }
         return avg_total_loss, metrics
-
-
 
     def validation_NIDS(self):
         """

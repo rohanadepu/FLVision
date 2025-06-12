@@ -116,7 +116,7 @@ class CentralACDiscREAL:
     # -- logging Functions -- #
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
-        self.logger = logging.getLogger("CentralACGan")
+        self.logger = logging.getLogger("CentralACDiscREAL")
         self.logger.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -138,6 +138,12 @@ class CentralACDiscREAL:
     def log_model_settings(self):
         """Logs model names, structures, and hyperparameters."""
         self.logger.info("=== Model Settings ===")
+
+        self.logger.info("Generator Model Summary:")
+        generator_summary = []
+        self.generator.summary(print_fn=lambda x: generator_summary.append(x))
+        for line in generator_summary:
+            self.logger.info(line)
 
         self.logger.info("Discriminator Model Summary:")
         discriminator_summary = []
@@ -166,7 +172,7 @@ class CentralACDiscREAL:
         self.logger.info(f"Using Class Labels: {self.use_class_labels}")
         self.logger.info("=" * 50)
 
-    def log_epoch_metrics(self, epoch, d_metrics, nids_metrics=None):
+    def log_epoch_metrics(self, epoch, d_metrics, nids_metrics=None, fusion_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
         self.logger.info("Discriminator Metrics:")
@@ -176,9 +182,13 @@ class CentralACDiscREAL:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
                 self.logger.info(f"  {key}: {value}")
+        if fusion_metrics is not None:
+            self.logger.info("Probabilistic Fusion Metrics:")
+            for key, value in fusion_metrics.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    def log_evaluation_metrics(self, d_eval, nids_eval=None):
+    def log_evaluation_metrics(self, d_eval, nids_eval=None, fusion_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
         self.logger.info("Discriminator Evaluation:")
@@ -188,10 +198,24 @@ class CentralACDiscREAL:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
                 self.logger.info(f"  {key}: {value}")
+        if fusion_eval is not None:
+            self.logger.info("Probabilistic Fusion Evaluation:")
+            for key, value in fusion_eval.items():
+                self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
     # -- Train -- #
     def fit(self, X_train=None, y_train=None):
+        """
+        Train the discriminator using REAL DATA ONLY.
+
+        Parameters:
+        -----------
+        X_train : array-like, optional
+            Training features. If None, uses self.x_train.
+        y_train : array-like, optional
+            Training labels. If None, uses self.y_train.
+        """
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
@@ -207,27 +231,31 @@ class CentralACDiscREAL:
         self.logger.info(f"Using valid label smoothing with factor: {valid_smoothing_factor}")
         self.logger.info("Training discriminator using REAL DATA ONLY")
 
+        # -- Initialize metrics tracking -- #
+        d_metrics_history = []
+
+        # -- Training Loop -- #
         for epoch in range(self.epochs):
             print("Discriminator Metrics:", self.discriminator.metrics_names)
 
-            print(f'\n=== Epoch {epoch}/{self.epochs} ===\n')
-            self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
+            print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
+            self.logger.info(f'=== Epoch {epoch + 1}/{self.epochs} ===')
 
             # --------------------------
             # Train Discriminator (REAL DATA ONLY)
             # --------------------------
 
-            # Calculate number of batches per epoch based on steps_per_epoch or data size
-            total_batches = min(self.steps_per_epoch, len(X_train) // self.batch_size)
+            # Determine how many steps per epoch based on batch size
+            actual_steps = min(self.steps_per_epoch, len(X_train) // self.batch_size)
 
-            # Track metrics across all batches
+            # Track metrics across all steps
             epoch_loss = 0
             epoch_validity_loss = 0
             epoch_class_loss = 0
             epoch_validity_acc = 0
             epoch_class_acc = 0
 
-            for batch in range(total_batches):
+            for step in range(actual_steps):
                 # Sample a batch of real data
                 idx = tf.random.shuffle(tf.range(len(X_train)))[:self.batch_size]
                 real_data = tf.gather(X_train, idx)
@@ -254,25 +282,29 @@ class CentralACDiscREAL:
                     epoch_validity_loss += d_loss_real[1]
                     epoch_class_loss += d_loss_real[2]
                     epoch_validity_acc += d_loss_real[3]
-                    epoch_class_acc += d_loss_real[5]  # Index 5 for categorical accuracy
+                    epoch_class_acc += d_loss_real[4]  # Index 4 for categorical accuracy
                 else:
                     # Without class labels, we have fewer metrics
                     epoch_loss += d_loss_real[0]
                     epoch_validity_loss += d_loss_real[0]  # Total loss is validity loss
                     epoch_validity_acc += d_loss_real[1]  # Index 1 for binary accuracy
 
+                # Print progress every few steps
+                if step % max(1, actual_steps // 10) == 0:
+                    print(f"Step {step}/{actual_steps} - D loss: {d_loss_real[0]:.4f}")
+
             # Calculate average metrics for the epoch
-            batch_count = total_batches
-            avg_loss = epoch_loss / batch_count
-            avg_validity_loss = epoch_validity_loss / batch_count
-            avg_validity_acc = epoch_validity_acc / batch_count
+            step_count = actual_steps
+            avg_loss = epoch_loss / step_count
+            avg_validity_loss = epoch_validity_loss / step_count
+            avg_validity_acc = epoch_validity_acc / step_count
 
             # Log training metrics
             self.logger.info("Training Discriminator (REAL DATA ONLY)")
 
             if self.use_class_labels:
-                avg_class_loss = epoch_class_loss / batch_count
-                avg_class_acc = epoch_class_acc / batch_count
+                avg_class_loss = epoch_class_loss / step_count
+                avg_class_acc = epoch_class_acc / step_count
 
                 self.logger.info(
                     f"Discriminator Loss: {avg_loss:.4f} | Validity Loss: {avg_validity_loss:.4f} | Class Loss: {avg_class_loss:.4f}")
@@ -302,35 +334,40 @@ class CentralACDiscREAL:
                     "Validity Binary Accuracy": f"{avg_validity_acc * 100:.2f}%"
                 }
 
+            # Store metrics history
+            d_metrics_history.append(avg_loss)
+
             # --------------------------
-            # Validation every 1 epochs
+            # Validation every epoch
             # --------------------------
-            if epoch % 1 == 0:
-                self.logger.info(f"=== Epoch {epoch} Validation ===")
+            self.logger.info(f"=== Epoch {epoch + 1} Validation ===")
 
-                # Validate discriminator on both real and fake data
-                d_val_loss, d_val_metrics = self.validation_disc()
+            # Validate discriminator on both real and fake data
+            d_val_loss, d_val_metrics = self.validation_disc()
 
-                # -- Probabilistic Fusion Validation -- #
-                self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
-                fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
-                self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+            # -- Probabilistic Fusion Validation -- #
+            self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
+            fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
+            self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
 
-                # Log distribution of classifications
-                self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
-                self.logger.info(f"Correct Class Distribution: {fusion_metrics['correct_class_distribution']}")
-                self.logger.info(f"True Class Distribution: {fusion_metrics['true_class_distribution']}")
+            # Log distribution of classifications
+            self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-                # -- NIDS Validation -- #
-                nids_val_metrics = None
-                if self.nids is not None:
-                    nids_custom_loss, nids_val_metrics = self.validation_NIDS()
-                    self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
+            # -- NIDS Validation -- #
+            nids_val_metrics = None
+            if self.nids is not None:
+                nids_custom_loss, nids_val_metrics = self.validation_NIDS()
+                self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
-                # Log the metrics for this epoch
-                self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics)
-                self.logger.info(
-                    f"Epoch {epoch}: D Loss: {avg_loss:.4f}, D Validity Acc: {avg_validity_acc * 100:.2f}%")
+            # Log the metrics for this epoch
+            self.log_epoch_metrics(epoch, d_val_metrics, nids_val_metrics, fusion_metrics)
+            self.logger.info(
+                f"Epoch {epoch + 1}: D Loss: {avg_loss:.4f}, D Validity Acc: {avg_validity_acc * 100:.2f}%")
+
+        # Return the training history for analysis
+        return {
+            "discriminator_loss": d_metrics_history
+        }
 
     def nids_loss(self, real_output, fake_output):
         """
@@ -360,7 +397,14 @@ class CentralACDiscREAL:
         Returns combined probabilities for all four possible outcomes.
         """
         # Get discriminator predictions
-        validity_scores, class_predictions = self.discriminator.predict(input_data)
+        if self.use_class_labels:
+            validity_scores, class_predictions = self.discriminator.predict(input_data)
+        else:
+            validity_scores = self.discriminator.predict(input_data)
+            # If no class labels, create dummy class predictions (all benign)
+            class_predictions = np.ones((len(input_data), 2))
+            class_predictions[:, 0] = 1.0  # All benign
+            class_predictions[:, 1] = 0.0  # No attack
 
         total_samples = len(input_data)
         results = []
@@ -679,7 +723,6 @@ class CentralACDiscREAL:
 
             results = self.discriminator.evaluate(X_test, [tf.ones((len(y_test), 1)), y_test_onehot], verbose=0)
 
-        if self.use_class_labels:
             # Using indices from the evaluate output with class labels:
             d_loss_total = results[0]
             d_loss_validity = results[1]
@@ -821,8 +864,16 @@ class CentralACDiscREAL:
             self.logger.info("NIDS Classification Report:")
             self.logger.info(class_report)
 
+        # --------------------------
+        # Probabilistic Fusion Evaluation
+        # --------------------------
+        self.logger.info("-- Evaluating Probabilistic Fusion --")
+        fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(X_test, y_test)
+        self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
+        self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
+
         # Log the overall evaluation metrics
-        self.log_evaluation_metrics(d_eval_metrics, nids_eval_metrics)
+        self.log_evaluation_metrics(d_eval_metrics, nids_eval_metrics, fusion_metrics)
 
     def save(self, save_name):
         # Save each submodel separately
