@@ -485,7 +485,7 @@ class CentralACGan:
                     # • Generate data from noise and labels
                     generated_data = self.generator.predict([noise, fake_labels], verbose=0)
 
-                    # • Train discriminator on fake data
+                    # • TRAIN DISCRIMINATOR ON FAKE DATA
                     d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
 
                     # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
