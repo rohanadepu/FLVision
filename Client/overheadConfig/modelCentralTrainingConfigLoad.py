@@ -113,8 +113,43 @@ def modelCentralTrainingConfigLoad(nids, discriminator, generator, GAN, dataset_
                                         y_val_data, X_test_data, y_test_data, BATCH_SIZE, noise_dim, latent_dim,
                                         num_classes, input_dim, epochs, steps_per_epoch)
         elif train_type == "Discriminator":
-            client = CentralACDiscREAL()
+            client = CentralACDiscREAL(discriminator=discriminator,
+                                       generator=generator,
+                                       nids=nids,
+                                       x_train=X_train_data,
+                                       x_val=X_val_data,
+                                       y_train=y_train_data,
+                                       y_val=y_val_data,
+                                       x_test=X_test_data,
+                                       y_test=y_test_data,
+                                       BATCH_SIZE=BATCH_SIZE,
+                                       noise_dim=noise_dim,
+                                       latent_dim=latent_dim,
+                                       num_classes=num_classes,
+                                       input_dim=input_dim,
+                                       epochs=epochs,
+                                       steps_per_epoch=steps_per_epoch,
+                                       learning_rate=learning_rate,
+                                       use_class_labels=True,
+                                       log_file=trainingLog)
             # optionally use discriminator that uses centralized training with fake data as well
-            # client = CentralACDisc
+            # client = CentralACDisc(discriminator=discriminator,
+            #                       generator=generator,
+            #                       nids=nids,
+            #                       x_train=X_train_data,
+            #                       x_val=X_val_data,
+            #                       y_train=y_train_data,
+            #                       y_val=y_val_data,
+            #                       x_test=X_test_data,
+            #                       y_test=y_test_data,
+            #                       BATCH_SIZE=BATCH_SIZE,
+            #                       noise_dim=noise_dim,
+            #                       latent_dim=latent_dim,
+            #                       num_classes=num_classes,
+            #                       input_dim=input_dim,
+            #                       epochs=epochs,
+            #                       steps_per_epoch=steps_per_epoch,
+            #                       learning_rate=learning_rate,
+            #                       log_file=trainingLog)
 
     return client
