@@ -54,50 +54,67 @@ class CentralACGan:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
                  log_file="training.log"):
-        #-- models
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # MODEL INITIALIZATION
+        # ═══════════════════════════════════════════════════════════════════════
         self.generator = generator
         self.discriminator = discriminator
         self.nids = nids
 
-        #-- I/O Specs for models
+        # ═══════════════════════════════════════════════════════════════════════
+        # MODEL I/O SPECIFICATIONS
+        # ═══════════════════════════════════════════════════════════════════════
         self.batch_size = BATCH_SIZE
         self.noise_dim = noise_dim
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.input_dim = input_dim
 
-        #-- training duration
+        # ═══════════════════════════════════════════════════════════════════════
+        # TRAINING CONFIGURATION
+        # ═══════════════════════════════════════════════════════════════════════
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
 
-        #-- Data
-        # Features
+        # ═══════════════════════════════════════════════════════════════════════
+        # DATA ASSIGNMENT
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Features ───
         self.x_train = x_train
         self.x_test = x_test
         self.x_val = x_val
-        # Categorical Labels
+
+        # ─── Categorical Labels ───
         self.y_train = y_train
         self.y_test = y_test
         self.y_val = y_val
 
-        # -- Setup Logging
+        # ═══════════════════════════════════════════════════════════════════════
+        # LOGGING SETUP
+        # ═══════════════════════════════════════════════════════════════════════
         self.setup_logger(log_file)
 
-        #-- Optimizers
-        # LR decay
+        # ═══════════════════════════════════════════════════════════════════════
+        # OPTIMIZER CONFIGURATION
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Learning Rate Schedules ───
         lr_schedule_gen = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.00001, decay_steps=10000, decay_rate=0.97, staircase=False)
 
         lr_schedule_disc = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.00003, decay_steps=10000, decay_rate=0.97, staircase=False)
 
-        # Compile optimizer
+        # ─── Optimizer Compilation ───
         self.gen_optimizer = Adam(learning_rate=lr_schedule_gen, beta_1=0.5, beta_2=0.999)
         self.disc_optimizer = Adam(learning_rate=lr_schedule_disc, beta_1=0.5, beta_2=0.999)
 
+        # ═══════════════════════════════════════════════════════════════════════
+        # MODEL COMPILATION
+        # ═══════════════════════════════════════════════════════════════════════
         print("Discriminator Output:", self.discriminator.output_names)
 
-        #-- Model Compilations
+        # ─── DEBUG Model Compilation ───
         # Compile Discriminator separately (before freezing)
         # self.discriminator.compile(
         #     loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
@@ -108,20 +125,22 @@ class CentralACGan:
         #     }
         # )
 
-        # Freeze Discriminator only for AC-GAN training
+        # NOTE: Freeze Discriminator only for AC-GAN training
         self.discriminator.trainable = False
 
-        # Define AC-GAN (Generator + Frozen Discriminator)
-        # I/O
+        # ─── Define AC-GAN Architecture ───
+        # • Input/Output Definition
         noise_input = tf.keras.Input(shape=(latent_dim,))
         label_input = tf.keras.Input(shape=(1,), dtype='int32')
         generated_data = self.generator([noise_input, label_input])
         validity, class_pred = self.discriminator(generated_data)
-        # Compile Combined Model
+
+        # • Combined Model Creation
         self.ACGAN = Model([noise_input, label_input], [validity, class_pred])
 
         print("ACGAN Output:", self.ACGAN.output_names)
 
+        # ─── AC-GAN Model Compilation ───
         self.ACGAN.compile(
             loss={'Discriminator': 'binary_crossentropy', 'Discriminator_1': 'categorical_crossentropy'},
             optimizer=self.gen_optimizer,
@@ -131,28 +150,32 @@ class CentralACGan:
             }
         )
 
-    # Saving function for ACGAN
+# ═══════════════════════════════════════════════════════════════════════
+# MODEL ACCESS METHODS
+# ═══════════════════════════════════════════════════════════════════════
     def setACGAN(self):
         return self.ACGAN
 
-    # -- logging Functions -- #
+#########################################################################
+#                           LOGGING FUNCTIONS                          #
+#########################################################################
     def setup_logger(self, log_file):
         """Set up a logger that records both to a file and to the console."""
         self.logger = logging.getLogger("CentralACGan")
         self.logger.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        # File handler
+        # ─── File Handler Configuration ───
         fh = logging.FileHandler(log_file)
         fh.setLevel(logging.INFO)
         fh.setFormatter(formatter)
 
-        # Console handler
+        # ─── Console Handler Configuration ───
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
         ch.setFormatter(formatter)
 
-        # Avoid adding duplicate handlers if logger already has them.
+        # NOTE: Avoid adding duplicate handlers if logger already has them
         if not self.logger.handlers:
             self.logger.addHandler(fh)
             self.logger.addHandler(ch)
@@ -161,18 +184,21 @@ class CentralACGan:
         """Logs model names, structures, and hyperparameters."""
         self.logger.info("=== Model Settings ===")
 
+        # ─── Generator Model Summary ───
         self.logger.info("Generator Model Summary:")
         generator_summary = []
         self.generator.summary(print_fn=lambda x: generator_summary.append(x))
         for line in generator_summary:
             self.logger.info(line)
 
+        # ─── Discriminator Model Summary ───
         self.logger.info("Discriminator Model Summary:")
         discriminator_summary = []
         self.discriminator.summary(print_fn=lambda x: discriminator_summary.append(x))
         for line in discriminator_summary:
             self.logger.info(line)
 
+        # ─── NIDS Model Summary ───
         if self.nids is not None:
             self.logger.info("NIDS Model Summary:")
             nids_summary = []
@@ -182,6 +208,7 @@ class CentralACGan:
         else:
             self.logger.info("NIDS Model is not defined.")
 
+        # ─── Hyperparameters Logging ───
         self.logger.info("--- Hyperparameters ---")
         self.logger.info(f"Batch Size: {self.batch_size}")
         self.logger.info(f"Noise Dimension: {self.noise_dim}")
@@ -197,16 +224,24 @@ class CentralACGan:
     def log_epoch_metrics(self, epoch, d_metrics, g_metrics, nids_metrics=None, fusion_metrics=None):
         """Logs a formatted summary of the metrics for this epoch."""
         self.logger.info(f"=== Epoch {epoch} Metrics Summary ===")
+
+        # ─── Discriminator Metrics ───
         self.logger.info("Discriminator Metrics:")
         for key, value in d_metrics.items():
             self.logger.info(f"  {key}: {value}")
+
+        # ─── Generator Metrics ───
         self.logger.info("Generator Metrics:")
         for key, value in g_metrics.items():
             self.logger.info(f"  {key}: {value}")
+
+        # ─── NIDS Metrics (Optional) ───
         if nids_metrics is not None:
             self.logger.info("NIDS Metrics:")
             for key, value in nids_metrics.items():
                 self.logger.info(f"  {key}: {value}")
+
+        # ─── Fusion Metrics (Optional) ───
         if fusion_metrics is not None:
             self.logger.info("Probabilistic Fusion Metrics:")
             for key, value in fusion_metrics.items():
@@ -216,23 +251,33 @@ class CentralACGan:
     def log_evaluation_metrics(self, d_eval, g_eval, nids_eval=None, fusion_eval=None):
         """Logs a formatted summary of evaluation metrics."""
         self.logger.info("=== Evaluation Metrics Summary ===")
+
+        # ─── Discriminator Evaluation ───
         self.logger.info("Discriminator Evaluation:")
         for key, value in d_eval.items():
             self.logger.info(f"  {key}: {value}")
+
+        # ─── Generator Evaluation ───
         self.logger.info("Generator Evaluation:")
         for key, value in g_eval.items():
             self.logger.info(f"  {key}: {value}")
+
+        # ─── NIDS Evaluation (Optional) ───
         if nids_eval is not None:
             self.logger.info("NIDS Evaluation:")
             for key, value in nids_eval.items():
                 self.logger.info(f"  {key}: {value}")
+
+        # ─── Fusion Evaluation (Optional) ───
         if fusion_eval is not None:
             self.logger.info("Probabilistic Fusion Evaluation:")
             for key, value in fusion_eval.items():
                 self.logger.info(f"  {key}: {value}")
         self.logger.info("=" * 50)
 
-    # -- Train -- #
+#########################################################################
+#                            TRAINING PROCESS                          #
+#########################################################################
     def fit(self, X_train=None, y_train=None, d_to_g_ratio=3):
         """
         Train the AC-GAN with a configurable ratio between discriminator and generator training steps.
@@ -247,17 +292,23 @@ class CentralACGan:
             Ratio of discriminator training steps to generator training steps.
             Default is 3 (train discriminator 3 times for each generator training step).
         """
+        # ═══════════════════════════════════════════════════════════════════════
+        # TRAINING DATA PREPARATION
+        # ═══════════════════════════════════════════════════════════════════════
         if X_train is None or y_train is None:
             X_train = self.x_train
             y_train = self.y_train
 
-        # -- Make sure discriminator is trainable for individual training -- #
+        # ═══════════════════════════════════════════════════════════════════════
+        # DISCRIMINATOR TRAINING SETUP
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Enable Discriminator Training ───
         self.discriminator.trainable = True
-        # Ensure all layers within discriminator are trainable
+        # • Ensure all layers within discriminator are trainable
         for layer in self.discriminator.layers:
             layer.trainable = True
 
-        # -- Re-compile discriminator with trainable weights -- #
+        # ─── Re-compile Discriminator ───
         self.discriminator.compile(
             loss={'validity': 'binary_crossentropy', 'class': 'categorical_crossentropy'},
             optimizer=self.disc_optimizer,
@@ -267,25 +318,31 @@ class CentralACGan:
             }
         )
 
-        # Log model settings at the start
+        # ═══════════════════════════════════════════════════════════════════════
+        # TRAINING INITIALIZATION & LOGGING
+        # ═══════════════════════════════════════════════════════════════════════
         self.log_model_settings()
         self.logger.info(f"Training with discriminator-to-generator ratio: {d_to_g_ratio}:1")
 
-        # -- Apply Class split for Class Specific Training
-        # Separate data by class
+        # ═══════════════════════════════════════════════════════════════════════
+        # CLASS-SPECIFIC DATA SEPARATION
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Separate Data by Class ───
         benign_indices = tf.where(tf.equal(tf.argmax(y_train, axis=1) if y_train.ndim > 1 else y_train, 0))
         attack_indices = tf.where(tf.equal(tf.argmax(y_train, axis=1) if y_train.ndim > 1 else y_train, 1))
 
-        # -- Apply label smoothing -- #
-        # Create smoothed labels for discriminator training
+        # ═══════════════════════════════════════════════════════════════════════
+        # LABEL SMOOTHING CONFIGURATION
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Discriminator Label Smoothing ───
         valid_smoothing_factor = 0.08
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
 
         fake_smoothing_factor = 0.05
         fake_smooth = tf.zeros((self.batch_size, 1)) + fake_smoothing_factor
 
-        # For generator training, we use a slightly different smoothing
-        # to keep the generator from becoming too confident
+        # ─── Generator Label Smoothing ───
+        # NOTE: Use slightly different smoothing to keep generator from becoming too confident or don't I'm not your mom
         gen_smoothing_factor = 0.08
         valid_smooth_gen = tf.ones((self.batch_size, 1)) * (1 - gen_smoothing_factor)  # Slightly less than 1.0
 
@@ -293,103 +350,118 @@ class CentralACGan:
         self.logger.info(f"Using fake label smoothing with factor: {fake_smoothing_factor}")
         self.logger.info(f"Using gen label smoothing with factor: {gen_smoothing_factor}")
 
-        # -- Initialize metrics tracking -- #
+        # ═══════════════════════════════════════════════════════════════════════
+        # METRICS TRACKING INITIALIZATION
+        # ═══════════════════════════════════════════════════════════════════════
         d_metrics_history = []
         g_metrics_history = []
 
-        # -- Training Loop -- #
+        # ═══════════════════════════════════════════════════════════════════════
+        # MAIN TRAINING LOOP
+        # ═══════════════════════════════════════════════════════════════════════
         for epoch in range(self.epochs):
             print(f'\n=== Epoch {epoch + 1}/{self.epochs} ===\n')
             self.logger.info(f'=== Epoch {epoch}/{self.epochs} ===')
 
+            # ─── Epoch Metrics Initialization ───
             epoch_d_losses = []
             epoch_g_losses = []
 
-            # Determine how many steps per epoch based on batch size
+            # ─── Determine Steps per Epoch ───
             actual_steps = min(self.steps_per_epoch, len(X_train) // self.batch_size)
 
+            # ┌─────────────────────────────────────────────────────────────────┐
+            # │                      STEP-BY-STEP TRAINING                      │
+            # └─────────────────────────────────────────────────────────────────┘
             for step in range(actual_steps):
-                # --------------------------
-                # Train Discriminator (multiple times per generator step)
-                # --------------------------
+                # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                # DISCRIMINATOR TRAINING (Multiple Steps)
+                # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                 d_step_losses = []
 
                 for d_step in range(d_to_g_ratio):
-                    # -- Train on real data -- #
-                    # - BATCH 1: Train on benign data - #
+                    # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                    # ┃                  TRAIN ON REAL DATA                           ┃
+                    # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+                    # ▼ BATCH 1: Train on Benign Data ▼
                     if len(benign_indices) > self.batch_size:
-                        # Select a new batch of benign samples
+                        # • Select benign samples
                         benign_idx = tf.random.shuffle(benign_indices)[:self.batch_size]
                         benign_data = tf.gather(X_train, benign_idx)
                         benign_labels = tf.gather(y_train, benign_idx)
 
-                        # Fix the shape issue - ensure benign_data is 2D
+                        # • Fix shape issues - ensure 2D data
                         if len(benign_data.shape) > 2:
                             benign_data = tf.reshape(benign_data, (benign_data.shape[0], -1))
 
-                        # Ensure one-hot encoding with correct shape
+                        # • Ensure one-hot encoding
                         if len(benign_labels.shape) == 1:
                             benign_labels_onehot = tf.one_hot(tf.cast(benign_labels, tf.int32), depth=self.num_classes)
                         else:
                             benign_labels_onehot = benign_labels
 
-                        # Ensure benign_labels_onehot has shape (batch_size, num_classes)
+                        # • Ensure correct shape for labels
                         if len(benign_labels_onehot.shape) > 2:
                             benign_labels_onehot = tf.reshape(benign_labels_onehot,
                                                               (benign_labels_onehot.shape[0], self.num_classes))
 
-                        # Create valid labels with correct shape
+                        # • Create validity labels
                         valid_smooth_benign = tf.ones((benign_data.shape[0], 1)) * (1 - valid_smoothing_factor)
 
-                        # Train discriminator on real benign data
+                        # • TRAIN DISCRIMINATOR ON BATCH DATA
                         d_loss_benign = self.discriminator.train_on_batch(benign_data,
                                                                           [valid_smooth_benign, benign_labels_onehot])
 
-                    # - BATCH 2: Train on attack data - #
+                    # ▼ BATCH 2: Train on Attack Data ▼
                     if len(attack_indices) > self.batch_size:
-                        # Select a new batch of attack samples
+                        # • Select attack samples
                         attack_idx = tf.random.shuffle(attack_indices)[:self.batch_size]
                         attack_data = tf.gather(X_train, attack_idx)
                         attack_labels = tf.gather(y_train, attack_idx)
 
-                        # Fix the shape issue - ensure attack_data is 2D
+                        # • Fix shape issues - ensure 2D data
                         if len(attack_data.shape) > 2:
                             attack_data = tf.reshape(attack_data, (attack_data.shape[0], -1))
 
-                        # Ensure one-hot encoding with correct shape
+                        # • Ensure one-hot encoding
                         if len(attack_labels.shape) == 1:
                             attack_labels_onehot = tf.one_hot(tf.cast(attack_labels, tf.int32), depth=self.num_classes)
                         else:
                             attack_labels_onehot = attack_labels
 
-                        # Ensure attack_labels_onehot has shape (batch_size, num_classes)
+                        # • Ensure correct shape for labels
                         if len(attack_labels_onehot.shape) > 2:
                             attack_labels_onehot = tf.reshape(attack_labels_onehot,
                                                               (attack_labels_onehot.shape[0], self.num_classes))
 
-                        # Create valid labels with correct shape
+                        # • Create validity labels
                         valid_smooth_attack = tf.ones((attack_data.shape[0], 1)) * (1 - valid_smoothing_factor)
 
-                        # Train discriminator on real attack data
+                        # • TRAIN DISCRIMINATOR ON ATTACK DATA
                         d_loss_attack = self.discriminator.train_on_batch(attack_data,
                                                                           [valid_smooth_attack, attack_labels_onehot])
 
-                    # -- Train on fake data -- #
-                    # -- BATCH 3: Generate fake data -- #
-                    # Generate a new batch of fake data
-                    # Sample the noise data
+                    # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                    # ┃                  TRAIN ON FAKE DATA                           ┃
+                    # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+                    # ▼ BATCH 3: Generate and Train on Fake Data ▼
+                    # • Sample noise data
                     noise = tf.random.normal((self.batch_size, self.latent_dim))
                     fake_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
                                                     dtype=tf.int32)
                     fake_labels_onehot = tf.one_hot(fake_labels, depth=self.num_classes)
 
-                    # generate data from noise and desired labels
+                    # • Generate data from noise and labels
                     generated_data = self.generator.predict([noise, fake_labels], verbose=0)
 
-                    # -- Train discriminator on fake data -- #
+                    # • Train discriminator on fake data
                     d_loss_fake = self.discriminator.train_on_batch(generated_data, [fake_smooth, fake_labels_onehot])
 
-                    # Inside the fit method after training on benign, attack, and fake data
+                    # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+                    # ┃           CALCULATE DISCRIMINATOR WEIGHTED LOSS               ┃
+                    # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
                     d_loss, d_metrics = self.calculate_weighted_loss(
                         d_loss_benign,
                         d_loss_attack,
@@ -402,43 +474,48 @@ class CentralACGan:
 
                     d_step_losses.append(float(d_metrics['Total Loss']))
 
-                #--- End Of Discriminator Ratio Loop ---#
+                # --- End Of Discriminator Ratio Loop --- #
 
-                # Store average discriminator loss for this step
+                # ─── Store Average Discriminator Loss ───
                 avg_d_loss = sum(d_step_losses) / len(d_step_losses)
                 epoch_d_losses.append(avg_d_loss)
 
-                # --------------------------
-                # Train Generator (AC-GAN) - only once per multiple discriminator steps
-                # --------------------------
-                # -- Freeze discriminator for generator training -- #
+                # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                # GENERATOR TRAINING (Single Step)
+                # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                # ─── Freeze Discriminator for Generator Training ───
                 self.discriminator.trainable = False
 
-                # -- BATCH 4: NEW GENERATOR INPUT -- #
-                # -- Generate new noise and label inputs for ACGAN (generator) training -- #
+                # ▼ BATCH 4: New Generator Input ▼
+                # • Generate new noise and label inputs for AC-GAN training
                 noise = tf.random.normal((self.batch_size, self.latent_dim))
                 sampled_labels = tf.random.uniform((self.batch_size,), minval=0, maxval=self.num_classes,
                                                    dtype=tf.int32)
                 sampled_labels_onehot = tf.one_hot(sampled_labels, depth=self.num_classes)
 
-                # -- Train ACGAN with sampled noise data -- #
+                # • Train AC-GAN with sampled noise data
                 g_loss = self.ACGAN.train_on_batch([noise, sampled_labels], [valid_smooth_gen, sampled_labels_onehot])
                 epoch_g_losses.append(g_loss[0])
 
-                # -- Unfreeze discriminator for next steps -- #
+                # ─── Unfreeze Discriminator for Next Steps ───
                 self.discriminator.trainable = True
 
-                # Print progress every few steps
+                # ─── Progress Reporting ───
                 if step % max(1, actual_steps // 10) == 0:
                     print(f"Step {step}/{actual_steps} - D loss: {avg_d_loss:.4f}, G loss: {g_loss[0]:.4f}")
 
-            #--- End Of Steps Loop ---#
+            # --- End Of Steps Loop --- #
 
-            # Collect metrics for this epoch
+            # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+            # ┃                       EPOCH SUMMARY                                 ┃
+            # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+            # ─── Collect Epoch Metrics ───
             avg_epoch_d_loss = sum(epoch_d_losses) / len(epoch_d_losses)
             avg_epoch_g_loss = sum(epoch_g_losses) / len(epoch_g_losses)
 
-            # Collect generator metrics from the last step
+            # ─── Generator Metrics from Last Step ───
             g_metrics = {
                 "Total Loss": f"{g_loss[0]:.4f}",
                 "Validity Loss": f"{g_loss[1]:.4f}",  # This is Discriminator_loss
@@ -447,23 +524,25 @@ class CentralACGan:
                 "Class Categorical Accuracy": f"{g_loss[4] * 100:.2f}%"  # Discriminator_1_categorical_accuracy
             }
 
-            # Log metrics
+            # ─── Log Epoch Metrics ───
             self.logger.info(f"Epoch {epoch + 1} Summary:")
             self.logger.info(f"Discriminator Average Loss: {avg_epoch_d_loss:.4f}")
             self.logger.info(f"Generator Loss: {avg_epoch_g_loss:.4f}")
             self.logger.info(f"Generator Validity Accuracy: {g_loss[3] * 100:.2f}%")
             self.logger.info(f"Generator Class Accuracy: {g_loss[4] * 100:.2f}%")
 
-            # Store metrics history
+            # ─── Store Metrics History ───
             d_metrics_history.append(avg_epoch_d_loss)
             g_metrics_history.append(avg_epoch_g_loss)
 
-            # Calculate current d_g_ratio based on performance
-            # If discriminator loss is much lower than generator loss, consider reducing d_to_g_ratio
-            # If discriminator loss is much higher, consider increasing it
+            # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+            # ┃                  ADAPTIVE RATIO ADJUSTMENT                          ┃
+            # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+            # ─── Calculate Performance Ratio ───
             d_g_loss_ratio = avg_epoch_d_loss / avg_epoch_g_loss
 
-            # Adaptive ratio adjustment (optional)
+            # ─── Adaptive Ratio Adjustment (every 5 epochs) ───
             if epoch > 0 and epoch % 5 == 0:  # Adjust every 5 epochs
                 if d_g_loss_ratio < 0.5:  # Discriminator getting too good
                     d_to_g_ratio = max(1, d_to_g_ratio - 1)
@@ -472,327 +551,63 @@ class CentralACGan:
                     d_to_g_ratio += 1
                     self.logger.info(f"Adjusting d_to_g_ratio up to {d_to_g_ratio}:1")
 
-            # --------------------------
-            # Validation every epoch
-            # --------------------------
+            # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+            # ┃                      EPOCH VALIDATION                               ┃
+            # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
             self.logger.info(f"=== Epoch {epoch} Validation ===")
-            # -- GAN Validation --#
+
+            # ─── GAN Validation ───
             d_val_loss, d_val_metrics = self.validation_disc()
             g_val_loss, g_val_metrics = self.validation_gen()
 
-            # -- Probabilistic Fusion Validation -- #
+            # ─── Probabilistic Fusion Validation ───
             self.logger.info("=== Probabilistic Fusion Validation on Real Data ===")
             fusion_results, fusion_metrics = self.validate_with_probabilistic_fusion(self.x_val, self.y_val)
             self.logger.info(f"Probabilistic Fusion Accuracy: {fusion_metrics['accuracy'] * 100:.2f}%")
             self.logger.info(f"Predicted Class Distribution: {fusion_metrics['predicted_class_distribution']}")
 
-            # -- NIDS Validation -- #
+            # ─── NIDS Validation ───
             nids_val_metrics = None
             if self.nids is not None:
                 nids_custom_loss, nids_val_metrics = self.validation_NIDS()
                 self.logger.info(f"Validation NIDS Custom Loss: {nids_custom_loss:.4f}")
 
-            # -- Log the metrics for epoch -- #
+            # ─── Log Epoch Metrics ───
             self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
 
-        #--- End Of Epochs Loop---#
+        # --- End Of Epochs Loop--- #
 
+        # ═══════════════════════════════════════════════════════════════════════
+        # TRAINING COMPLETION
+        # ═══════════════════════════════════════════════════════════════════════
         # Return the training history for analysis
         return {
             "discriminator_loss": d_metrics_history,
             "generator_loss": g_metrics_history
         }
 
-        # -- Loss Calculation -- #
-
-    def calculate_weighted_loss(self, d_loss_benign, d_loss_attack, d_loss_fake,
-                                attack_weight=0.7, benign_weight=0.3,
-                                validity_weight=0.4, class_weight=0.6):
-        """
-        Calculate weighted discriminator loss combining benign, attack, and fake samples.
-
-        Parameters:
-        -----------
-        d_loss_benign : list
-            Loss components for benign samples [total, validity, class, validity_acc, class_acc]
-        d_loss_attack : list
-            Loss components for attack samples [total, validity, class, validity_acc, class_acc]
-        d_loss_fake : list
-            Loss components for fake samples [total, validity, class, validity_acc, class_acc]
-        attack_weight : float, optional
-            Weight to apply to attack samples, default 0.7
-        benign_weight : float, optional
-            Weight to apply to benign samples, default 0.3
-        validity_weight : float, optional
-            Weight to apply to validity task, default 0.4
-        class_weight : float, optional
-            Weight to apply to classification task, default 0.6
-
-        Returns:
-        --------
-        tuple
-            (d_loss, d_metrics) where d_loss is the final weighted loss and
-            d_metrics is a dictionary of loss components for logging
-        """
-        # Unpack loss components
-        # Benign samples
-        d_loss_benign_validity = d_loss_benign[1]  # Validity loss for benign samples
-        d_loss_benign_class = d_loss_benign[2]  # Class loss for benign samples
-        d_benign_valid_acc = d_loss_benign[3]  # Validity accuracy for benign
-        d_benign_class_acc = d_loss_benign[4]  # Class accuracy for benign
-
-        # Attack samples
-        d_loss_attack_validity = d_loss_attack[1]  # Validity loss for attack samples
-        d_loss_attack_class = d_loss_attack[2]  # Class loss for attack samples
-        d_attack_valid_acc = d_loss_attack[3]  # Validity accuracy for attack
-        d_attack_class_acc = d_loss_attack[4]  # Class accuracy for attack
-
-        # Fake samples
-        d_loss_fake_validity = d_loss_fake[1]  # Validity loss for fake samples
-        d_loss_fake_class = d_loss_fake[2]  # Class loss for fake samples
-        d_fake_valid_acc = d_loss_fake[3]  # Validity accuracy for fake
-        d_fake_class_acc = d_loss_fake[4]  # Class accuracy for fake
-
-        # Calculate weighted validity loss
-        d_loss_validity_real = (benign_weight * d_loss_benign_validity) + (attack_weight * d_loss_attack_validity)
-        d_loss_validity = 0.5 * (d_loss_validity_real + d_loss_fake_validity)
-
-        # Calculate weighted class loss
-        d_loss_class_real = (benign_weight * d_loss_benign_class) + (attack_weight * d_loss_attack_class)
-        d_loss_class = 0.5 * (d_loss_class_real + d_loss_fake_class)
-
-        # Calculate combined loss with task weights
-        d_loss = (validity_weight * d_loss_validity) + (class_weight * d_loss_class)
-
-        # For logging/display, calculate total losses for each sample type
-        d_loss_benign_total = benign_weight * (d_loss_benign[0])
-        d_loss_attack_total = attack_weight * (d_loss_attack[0])
-        d_loss_fake_total = 0.5 * (d_loss_fake[0])
-        d_loss_total = d_loss_benign_total + d_loss_attack_total + d_loss_fake_total
-
-        # Calculate weighted accuracies
-        d_valid_acc_real = (benign_weight * d_benign_valid_acc + attack_weight * d_attack_valid_acc)
-        d_class_acc_real = (benign_weight * d_benign_class_acc + attack_weight * d_attack_class_acc)
-
-        # Create metrics dictionary for logging
-        d_metrics = {
-            "Total Loss": f"{d_loss_total:.4f}",
-            "Benign Loss": f"{d_loss_benign[0]:.4f}",
-            "Attack Loss": f"{d_loss_attack[0]:.4f}",
-            "Fake Loss": f"{d_loss_fake[0]:.4f}",
-            "Validity Loss": f"{d_loss_validity:.4f}",
-            "Class Loss": f"{d_loss_class:.4f}",
-            "Benign Validity Acc": f"{d_benign_valid_acc * 100:.2f}%",
-            "Attack Validity Acc": f"{d_attack_valid_acc * 100:.2f}%",
-            "Fake Validity Acc": f"{d_fake_valid_acc * 100:.2f}%",
-            "Benign Class Acc": f"{d_benign_class_acc * 100:.2f}%",
-            "Attack Class Acc": f"{d_attack_class_acc * 100:.2f}%",
-            "Fake Class Acc": f"{d_fake_class_acc * 100:.2f}%"
-        }
-
-        return d_loss, d_metrics
-
-    def calculate_jsd_loss(self, real_outputs, fake_outputs):
-        """
-        Calculate Jensen-Shannon Divergence Loss between real and fake sample distributions.
-        This can be used as an alternative or supplement to binary cross entropy for
-        measuring discriminator performance.
-
-        Parameters:
-        -----------
-        real_outputs : tensor
-            Discriminator outputs for real samples
-        fake_outputs : tensor
-            Discriminator outputs for fake samples
-
-        Returns:
-        --------
-        float : JSD loss value
-        """
-        # Average probabilities
-        p_real = tf.reduce_mean(real_outputs, axis=0)
-        p_fake = tf.reduce_mean(fake_outputs, axis=0)
-
-        # Calculate mixtures
-        p_mixture = 0.5 * (p_real + p_fake)
-
-        # Calculate JS divergence
-        kl_real_mix = tf.reduce_sum(p_real * tf.math.log(p_real / p_mixture + 1e-10))
-        kl_fake_mix = tf.reduce_sum(p_fake * tf.math.log(p_fake / p_mixture + 1e-10))
-
-        # JS divergence
-        jsd = 0.5 * (kl_real_mix + kl_fake_mix)
-
-        return jsd
-
-    def nids_loss(self, real_output, fake_output):
-        """
-        Compute the NIDS loss on real and fake samples.
-        For real samples, the target is 1 (benign), and for fake samples, 0 (attack).
-        Returns a scalar loss value.
-        """
-        # define labels
-        real_labels = tf.ones_like(real_output)
-        fake_labels = tf.zeros_like(fake_output)
-
-        # define loss function
-        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-
-        # calculate outputs
-        real_loss = bce(real_labels, real_output)
-        fake_loss = bce(fake_labels, fake_output)
-
-        # sum up total loss
-        total_loss = real_loss + fake_loss
-        return total_loss.numpy()
-
-    # -- Probabilistic Fusion Methods -- #
-    def probabilistic_fusion(self, input_data):
-        """
-        Apply probabilistic fusion to combine validity and class predictions.
-        Returns combined probabilities for all four possible outcomes.
-        """
-        # Get discriminator predictions
-        validity_scores, class_predictions = self.discriminator.predict(input_data)
-
-        total_samples = len(input_data)
-        results = []
-
-        for i in range(total_samples):
-            # Validity probabilities: P(valid) and P(invalid)
-            p_valid = validity_scores[i][0]  # Probability of being valid/real
-            p_invalid = 1 - p_valid  # Probability of being invalid/fake
-
-            # Class probabilities: 2 classes (benign=0, attack=1)
-            p_benign = class_predictions[i][0]  # Probability of being benign
-            p_attack = class_predictions[i][1]  # Probability of being attack
-
-            # Calculate joint probabilities for all combinations
-            p_valid_benign = p_valid * p_benign
-            p_valid_attack = p_valid * p_attack
-            p_invalid_benign = p_invalid * p_benign
-            p_invalid_attack = p_invalid * p_attack
-
-            # Store all probabilities in a dictionary
-            probabilities = {
-                "valid_benign": p_valid_benign,
-                "valid_attack": p_valid_attack,
-                "invalid_benign": p_invalid_benign,
-                "invalid_attack": p_invalid_attack
-            }
-
-            # Find the most likely outcome
-            most_likely = max(probabilities, key=probabilities.get)
-
-            # For analysis, add the actual probabilities alongside the classification
-            result = {
-                "classification": most_likely,
-                "probabilities": probabilities
-            }
-
-            results.append(result)
-
-        return results
-
-    def validate_with_probabilistic_fusion(self, validation_data, validation_labels=None):
-        """
-        Evaluate model using probabilistic fusion and calculate metrics if labels are available.
-        """
-        fusion_results = self.probabilistic_fusion(validation_data)
-
-        # Extract classifications
-        classifications = [result["classification"] for result in fusion_results]
-
-        # Count occurrences of each class
-        predicted_class_distribution = Counter(classifications)
-        self.logger.info(f"Predicted Class Distribution: {dict(predicted_class_distribution)}")
-
-        # If we have ground truth labels, calculate accuracy
-        if validation_labels is not None:
-            correct_predictions = 0
-            correct_classifications = []
-            true_classifications = []
-
-            for i, result in enumerate(fusion_results):
-                # Get the true label (assuming 0=benign, 1=attack)
-                if isinstance(validation_labels, np.ndarray) and validation_labels.ndim > 1:
-                    true_class_idx = np.argmax(validation_labels[i])
-                else:
-                    true_class_idx = validation_labels[i]
-
-                true_class = "benign" if true_class_idx == 0 else "attack"
-
-                # For validation data (which is real), expected validity is "valid"
-                true_validity = "valid"  # Since validation data is real data
-
-                # Construct the true combined label
-                true_combined = f"{true_validity}_{true_class}"
-
-                # Add to true classifications list
-                true_classifications.append(true_combined)
-
-                # Check if prediction matches
-                if result["classification"] == true_combined:
-                    correct_predictions += 1
-                    correct_classifications.append(result["classification"])
-
-            # Count distribution of correctly classified samples
-            correct_class_distribution = Counter(correct_classifications)
-
-            # Count distribution of true classes
-            true_class_distribution = Counter(true_classifications)
-            self.logger.info(f"True Class Distribution: {dict(true_class_distribution)}")
-
-            accuracy = correct_predictions / len(validation_data)
-            self.logger.info(f"Accuracy: {accuracy:.4f}")
-
-            metrics = {
-                "accuracy": accuracy,
-                "total_samples": len(validation_data),
-                "correct_predictions": correct_predictions,
-                "predicted_class_distribution": dict(predicted_class_distribution),
-                "correct_class_distribution": dict(correct_class_distribution),
-                "true_class_distribution": dict(true_class_distribution)
-            }
-
-            return classifications, metrics
-
-        return classifications, {"predicted_class_distribution": dict(predicted_class_distribution)}
-
-    def analyze_fusion_results(self, fusion_results):
-        """Analyze the distribution of probabilities from fusion results"""
-        # Extract probabilities for each category
-        valid_benign_probs = [r["probabilities"]["valid_benign"] for r in fusion_results]
-        valid_attack_probs = [r["probabilities"]["valid_attack"] for r in fusion_results]
-        invalid_benign_probs = [r["probabilities"]["invalid_benign"] for r in fusion_results]
-        invalid_attack_probs = [r["probabilities"]["invalid_attack"] for r in fusion_results]
-
-        # Calculate summary statistics
-        categories = ["Valid Benign", "Valid Attack", "Invalid Benign", "Invalid Attack"]
-        all_probs = [valid_benign_probs, valid_attack_probs, invalid_benign_probs, invalid_attack_probs]
-
-        for cat, probs in zip(categories, all_probs):
-            self.logger.info(
-                f"{cat}: Mean={np.mean(probs):.4f}, Median={np.median(probs):.4f}, Max={np.max(probs):.4f}")
-
-        # You could add additional visualizations or analysis here
-
-    # -- Validate -- #
+#########################################################################
+#                          VALIDATION METHODS                           #
+#########################################################################
     def validation_disc(self):
         """
         Evaluate the discriminator on the validation set.
         Separates benign and attack samples for more detailed metrics.
         """
-        # --- Prepare validation data ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # VALIDATION DATA PREPARATION
+        # ═══════════════════════════════════════════════════════════════════════
         val_valid_labels = np.ones((len(self.x_val), 1))
 
-        # Ensure y_val is one-hot encoded if needed
+        # ─── Ensure One-Hot Encoding ───
         if self.y_val.ndim == 1 or self.y_val.shape[1] != self.num_classes:
             y_val_onehot = tf.one_hot(self.y_val, depth=self.num_classes)
         else:
             y_val_onehot = self.y_val
 
-        # --- Separate benign and attack samples ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # SEPARATE BENIGN AND ATTACK SAMPLES
+        # ═══════════════════════════════════════════════════════════════════════
         if self.y_val.ndim > 1:
             val_labels_idx = tf.argmax(self.y_val, axis=1)
         else:
@@ -801,19 +616,21 @@ class CentralACGan:
         benign_indices = tf.where(tf.equal(val_labels_idx, 0))
         attack_indices = tf.where(tf.equal(val_labels_idx, 1))
 
-        # Create benign and attack validation sets
+        # ─── Create Separated Validation Sets ───
         x_val_benign = tf.gather(self.x_val, benign_indices[:, 0])
         y_val_benign_onehot = tf.gather(y_val_onehot, benign_indices[:, 0])
         x_val_attack = tf.gather(self.x_val, attack_indices[:, 0])
         y_val_attack_onehot = tf.gather(y_val_onehot, attack_indices[:, 0])
 
-        # Fix shape issues
+        # ─── Fix Shape Issues ───
         if len(x_val_benign.shape) > 2:
             x_val_benign = tf.reshape(x_val_benign, (x_val_benign.shape[0], -1))
         if len(x_val_attack.shape) > 2:
             x_val_attack = tf.reshape(x_val_attack, (x_val_attack.shape[0], -1))
 
-        # --- Generate fake data ---
+        # ═══════════════════════════════════════════════════════════════════════
+        # GENERATE FAKE VALIDATION DATA
+        # ═══════════════════════════════════════════════════════════════════════
         noise = tf.random.normal((len(self.x_val), self.latent_dim))
         fake_labels = tf.random.uniform(
             (len(self.x_val),), minval=0, maxval=self.num_classes, dtype=tf.int32
@@ -822,31 +639,35 @@ class CentralACGan:
         fake_valid_labels = np.zeros((len(self.x_val), 1))
         generated_data = self.generator.predict([noise, fake_labels])
 
-        # --- Evaluate on each data type ---
-        # Benign evaluation
+        # ═══════════════════════════════════════════════════════════════════════
+        # EVALUATE ON EACH DATA TYPE
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Benign Evaluation ───
         benign_valid_labels = np.ones((len(x_val_benign), 1))
         d_loss_benign = self.discriminator.evaluate(
             x_val_benign, [benign_valid_labels, y_val_benign_onehot], verbose=0
         )
 
-        # Attack evaluation
+        # ─── Attack Evaluation ───
         attack_valid_labels = np.ones((len(x_val_attack), 1))
         d_loss_attack = self.discriminator.evaluate(
             x_val_attack, [attack_valid_labels, y_val_attack_onehot], verbose=0
         )
 
-        # Fake data evaluation
+        # ─── Fake Data Evaluation ───
         d_loss_fake = self.discriminator.evaluate(
             generated_data, [fake_valid_labels, fake_labels_onehot], verbose=0
         )
 
-        # --- Apply weighted loss calculation ---
-        # Log distribution
+        # ═══════════════════════════════════════════════════════════════════════
+        # APPLY WEIGHTED LOSS CALCULATION
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Log Data Distribution ───
         benign_ratio = len(x_val_benign) / (len(x_val_benign) + len(x_val_attack))
         attack_ratio = len(x_val_attack) / (len(x_val_benign) + len(x_val_attack))
         self.logger.info(f"Validation data distribution: Benign {benign_ratio:.2f}, Attack {attack_ratio:.2f}")
 
-        # Use the same weighted loss function as training
+        # ─── Calculate Weighted Loss ───
         total_loss, metrics = self.calculate_weighted_loss(
             d_loss_benign,
             d_loss_attack,
@@ -857,7 +678,7 @@ class CentralACGan:
             class_weight=0.6
         )
 
-        # Additional logging that might be specific to validation
+        # ─── Additional Validation Logging ───
         self.logger.info("Validation Discriminator Evaluation:")
         self.logger.info(f"Weighted Total Loss: {total_loss:.4f}")
 
@@ -965,7 +786,9 @@ class CentralACGan:
         }
         return custom_nids_loss, metrics
 
-    # -- Evaluate -- #
+    #########################################################################
+    #                          EVALUATION METHODS                          #
+    #########################################################################
     def evaluate(self, X_test=None, y_test=None):
         if X_test is None or y_test is None:
             X_test = self.x_test
@@ -1234,7 +1057,272 @@ class CentralACGan:
         # Log the overall evaluation metrics using our logging function
         self.log_evaluation_metrics(d_eval_metrics, g_eval_metrics, nids_eval_metrics, fusion_metrics)
 
-    # -- Saving Models -- #
+#########################################################################
+#                         LOSS CALCULATION METHODS                     #
+#########################################################################
+
+    def calculate_weighted_loss(self, d_loss_benign, d_loss_attack, d_loss_fake,
+                                attack_weight=0.7, benign_weight=0.3,
+                                validity_weight=0.4, class_weight=0.6):
+        """
+        Calculate weighted discriminator loss combining benign, attack, and fake samples.
+        """
+        # ═══════════════════════════════════════════════════════════════════════
+        # LOSS COMPONENT EXTRACTION
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Benign Sample Components ───
+        d_loss_benign_validity = d_loss_benign[1]
+        d_loss_benign_class = d_loss_benign[2]
+        d_benign_valid_acc = d_loss_benign[3]
+        d_benign_class_acc = d_loss_benign[4]
+
+        # ─── Attack Sample Components ───
+        d_loss_attack_validity = d_loss_attack[1]
+        d_loss_attack_class = d_loss_attack[2]
+        d_attack_valid_acc = d_loss_attack[3]
+        d_attack_class_acc = d_loss_attack[4]
+
+        # ─── Fake Sample Components ───
+        d_loss_fake_validity = d_loss_fake[1]
+        d_loss_fake_class = d_loss_fake[2]
+        d_fake_valid_acc = d_loss_fake[3]
+        d_fake_class_acc = d_loss_fake[4]
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # WEIGHTED LOSS CALCULATIONS
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Weighted Validity Loss ───
+        d_loss_validity_real = (benign_weight * d_loss_benign_validity) + (attack_weight * d_loss_attack_validity)
+        d_loss_validity = 0.5 * (d_loss_validity_real + d_loss_fake_validity)
+
+        # ─── Weighted Class Loss ───
+        d_loss_class_real = (benign_weight * d_loss_benign_class) + (attack_weight * d_loss_attack_class)
+        d_loss_class = 0.5 * (d_loss_class_real + d_loss_fake_class)
+
+        # ─── Combined Loss with Task Weights ───
+        d_loss = (validity_weight * d_loss_validity) + (class_weight * d_loss_class)
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # METRICS CALCULATION FOR LOGGING
+        # ═══════════════════════════════════════════════════════════════════════
+        # ─── Total Losses for Each Sample Type ───
+        d_loss_benign_total = benign_weight * (d_loss_benign[0])
+        d_loss_attack_total = attack_weight * (d_loss_attack[0])
+        d_loss_fake_total = 0.5 * (d_loss_fake[0])
+        d_loss_total = d_loss_benign_total + d_loss_attack_total + d_loss_fake_total
+
+        # ─── Weighted Accuracies ───
+        d_valid_acc_real = (benign_weight * d_benign_valid_acc + attack_weight * d_attack_valid_acc)
+        d_class_acc_real = (benign_weight * d_benign_class_acc + attack_weight * d_attack_class_acc)
+
+        # ─── Create Metrics Dictionary ───
+        d_metrics = {
+            "Total Loss": f"{d_loss_total:.4f}",
+            "Benign Loss": f"{d_loss_benign[0]:.4f}",
+            "Attack Loss": f"{d_loss_attack[0]:.4f}",
+            "Fake Loss": f"{d_loss_fake[0]:.4f}",
+            "Validity Loss": f"{d_loss_validity:.4f}",
+            "Class Loss": f"{d_loss_class:.4f}",
+            "Benign Validity Acc": f"{d_benign_valid_acc * 100:.2f}%",
+            "Attack Validity Acc": f"{d_attack_valid_acc * 100:.2f}%",
+            "Fake Validity Acc": f"{d_fake_valid_acc * 100:.2f}%",
+            "Benign Class Acc": f"{d_benign_class_acc * 100:.2f}%",
+            "Attack Class Acc": f"{d_attack_class_acc * 100:.2f}%",
+            "Fake Class Acc": f"{d_fake_class_acc * 100:.2f}%"
+        }
+
+        return d_loss, d_metrics
+
+    def calculate_jsd_loss(self, real_outputs, fake_outputs):
+        """
+        Calculate Jensen-Shannon Divergence Loss between real and fake sample distributions.
+        This can be used as an alternative or supplement to binary cross entropy for
+        measuring discriminator performance.
+        """
+        # ─── Average Probabilities ───
+        p_real = tf.reduce_mean(real_outputs, axis=0)
+        p_fake = tf.reduce_mean(fake_outputs, axis=0)
+
+        # ─── Calculate Mixtures ───
+        p_mixture = 0.5 * (p_real + p_fake)
+
+        # ─── Calculate JS Divergence ───
+        kl_real_mix = tf.reduce_sum(p_real * tf.math.log(p_real / p_mixture + 1e-10))
+        kl_fake_mix = tf.reduce_sum(p_fake * tf.math.log(p_fake / p_mixture + 1e-10))
+
+        # ─── JS Divergence ───
+        jsd = 0.5 * (kl_real_mix + kl_fake_mix)
+
+        return jsd
+
+    def nids_loss(self, real_output, fake_output):
+        """
+        Compute the NIDS loss on real and fake samples.
+        For real samples, the target is 1 (benign), and for fake samples, 0 (attack).
+        Returns a scalar loss value.
+        """
+        # ─── Define Labels ───
+        real_labels = tf.ones_like(real_output)
+        fake_labels = tf.zeros_like(fake_output)
+
+        # ─── Define Loss Function ───
+        bce = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+
+        # ─── Calculate Outputs ───
+        real_loss = bce(real_labels, real_output)
+        fake_loss = bce(fake_labels, fake_output)
+
+        # ─── Sum Total Loss ───
+        total_loss = real_loss + fake_loss
+        return total_loss.numpy()
+
+#########################################################################
+#                    PROBABILISTIC FUSION METHODS                      #
+#########################################################################
+    def probabilistic_fusion(self, input_data):
+        """
+        Apply probabilistic fusion to combine validity and class predictions.
+        Returns combined probabilities for all four possible outcomes.
+        """
+        # ═══════════════════════════════════════════════════════════════════════
+        # GET DISCRIMINATOR PREDICTIONS
+        # ═══════════════════════════════════════════════════════════════════════
+        validity_scores, class_predictions = self.discriminator.predict(input_data)
+
+        total_samples = len(input_data)
+        results = []
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # CALCULATE JOINT PROBABILITIES FOR EACH SAMPLE
+        # ═══════════════════════════════════════════════════════════════════════
+        for i in range(total_samples):
+            # ─── Validity Probabilities ───
+            p_valid = validity_scores[i][0]  # Probability of being valid/real
+            p_invalid = 1 - p_valid  # Probability of being invalid/fake
+
+            # ─── Class Probabilities ───
+            p_benign = class_predictions[i][0]  # Probability of being benign
+            p_attack = class_predictions[i][1]  # Probability of being attack
+
+            # ─── Calculate Joint Probabilities ───
+            p_valid_benign = p_valid * p_benign
+            p_valid_attack = p_valid * p_attack
+            p_invalid_benign = p_invalid * p_benign
+            p_invalid_attack = p_invalid * p_attack
+
+            # ─── Store All Probabilities ───
+            probabilities = {
+                "valid_benign": p_valid_benign,
+                "valid_attack": p_valid_attack,
+                "invalid_benign": p_invalid_benign,
+                "invalid_attack": p_invalid_attack
+            }
+
+            # ─── Find Most Likely Outcome ───
+            most_likely = max(probabilities, key=probabilities.get)
+
+            # ─── Create Result Dictionary ───
+            result = {
+                "classification": most_likely,
+                "probabilities": probabilities
+            }
+
+            results.append(result)
+
+        return results
+
+    def validate_with_probabilistic_fusion(self, validation_data, validation_labels=None):
+        """
+        Evaluate model using probabilistic fusion and calculate metrics if labels are available.
+        """
+        # ═══════════════════════════════════════════════════════════════════════
+        # APPLY PROBABILISTIC FUSION
+        # ═══════════════════════════════════════════════════════════════════════
+        fusion_results = self.probabilistic_fusion(validation_data)
+
+        # ─── Extract Classifications ───
+        classifications = [result["classification"] for result in fusion_results]
+
+        # ─── Count Class Distribution ───
+        predicted_class_distribution = Counter(classifications)
+        self.logger.info(f"Predicted Class Distribution: {dict(predicted_class_distribution)}")
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # CALCULATE ACCURACY IF LABELS AVAILABLE
+        # ═══════════════════════════════════════════════════════════════════════
+        if validation_labels is not None:
+            correct_predictions = 0
+            correct_classifications = []
+            true_classifications = []
+
+            for i, result in enumerate(fusion_results):
+                # ─── Get True Label ───
+                if isinstance(validation_labels, np.ndarray) and validation_labels.ndim > 1:
+                    true_class_idx = np.argmax(validation_labels[i])
+                else:
+                    true_class_idx = validation_labels[i]
+
+                true_class = "benign" if true_class_idx == 0 else "attack"
+
+                # NOTE: For validation data (which is real), expected validity is "valid"
+                true_validity = "valid"
+
+                # ─── Construct True Combined Label ───
+                true_combined = f"{true_validity}_{true_class}"
+                true_classifications.append(true_combined)
+
+                # ─── Check Prediction Match ───
+                if result["classification"] == true_combined:
+                    correct_predictions += 1
+                    correct_classifications.append(result["classification"])
+
+            # ─── Calculate Distributions ───
+            correct_class_distribution = Counter(correct_classifications)
+            true_class_distribution = Counter(true_classifications)
+
+            self.logger.info(f"True Class Distribution: {dict(true_class_distribution)}")
+
+            # ─── Calculate Final Accuracy ───
+            accuracy = correct_predictions / len(validation_data)
+            self.logger.info(f"Accuracy: {accuracy:.4f}")
+
+            # ─── Create Metrics Dictionary ───
+            metrics = {
+                "accuracy": accuracy,
+                "total_samples": len(validation_data),
+                "correct_predictions": correct_predictions,
+                "predicted_class_distribution": dict(predicted_class_distribution),
+                "correct_class_distribution": dict(correct_class_distribution),
+                "true_class_distribution": dict(true_class_distribution)
+            }
+
+            return classifications, metrics
+
+        return classifications, {"predicted_class_distribution": dict(predicted_class_distribution)}
+
+    def analyze_fusion_results(self, fusion_results):
+        """Analyze the distribution of probabilities from fusion results"""
+        # ═══════════════════════════════════════════════════════════════════════
+        # EXTRACT PROBABILITIES BY CATEGORY
+        # ═══════════════════════════════════════════════════════════════════════
+        valid_benign_probs = [r["probabilities"]["valid_benign"] for r in fusion_results]
+        valid_attack_probs = [r["probabilities"]["valid_attack"] for r in fusion_results]
+        invalid_benign_probs = [r["probabilities"]["invalid_benign"] for r in fusion_results]
+        invalid_attack_probs = [r["probabilities"]["invalid_attack"] for r in fusion_results]
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # CALCULATE SUMMARY STATISTICS
+        # ═══════════════════════════════════════════════════════════════════════
+        categories = ["Valid Benign", "Valid Attack", "Invalid Benign", "Invalid Attack"]
+        all_probs = [valid_benign_probs, valid_attack_probs, invalid_benign_probs, invalid_attack_probs]
+
+        for cat, probs in zip(categories, all_probs):
+            self.logger.info(
+                f"{cat}: Mean={np.mean(probs):.4f}, Median={np.median(probs):.4f}, Max={np.max(probs):.4f}")
+
+#########################################################################
+#                           MODEL SAVING METHODS                       #
+#########################################################################
     def save(self, save_name):
         # Save each submodel separately
         self.generator.save(f"../pretrainedModels/generator_local_ACGAN_{save_name}.h5")
