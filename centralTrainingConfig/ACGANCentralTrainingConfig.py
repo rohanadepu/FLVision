@@ -402,6 +402,8 @@ class CentralACGan:
 
                     d_step_losses.append(float(d_metrics['Total Loss']))
 
+                #--- End Of Discriminator Ratio Loop ---#
+
                 # Store average discriminator loss for this step
                 avg_d_loss = sum(d_step_losses) / len(d_step_losses)
                 epoch_d_losses.append(avg_d_loss)
@@ -429,6 +431,8 @@ class CentralACGan:
                 # Print progress every few steps
                 if step % max(1, actual_steps // 10) == 0:
                     print(f"Step {step}/{actual_steps} - D loss: {avg_d_loss:.4f}, G loss: {g_loss[0]:.4f}")
+
+            #--- End Of Steps Loop ---#
 
             # Collect metrics for this epoch
             avg_epoch_d_loss = sum(epoch_d_losses) / len(epoch_d_losses)
@@ -490,6 +494,8 @@ class CentralACGan:
 
             # -- Log the metrics for epoch -- #
             self.log_epoch_metrics(epoch, d_val_metrics, g_val_metrics, nids_val_metrics, fusion_metrics)
+
+        #--- End Of Epochs Loop---#
 
         # Return the training history for analysis
         return {
