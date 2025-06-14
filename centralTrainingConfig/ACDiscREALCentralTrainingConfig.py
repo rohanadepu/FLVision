@@ -54,7 +54,7 @@ from sklearn.utils import shuffle
 class CentralACDiscREAL:
     def __init__(self, discriminator, generator, nids, x_train, x_val, y_train, y_val, x_test, y_test, BATCH_SIZE,
                  noise_dim, latent_dim, num_classes, input_dim, epochs, steps_per_epoch, learning_rate,
-                 use_class_labels=True, log_file="training.log"):
+                 log_file="training.log", use_class_labels=True):
         # -- models
         self.generator = generator
         self.discriminator = discriminator
@@ -225,7 +225,7 @@ class CentralACDiscREAL:
 
         # -- Apply label smoothing -- #
         # Create smoothed labels for real data (only training with real data)
-        valid_smoothing_factor = 0.15
+        valid_smoothing_factor = 0.08
         valid_smooth = tf.ones((self.batch_size, 1)) * (1 - valid_smoothing_factor)
 
         self.logger.info(f"Using valid label smoothing with factor: {valid_smoothing_factor}")
