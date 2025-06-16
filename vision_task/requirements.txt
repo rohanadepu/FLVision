@@ -1,4 +1,0 @@
-torch
-ultralytics==8.2.54
-flwr
-numpy

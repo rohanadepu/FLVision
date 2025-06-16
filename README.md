@@ -1,276 +1,122 @@
 # HFL-DNN-GAN-NIDS
 
-## Faculty Advisors:
+A Hierarchical Federated Learning and GAN-based Network Intrusion Detection System for private and IoT networks.
 
-* **Dr. Qu, Chenqi (2023-2025)**
+## Table of Contents
 
-* **Dr. Prasad, Calyam (2023-2025)**
+- [Team](#team)
+- [Prerequisites](#prerequisites)
+- [Installation & Setup](#installation--setup)
+- [Datasets](#datasets)
+- [Usage](#usage)
+  - [Federated Training (Host)](#federated-training-host)
+  - [Localized & Federated Training (Client)](#localized--federated-training-client)
+- [Architecture](#architecture)
+- [Models](#models)
+- [License](#license)
 
-* **Dr. Reshmi Mitra (2024-2025)**
+---
 
+## Team
 
-## Graduate Mentors:
+**Faculty Advisors (2023–2025)**
 
-* **Mogollon, Juan (2024-2025):** Computer Vision Specialist, AI Engineer
+- Dr. Chenqi Qu
+- Dr. Prasad Calyam
+- Dr. Reshmi Mitra
 
-* **Haughton, Trevontae (2024):** AERPAW Test-Bed Specialist, FlyPaw Manager, End-to-End Engineer
+**Graduate Mentors (2024–2025)**
 
+- Juan Mogollón — Computer Vision & FL Specialist
+- Trevontae Haughton — AERPAW & FL Engineer
+- Saketh Poduvu — Cyberattack & FL Specialist
 
-## Undergraduate Researchers:
+**Undergraduate Researchers**
 
-* **Kevin Kostage (2023-2025):** Deep Learning Engineer, End-to-End Engineer, Cloud-Network Specialist
+- Kevin Kostage — Lead ML & Network Specialist
+- Paulo Drefahl — Full‑Stack & Network Specialist
+- Sean Peppers — Deep Learning & Experimentation
+- Rohan Adepu — Cyberattack & Experimentation
+- Jenaya Monroe — Drone Hardware & Testbed
 
-* **Paulo Drefahl (2024-2025):** Network Engineer, Cyber-Security Specialist, Full-Stack Developer
+---
 
-* **Sean Peppers (2024-2025):** Deep Learning Engineer, Cyber-Attack Specialist, Experiment Tech.
+## Prerequisites
 
-* **Rohan Adepu (2024):** Cyber-Attack Specialist, Experiment Tech.
+- Ubuntu 22.04 LTS with CUDA 12 drivers (P100, M40 support)
+- Python 3.8+
 
-* **Jenaya Monroe (2024):** Drone Hardware Specialist, Test-Bed Manager
+---
 
+## Installation & Setup
 
-## Previous Works
+```bash
+# Clone the repository
+git clone https://github.com/Keko787/HFL-DNN-GAN-IDS.git
+cd HFL-DNN-GAN-IDS
 
-_**Federated Learning-enabled Network Incident Anomaly Detection Optimization for Drone Swarms**_
-* **Github Repo (Forked Repo)**: https://github.com/rohanadepu/FLVision
-* **Under Peer Review**: https://aerpaw.org/publications/
+# [Option 1] AERPAW node setup
+python3 AppSetup/AERPAW_node_Setup.py
 
-_**Enhancing Autonomous Intrusion Detection System with Generative Adversarial Networks:**_ 
-* **Paper:** [https://www.researchgate.net/publication/384221099_Enhancing_Autonomous_Intrusion_Detection_System_with_Generative_Adversarial_Networks](https://ieeexplore.ieee.org/document/10678662) 
-* **Github Repo:** https://github.com/Keko787/Generating-a-Balanced-IoT-Cyber-Attack-Dataset-with-GAN-COIL-Collaboration-
+# [Option 2] Chameleon node setup
+python3 AppSetup/Chameleon_node_Setup.py
 
-**_Enhancing Drone Video Analytics Security Management using an AERPAW Testbed:_** 
-* **Paper:** [https://ieeexplore.ieee.org/document/10620812](https://ieeexplore.ieee.org/document/10620812)
+```
 
-## Posters
-![image](https://github.com/user-attachments/assets/4d3ac9f2-0273-419a-9fe5-89205500a48e)
-![image](https://github.com/user-attachments/assets/e08d74a9-5690-4275-a28f-f3aa049a95d0)
-<img width="1005" alt="image" src="https://github.com/user-attachments/assets/5b4b6b6c-ac27-41d0-ac4f-19e25c9aa0c0">
+---
 
+## Datasets
 
+1. Download **CIC IoT2023** from [CIC website](https://www.unb.ca/cic/datasets/iotdataset-2023.html).
+2. Upload `CICIoT2023.zip` to `$HOME/datasets/`, then:
 
+```bash
+unzip $HOME/datasets/CICIoT2023.zip -d $HOME/datasets/CICIoT2023
+```
 
-## Purpose
-* To develop lightweight Network Intrusion Detection System for Private Networks and IoT Clusters
-* To develop secure, scalable, robust training & fine-tuning for Deep Neural Networks and Generative AI
-* To utilize Cloud Networking/Computing **_(Chameleon, HiperGator, AERPAW Cloud TestBeds)_** to computationally offload and decentralize training DNN models
+---
 
-## Models 
-* Deep Neural Network Binary-Classifier for detecting Network Traffic Intrusions - **Network Intrusion Detection Model/System (NIDM/NIDS)**
-* Deep Neural Network Multi-Categorical-Classifier for detecting Network Traffic Intrusions & Synthetic Traffic - **Discriminator (Disc.)**
-* Generative Deep Neural Network Model for generating synthetic Network Traffic & Intrusions - **Generator (Gen.)**
-* Combined Adversarial Deep Neural Network Generative & Classification Model - **Generative Adversarial Network (GAN)**
+## Usage
 
-## Hierarchal-Federated-Training Pipelines
-* GAN model to support other classifiers:
-  * The GAN model can be fine-tuned centrally or in a hybrid-decentralized manner.
-  * The Classifier model can be finetune in a hybrid-decentralized approach with advance training from the GAN model by augmenting its training data and providing adversarial training.
+### Federated Training (Host)
 
+```bash
+python3 Host/hflTrainingHost.py --help
+```
 
-* Stand-alone decentralized GAN that has separated the sub-models:
-  * Training the GAN model with both sub-models together takes a lot of computational resources. Especially the Generator model.
-  * Partitioning the GAN model to have the discriminator be fine-tuned hybrid-decentralized approach.
-  * The generator will be fined-tuned centrally or in a hybrid-decentralized manner.
+### Localized & Federated Training (Client)
 
+```bash
+python3 Client/TrainingClient.py --help
+# Default uses CICIOT2023 dataset; use --dataset IOTBOTNET for IoTBotnet.
+```
 
-* Partitioned GAN Model with a Discriminator with 2 phases of separate training:
-  * The Discriminator is classifier that with an output dedicated to determining whether the data is fake or real. This can be selectively trained during the training process, allowing the model to train on classifying less computationally demanding classes.
-  * Discriminator Split Training describes the discriminator model having to split the training process between classifying anomalies in network traffic in a hybrid-decentralized manner and discriminating synthetic traffic centrally or in hybrid decentralized manner.
 
 
-* Each HFL Model Training Pipeline is tested to determine which is the most computationally efficient model & training strategy. 
+---
 
-## Proposed System Architecture
-* Smart Home Data Collection
-  * The edge devices will be responsible for collecting network traffic data
-  * Low-level host servers could provide balanced synthetic generated data to conduct advance training after model aggregation before returning the model to the clients.
-  * Another method to send data is to send packets of data on the network modeled by the generative model.
+## Architecture
 
 
-* Edge Data Analysis
-  * Edge Devices and low-level host servers will be distributed pretrained model to be fine-tuned.
-  * Edge Devices will manage the interactive device management UI.
-  * Edge Devices are also responsible for monitoring the network traffic and additional metrics such as usage.
 
+A three-tier framework:
 
-* Cloud Data Interpretation
-  * The remote cloud servers will be responsible for pretraining the models and distributing them across the edge servers.
-  * The remote nodes will be the high-level host server and manage the overall fine-tuning process.
+1. **Edge Devices** capture traffic and perform local analysis.
+2. **Edge Servers** aggregate client updates and host the UI.
+3. **Cloud Server** pre-trains models and orchestrates federated rounds.
 
-![img_2.png](diagrams/SystemArchitecture.png)
-Figure: Overview of The Hierarchical Federated Learning (HFL) Framework for Smart Home Data Collection, Analysis and Interpretation Using CHI@Edge and Chameleon Cloud Infrastructure
+---
 
-## Propose Network Topology
+## Models
 
-* The Edge Device is connected to the router to read the network traffic feed of the whole private network.
+- **NIDS**: DNN binary classifier for intrusion detection.
+- **Discriminator**: Multi-class classifier (real vs. synthetic).
+- **Generator**: GAN-based traffic synthesizer.
+- **GAN**: Combined model for adversarial data generation and classification.
 
-* A desktop or laptop can have the menu to interact with the Edge Device is deployed.
+---
 
-* The Edge Device is the device responsible for reading the network traffic feed, providing additional insights about the network, and detecting network intrusions using the NIDS system
+## License
 
-* The Edge Servers and Remote Servers also have Web-Services to provide metrics and status of the Cloud Servers
+This project is licensed under the [MIT License](LICENSE).
 
-* The Edge Servers act as the host for the Edge Device Client Models, while the Remote Server act as the host for the Edge Server Client Models
-
-* To perform Federated Training, it takes a minimum of two Edge Devices or Servers as clients or connecting to the host server
-
-
-![img_4.png](diagrams/NetworkTopology.png)
-Figure: Topology of Network with Physical Devices and Cloud Nodes
-
-
-## Experiment Trials
-* Experiment 1:
-  * Testing deep learning model strategies & hierarchal federated learning training pipelines to determine most efficient computational load and best security.
-    * Trial set 1:  HFL Pipeline with dedicated IDS model & Non-Partitioned GAN model
-    * Trial set 2: HFL Pipeline with a Partitioned GAN model
-    * Trial set 3: HFL Pipeline with a Partitioned GAN model & Partitioned Training Strategy for Discriminator.
-
-* Experiment 2:
-  * Testing Cyberattack scenarios with various defense strategies, utility enhancements, & hyperparameter tuning to improve models used in the system.
-    * Trial set 1: Defense Strategies
-    * Trial set 2: Utility Enhancements & Hyperparameter Tuning
-    * Trail set 3: All
-
-* Key Measurements:
-  * Hardware Performance Metrics: CPU/GPU Utilization, RAM & VRAM usage, Power/Battery Drain, Bandwidth, Latency
-  * Model Performance Metrics: Accuracy, Precision, Recall, AUC-ROC, Log-Cosh
-  * System Security: Detection, Detection-Latency, Resilience Against Interception & Adversarial Attacks
-
-
-## Cyber Attack Pipeline
-
-### Network Attacks
-
-* MITM:
-  * Intercepting certain packets transmitted between certain clients and edge resources hosting the training process.
-  * DDOS & other detectable attack for the system
-  * Attacks that the system is limited to.
-
-
-
-### Adversarial Attacks
-* Data Poisoning: 
-  * Feature Noise Attack on Training Data.
-  * Feature Noise Attack on Real Data.
-
-
-![img.png](diagrams/DataPoisoningPipeline.png)
-Figure: Data Poisoning Injection Pipeline on AERPAW Server Nodes
-
-## Steps to Run
-
-* **Clone the repo**
-
-* **Run Test Demo with Docker:** 
-  * Open terminal in the _DockerSetup_ directory
-    *       docker-compose up
-  
-  * If there was an error, run:
-    *       docker build -t flwr-server -f Dockerfile.server.
-    
-            docker build -t flwr-client -f Dockerfile.client.
-    
-            docker-compose build
-    
-            docker-compose up
-
-    
-* **Run with AERPAW:**
-  * Connect to TestBed:
-  
-  * Once Connected to the Portable-Server Client Nodes: Go to _FLVision/hflClient_ directory run any of the Client files to initiate the devices to connect to the host server to initiate training 
-    *       python3 [name of program]
-      * use "--dataset IOTBOTNET" after that statement to use the iotbotnet dataset, if not the script will use the CICIOT Dataset.
-  
-
-* Once Connected to the Fixed-Server Host nodes: Go to _FLVision/hflServer/_ to run the various server scripts.
-  * To Run the basic server script with no server-side saving.
-    *     python3 serverBase.py
-
-
-## Client Training Process Summary:
-  * **Imports / ENV set up**
-  * **Script Arguments parsing**
-  * **Data Load / Processing CICIOT**
-  * * Loading Arguments
-    * Feature and Label Mappings
-    * Loading
-      * Helper Functions
-      * Sampling Files & Train/Test Split
-      * Extracting to Data from Sampled Files into respective Dataframes
-    * Processing
-      * Feature Selection
-      * Encoding
-      * Normalizing
-      * X y Split & assigned to model
-
-
-  * **Data Load / Processing IOTBOTNET**
-    * Feature Mappings
-    * Loading
-    * * Loading Arguments 
-      * Helper Functions
-      * Loading Specific Attack Data into Dataframes
-      * Combine Specific Attacks into a Single Dataframe & Make it Binary Labels
-    * Processing
-      * Cleaning
-      * Train Test Split
-      * Feature Selection
-      * Encoding
-      * Normalizing
-      * X y Split & assigned to model
-  
-
-  * **NIDS Model Setup**
-    * Main Hyperparameter defined
-    * CICIOT MODEL Layer structure defined
-    * IOTBOTN MODEL Layer Structure defined
-    * Default Optimizer & Compile Model
-    * Model Analysis
-
-
-  * **Discriminator Model Setup**
-    * Main Hyperparameters defined
-    * MODEL Layer Structure defined
-    * Default Optimizer & Compile Model
-    * Model Analysis
-
-
-  * **Generator Model Setup**
-    * Main Hyperparameters defined
-    * MODEL Layer structure defined
-    * Default Optimizer & Compile Model
-    * Model Analysis
-
-
-  * **GAN Model Setup**
-    * Main Hyperparameters defined
-    * Combine defined DISC. & GEN. MODEL Layer structures
-    * Default Optimizer & Compile Model
-    * Model Analysis
-    
-    
-  * **Initiate Client**
-
-
-  * **Federated Learning Setup**
-    * Client connects to host server to start training process
-    * Setting param Def
-    * Fitting Model Def
-    * Evaluating Model Def
-    * Distributes Aggregated Model Back to Clients
-
-## Server Hosting Process
-* Load Arguments
-* Initiate the gRPC server
-* Initiate the Server Config & Strategy
-
-* If performing Centralized Training on Global Model:
-  * It will follow same Data loading/processes, model initiation, pipeline in client to properly train.
-
-
-
-  
-
-  
