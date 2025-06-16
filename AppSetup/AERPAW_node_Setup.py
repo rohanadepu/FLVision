@@ -56,10 +56,10 @@ if __name__ == "__main__":
 
     # --- Settings --- #
 
-    base_directory = "/home/root"  # Replace with your base directory path
-    requirements_file_path = "/home/root/HFL-DNN-GAN-IDS/AppSetup/requirements_edge.txt"  # Replace with the path to your requirements_edge.txt
+    base_directory = "/root"  # Replace with your base directory path
+    requirements_file_path = "/root/HFL-DNN-GAN-IDS/AppSetup/requirements_edge.txt"  # Replace with the path to your requirements_edge.txt
     git_repo_url = "https://github.com/keko787/HFL-DNN-GAN-IDS.git"  # Replace with your Git repository URL
-    clone_dir = "/home/root/HFL-DNN-GAN-IDS"
+    clone_dir = "/root/HFL-DNN-GAN-IDS"
 
     # --- Steps --- #
 
